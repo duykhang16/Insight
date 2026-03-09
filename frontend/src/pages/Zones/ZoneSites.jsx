@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Layers, Server, MapPin, ChevronRight, ChevronLeft, RefreshCw, Wifi, Search, Filter, ArrowUp, ArrowDown, Activity, WifiOff, CloudOff, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Layers, Server, MapPin, ChevronRight, ChevronLeft, RefreshCw, Wifi, Search, Filter, ArrowUp, ArrowDown, Activity, WifiOff, CloudOff, AlertTriangle, CheckCircle2, Edit3, Check, X } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 import { useSite } from '../../context/SiteContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 const STATUS_BADGE = {
   up: { label: 'Online', cls: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
@@ -10,6 +11,7 @@ const STATUS_BADGE = {
 };
 
 const ZoneSites = () => {
+  const { t } = useLanguage();
   const { zoneId } = useParams();
   const navigate = useNavigate();
   const { sites, fetchSites, loadingSites } = useSite();
@@ -22,11 +24,17 @@ const ZoneSites = () => {
   const [siteMetrics, setSiteMetrics] = useState({});
   const fetchedSiteIds = useRef(new Set());
 
+  // Editing state
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editNameValue, setEditNameValue] = useState('');
+  const [savingName, setSavingName] = useState(false);
+
   const fetchZone = useCallback(async () => {
     setLoadingZone(true);
     try {
       const res = await apiClient.get(`/zones/${zoneId}`);
       setZone(res.data);
+      setEditNameValue(res.data.name || '');
     } catch (err) {
       console.error('Failed to fetch zone:', err);
     } finally {
@@ -43,6 +51,24 @@ const ZoneSites = () => {
     fetchedSiteIds.current.clear(); // Clear so it re-fetches site metrics
     fetchZone();
     fetchSites();
+  };
+
+  const handleSaveName = async () => {
+    if (!editNameValue.trim() || editNameValue === zone?.name) {
+      setIsEditingName(false);
+      return;
+    }
+    setSavingName(true);
+    try {
+      await apiClient.put(`/zones/${zoneId}`, { name: editNameValue.trim() });
+      setZone(prev => ({ ...prev, name: editNameValue.trim() }));
+      setIsEditingName(false);
+    } catch (err) {
+      console.error('Failed to rename zone:', err);
+      setEditNameValue(zone?.name || '');
+    } finally {
+      setSavingName(false);
+    }
   };
 
   // Filter and sort sites belonging to this zone
@@ -115,15 +141,15 @@ const ZoneSites = () => {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-slate-500 p-6">
         <Server className="w-12 h-12 mb-3 text-rose-500 opacity-50" />
-        <h2 className="text-lg font-bold text-white mb-1">Không thể tải dữ liệu Zone</h2>
+        <h2 className="text-lg font-bold text-white mb-1">{t('zones.sites.error_load_zone')}</h2>
         <p className="text-sm text-center max-w-md">
-          Có vẻ như Backend đang gặp sự cố (lỗi 500, mất kết nối DB) hoặc Zone này không tồn tại. Bạn hãy thử tải lại trang hoặc khởi động lại Backend.
+          {t('zones.sites.error_message')}
         </p>
         <button
           onClick={() => navigate('/zones')}
           className="mt-6 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors flex items-center gap-2 text-sm"
         >
-          <ChevronLeft className="w-4 h-4" /> Quay lại danh sách Zone
+          <ChevronLeft className="w-4 h-4" /> {t('zones.sites.error_back_button')}
         </button>
       </div>
     );
@@ -145,7 +171,38 @@ const ZoneSites = () => {
             style={{ backgroundColor: zone?.color || '#3B82F6' }}
           />
           <div>
-            <h1 className="text-lg font-semibold text-white">{zone?.name || 'Zone'}</h1>
+            {isEditingName ? (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={editNameValue}
+                  onChange={(e) => setEditNameValue(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleSaveName(); else if (e.key === 'Escape') setIsEditingName(false); }}
+                  autoFocus
+                  disabled={savingName}
+                  className="bg-[#0F172A] border border-blue-500 rounded px-2 py-0.5 text-sm font-semibold text-white focus:outline-none w-48"
+                />
+                <button
+                  onClick={handleSaveName}
+                  disabled={savingName}
+                  className="p-1 text-emerald-500 hover:bg-slate-800 rounded transition-colors"
+                >
+                  <Check size={16} />
+                </button>
+                <button
+                  onClick={() => setIsEditingName(false)}
+                  disabled={savingName}
+                  className="p-1 text-rose-500 hover:bg-slate-800 rounded transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 group cursor-pointer" onClick={() => { setEditNameValue(zone?.name || ''); setIsEditingName(true); }}>
+                <h1 className="text-lg font-semibold text-white">{zone?.name || 'Zone'}</h1>
+                <Edit3 size={14} className="text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+            )}
             {zone?.description && (
               <p className="text-xs text-slate-500 mt-0.5">{zone.description}</p>
             )}
@@ -159,13 +216,13 @@ const ZoneSites = () => {
             onClick={() => navigate(`/zones/${zoneId}/logs`)}
             className="px-3 py-1.5 text-xs text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 rounded-lg transition-colors"
           >
-            Xem logs
+            {t('zones.sites.button_view_logs')}
           </button>
           <button
             onClick={handleRefresh}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 rounded-lg transition-colors"
           >
-            <RefreshCw className="w-3.5 h-3.5" /> Refresh
+            <RefreshCw className="w-3.5 h-3.5" /> {t('zones.sites.button_refresh')}
           </button>
         </div>
       </div>
@@ -177,7 +234,7 @@ const ZoneSites = () => {
           <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Tìm kiếm site..."
+            placeholder={t('zones.sites.search_placeholder')}
             value={siteSearch}
             onChange={(e) => setSiteSearch(e.target.value)}
             className="w-full bg-[#0F172A] border border-slate-700 rounded-lg text-sm text-slate-200 pl-9 pr-4 py-2 focus:outline-none focus:border-blue-500 transition-colors"
@@ -193,9 +250,9 @@ const ZoneSites = () => {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="bg-transparent text-sm text-slate-200 focus:outline-none appearance-none pr-4 cursor-pointer"
             >
-              <option value="all" className="bg-slate-800">Tất cả trạng thái</option>
-              <option value="up" className="bg-slate-800">Online</option>
-              <option value="down" className="bg-slate-800">Offline</option>
+              <option value="all" className="bg-slate-800">{t('zones.sites.filter_status_all')}</option>
+              <option value="up" className="bg-slate-800">{t('zones.sites.filter_status_online')}</option>
+              <option value="down" className="bg-slate-800">{t('zones.sites.filter_status_offline')}</option>
             </select>
           </div>
 
@@ -206,8 +263,8 @@ const ZoneSites = () => {
               onChange={(e) => setSortConfig({ ...sortConfig, key: e.target.value })}
               className="bg-transparent text-sm text-slate-200 focus:outline-none appearance-none pl-2 pr-4 py-1 cursor-pointer"
             >
-              <option value="name" className="bg-slate-800">Tên site</option>
-              <option value="status" className="bg-slate-800">Trạng thái</option>
+              <option value="name" className="bg-slate-800">{t('zones.sites.sort_by_name')}</option>
+              <option value="status" className="bg-slate-800">{t('zones.sites.sort_by_status')}</option>
             </select>
             <button
               onClick={() => setSortConfig({
@@ -215,7 +272,7 @@ const ZoneSites = () => {
                 direction: sortConfig.direction === 'asc' ? 'desc' : 'asc'
               })}
               className="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded transition-colors"
-              title="Đảo chiều sắp xếp"
+              title={t('zones.sites.sort_direction_tooltip')}
             >
               {sortConfig.direction === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
             </button>
@@ -227,8 +284,8 @@ const ZoneSites = () => {
       {zoneSites.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-slate-500">
           <Server className="w-12 h-12 mb-3 opacity-20" />
-          <p className="text-sm">Zone này chưa có site nào.</p>
-          <p className="text-xs text-slate-600 mt-1">Admin có thể thêm sites vào zone trong Zone Management.</p>
+          <p className="text-sm">{t('zones.sites.empty_state_message')}</p>
+          <p className="text-xs text-slate-600 mt-1">{t('zones.sites.empty_state_hint')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -241,7 +298,7 @@ const ZoneSites = () => {
             const metrics = siteMetrics[id] || { loading: true, health: isUp ? 100 : 0, alerts: 0 };
             const healthScore = metrics.health !== null ? metrics.health : (isUp ? 100 : 0);
             const alertsCount = metrics.alerts || 0;
-            const healthLabel = healthScore >= 80 ? 'Good' : healthScore >= 50 ? 'Fair' : 'Poor';
+            const healthLabel = healthScore >= 80 ? t('zones.sites.card_health_good') : healthScore >= 50 ? t('zones.sites.card_health_fair') : t('zones.sites.card_health_poor');
 
             const indicatorColor = isUp ? 'border-emerald-500' : 'border-rose-500';
             const healthColor = healthScore >= 80 ? 'text-emerald-500' : healthScore >= 50 ? 'text-yellow-500' : 'text-rose-500';
@@ -263,7 +320,7 @@ const ZoneSites = () => {
                 {/* Body - 2 Columns */}
                 <div className="grid grid-cols-2 gap-4 mb-4 flex-1">
                   <div>
-                    <p className="text-xs text-slate-400 mb-1">Health</p>
+                    <p className="text-xs text-slate-400 mb-1">{t('zones.sites.card_health_label')}</p>
                     <div className="flex items-end gap-1.5 h-[24px]">
                       {metrics.loading ? (
                         <div className="w-4 h-4 rounded-full border-2 border-slate-600 border-t-slate-400 animate-spin mt-1" />
@@ -277,7 +334,7 @@ const ZoneSites = () => {
                     {!metrics.loading && <p className={`text-xs mt-1 ${healthColor}`}>{healthLabel}</p>}
                   </div>
                   <div>
-                    <p className="text-xs text-slate-400 mb-1">Alerts</p>
+                    <p className="text-xs text-slate-400 mb-1">{t('zones.sites.card_alerts_label')}</p>
                     <div className="flex items-end gap-1.5 h-[24px]">
                       {metrics.loading ? (
                         <div className="w-4 h-4 rounded-full border-2 border-slate-600 border-t-slate-400 animate-spin mt-1" />
@@ -287,7 +344,7 @@ const ZoneSites = () => {
                         </span>
                       )}
                     </div>
-                    {!metrics.loading && <p className="text-xs mt-1 text-slate-400">{alertsCount > 0 ? 'Active alerts' : 'No alerts'}</p>}
+                    {!metrics.loading && <p className="text-xs mt-1 text-slate-400">{alertsCount > 0 ? t('zones.sites.card_footer_active_alerts') : t('zones.sites.card_footer_no_alerts')}</p>}
                   </div>
                 </div>
 
@@ -296,12 +353,12 @@ const ZoneSites = () => {
                   <div className="flex items-center gap-1.5 text-slate-400">
                     <Activity size={14} />
                     <span className="text-[10px] uppercase tracking-wider">{role || 'Site'}</span>
-                    <span className="text-[10px]">· Last 24 hours</span>
+                    <span className="text-[10px]">· {t('zones.sites.card_footer_last_24h')}</span>
                   </div>
                   {!isUp && (
                     <div className="flex items-center gap-1 text-rose-500">
                       <CloudOff size={14} />
-                      <span className="text-xs font-bold uppercase tracking-wide">Offline</span>
+                      <span className="text-xs font-bold uppercase tracking-wide">{t('zones.sites.card_footer_offline')}</span>
                     </div>
                   )}
                   {isUp && (

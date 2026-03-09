@@ -31,7 +31,7 @@ const ApplicationRow = ({ category }) => {
                         {formatBytes(usage)}
                     </span>
                     <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
-                        24H Traffic
+                        24H Usage
                     </span>
                 </div>
             </td>

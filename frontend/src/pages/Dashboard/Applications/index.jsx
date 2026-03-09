@@ -7,8 +7,10 @@ import ApplicationTable from './ApplicationTable';
 import useIntervalFetch from '../../../hooks/useIntervalFetch';
 import { useSettings } from '../../../context/SettingsContext';
 import SyncIndicator from '../../../components/SyncIndicator';
+import { useLanguage } from '../../../context/LanguageContext';
 
 const Applications = () => {
+    const { t } = useLanguage();
     const [dashboardData, setDashboardData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -39,7 +41,7 @@ const Applications = () => {
             setLastUpdated(new Date());
         } catch (err) {
             console.error("Applications fetch error:", err);
-            if (!silent) setError("Failed to synchronize application traffic analytics.");
+            if (!silent) setError(t('site.applications.error_fetch'));
         } finally {
             if (!silent) setLoading(false);
             else setIsRefreshing(false);
@@ -105,9 +107,9 @@ const Applications = () => {
         <div className="p-8 pb-32 font-sans overflow-hidden bg-slate-950 min-h-screen">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
-                    <h1 className="text-2xl font-black text-white tracking-tight italic uppercase">Application Traffic</h1>
+                    <h1 className="text-2xl font-black text-white tracking-tight italic uppercase">{t('site.applications.title')}</h1>
                     <p className="text-sm text-slate-400 mt-1">
-                        Deep Packet Inspection for {sites.find(s => s.siteId === selectedSiteId)?.siteName || 'current site'}
+                        {t('site.applications.subtitle')} {sites.find(s => s.siteId === selectedSiteId)?.siteName || 'current site'}
                     </p>
                 </div>
 
@@ -122,7 +124,7 @@ const Applications = () => {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                     <input
                         type="text"
-                        placeholder="Search App Category (e.g. streaming, web)..."
+                        placeholder={t('site.applications.search_placeholder')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full h-14 pl-12 pr-4 bg-slate-900 border border-white/5 rounded-2xl text-white text-sm focus:outline-none focus:border-indigo-500/50 shadow-inner transition-all hover:bg-slate-800/50"
@@ -132,7 +134,7 @@ const Applications = () => {
                 <div className="bg-slate-900 border border-white/5 rounded-2xl h-14 px-5 flex items-center gap-4 shadow-xl">
                     <LayoutGrid size={18} className="text-indigo-400" />
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        {processedData.length} Categories Tracked
+                        {processedData.length} {t('site.applications.stats_categories_label')}
                     </span>
                 </div>
             </div>

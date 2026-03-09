@@ -58,6 +58,9 @@ async def login(body: LoginRequest):
             if m.get("email") == body.email
         )
 
+    from app.database.roles_crud import get_role_permissions
+    permissions = await get_role_permissions(role)
+
     return {
         "status": "success",
         "access_token": access_token,
@@ -65,6 +68,7 @@ async def login(body: LoginRequest):
         "email": body.email,
         "role": role,
         "is_zone_admin": is_zone_admin,
+        "permissions": permissions,
     }
 
 
@@ -95,11 +99,15 @@ async def session(request: Request):
             if m.get("email") == email
         )
 
+    from app.database.roles_crud import get_role_permissions
+    permissions = await get_role_permissions(role)
+
     return {
         "status": "active",
         "email": email,
         "role": role,
         "is_zone_admin": is_zone_admin,
+        "permissions": permissions,
     }
 
 
@@ -181,6 +189,9 @@ async def set_password(request: Request):
             if m.get("email") == email
         )
 
+    from app.database.roles_crud import get_role_permissions
+    permissions = await get_role_permissions(role)
+
     return {
         "status": "success",
         "access_token": access_token,
@@ -188,4 +199,5 @@ async def set_password(request: Request):
         "email": email,
         "role": role,
         "is_zone_admin": is_zone_admin,
+        "permissions": permissions,
     }

@@ -39,7 +39,7 @@ const ApplicationTable = ({ data, sortConfig, onSort, loading }) => {
                                         <div className="p-6 bg-slate-800 rounded-3xl mb-6 opacity-20">
                                             <LayoutGrid size={64} className="text-slate-400" />
                                         </div>
-                                        <p className="text-xl font-black text-slate-700 uppercase tracking-[0.2em]">No traffic data</p>
+                                        <p className="text-xl font-black text-slate-700 uppercase tracking-[0.2em]">No application data</p>
                                         <p className="text-xs text-slate-600 mt-3 font-bold uppercase tracking-widest">DPI analysis is in progress</p>
                                     </div>
                                 </td>

@@ -2,8 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, RefreshCw, FileText } from 'lucide-react';
 import apiClient from '../../api/apiClient';
+import { formatAction } from '../../utils/logFormatter';
+import { useLanguage } from '../../context/LanguageContext';
 
 const ZoneLogs = () => {
+  const { t } = useLanguage();
   const { zoneId } = useParams();
   const navigate = useNavigate();
   const [logs, setLogs] = useState([]);
@@ -45,7 +48,7 @@ const ZoneLogs = () => {
           <ArrowLeft className="w-4 h-4" />
         </button>
         <FileText className="w-5 h-5 text-blue-400" />
-        <h1 className="text-lg font-semibold text-white">Zone Logs</h1>
+        <h1 className="text-lg font-semibold text-white">{t('zones.logs.title')}</h1>
         {zoneName && (
           <span className="text-xs text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">{zoneName}</span>
         )}
@@ -54,7 +57,7 @@ const ZoneLogs = () => {
             onClick={fetchLogs}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 rounded-lg transition-colors"
           >
-            <RefreshCw className="w-3.5 h-3.5" /> Refresh
+            <RefreshCw className="w-3.5 h-3.5" /> {t('zones.logs.button_refresh')}
           </button>
         </div>
       </div>
@@ -66,7 +69,7 @@ const ZoneLogs = () => {
       ) : logs.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-slate-500">
           <FileText className="w-10 h-10 mb-3 opacity-20" />
-          <p className="text-sm">Chưa có log nào trong zone này.</p>
+          <p className="text-sm">{t('zones.logs.empty_state_message')}</p>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-slate-700">
@@ -89,7 +92,7 @@ const ZoneLogs = () => {
                 >
                   <td className="px-4 py-3 text-slate-400 whitespace-nowrap">{log.timestamp}</td>
                   <td className="px-4 py-3 text-slate-300 max-w-[180px] truncate">{log.actor_email || '—'}</td>
-                  <td className="px-4 py-3 text-slate-200 font-medium whitespace-nowrap">{log.action || '—'}</td>
+                  <td className="px-4 py-3 text-slate-200 font-medium whitespace-nowrap" title={formatAction(log.method, log.endpoint, log.action, log.payload)}>{formatAction(log.method, log.endpoint, log.action, log.payload)}</td>
                   <td className="px-4 py-3">
                     <span className="font-mono bg-slate-800 px-1.5 py-0.5 rounded text-slate-300">{log.method}</span>
                   </td>

@@ -5,22 +5,9 @@ import { useSite } from '../../../context/SiteContext';
 import { useSettings } from '../../../context/SettingsContext';
 import useIntervalFetch from '../../../hooks/useIntervalFetch';
 import SyncIndicator from '../../../components/SyncIndicator';
-
-// --- Constants ---
-const ALERT_TYPE_MAP = {
-    'watchlistEntityDown': 'Client Offline',
-    'siteDown': 'Site Connection Lost',
-    'apDown': 'Access Point Down',
-    'switchDown': 'Switch Down',
-    'apRadioDown': 'Radio Interface Down',
-    'clientRoam': 'Client Roaming',
-    'rogue': 'Rogue AP Detected',
-    'interference': 'RF Interference',
-};
+import { useLanguage } from '../../../context/LanguageContext';
 
 // --- Helpers ---
-const getAlertLabel = (type) => ALERT_TYPE_MAP[type] || type || 'Unknown Alert';
-
 const formatTimestamp = (unixSec) => {
     if (!unixSec) return '—';
     const d = new Date(unixSec * 1000);
@@ -47,6 +34,12 @@ const getClientName = (alert) =>
     alert.alertTypeProperties?.clientName ||
     alert.alertTypeProperties?.deviceName ||
     alert.alertTypeProperties?.apName ||
+    alert.alertTypeProperties?.switchName ||
+    alert.alertTypeProperties?.gatewayName ||
+    alert.deviceName ||
+    alert.apName ||
+    alert.switchName ||
+    alert.siteName ||
     null;
 
 // --- Sub-components ---
@@ -84,8 +77,8 @@ const FilterChip = ({ label, active, onClick }) => (
     <button
         onClick={onClick}
         className={`h-9 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${active
-                ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20'
-                : 'bg-slate-900 border-white/5 text-slate-400 hover:text-white hover:border-white/20'
+            ? 'bg-indigo-600 border-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+            : 'bg-slate-900 border-white/5 text-slate-400 hover:text-white hover:border-white/20'
             }`}
     >
         {label}
@@ -94,6 +87,7 @@ const FilterChip = ({ label, active, onClick }) => (
 
 // --- Main Component ---
 const Alerts = () => {
+    const { t } = useLanguage();
     const [rawAlerts, setRawAlerts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -108,6 +102,19 @@ const Alerts = () => {
     const { isAutoRefreshEnabled } = useSettings();
 
     const selectedSite = sites.find(s => s.siteId === selectedSiteId);
+
+    // Build alert type map using translation keys
+    const ALERT_TYPE_MAP = {
+        'watchlistEntityDown': t('site.alerts.alert_type_watchlist_entity_down'),
+        'siteDown': t('site.alerts.alert_type_site_down'),
+        'apDown': t('site.alerts.alert_type_ap_down'),
+        'switchDown': t('site.alerts.alert_type_switch_down'),
+        'apRadioDown': t('site.alerts.alert_type_ap_radio_down'),
+        'clientRoam': t('site.alerts.alert_type_client_roam'),
+        'rogue': t('site.alerts.alert_type_rogue'),
+        'interference': t('site.alerts.alert_type_interference'),
+    };
+    const getAlertLabel = (type) => ALERT_TYPE_MAP[type] || type || 'Unknown Alert';
 
     useEffect(() => {
         if (sites.length === 0) fetchSites();
@@ -136,7 +143,7 @@ const Alerts = () => {
             setLastUpdated(new Date());
         } catch (err) {
             console.error('[Alerts] Fetch error:', err);
-            if (!silent) setError('Failed to synchronize alert data.');
+            if (!silent) setError(t('site.alerts.error_fetch'));
         } finally {
             if (!silent) setLoading(false);
             else setIsRefreshing(false);
@@ -175,9 +182,9 @@ const Alerts = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
-                    <h1 className="text-2xl font-black text-white tracking-tight italic uppercase">Alerts</h1>
+                    <h1 className="text-2xl font-black text-white tracking-tight italic uppercase">{t('site.alerts.title')}</h1>
                     <p className="text-sm text-slate-400 mt-1">
-                        Event monitoring for {selectedSite?.siteName || 'current site'}
+                        {t('site.alerts.subtitle')} {selectedSite?.siteName || 'current site'}
                     </p>
                 </div>
                 <div className="flex items-center gap-4">
@@ -190,7 +197,7 @@ const Alerts = () => {
                 <div className="bg-slate-900 border border-white/5 rounded-2xl h-14 px-5 flex items-center gap-3 shadow-xl">
                     <Bell size={16} className="text-indigo-400" />
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        {rawAlerts.length} Total
+                        {rawAlerts.length} {t('site.alerts.stats_total_label')}
                     </span>
                 </div>
                 <div className="bg-slate-900 border border-white/5 rounded-2xl h-14 px-5 flex items-center gap-3 shadow-xl">
@@ -199,13 +206,13 @@ const Alerts = () => {
                         <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${activeCount > 0 ? 'bg-rose-500' : 'bg-slate-600'}`} />
                     </span>
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        {activeCount} Active
+                        {activeCount} {t('site.alerts.stats_active_label')}
                     </span>
                 </div>
                 <div className="bg-slate-900 border border-white/5 rounded-2xl h-14 px-5 flex items-center gap-3 shadow-xl">
                     <span className="w-2.5 h-2.5 rounded-full bg-rose-500/70 flex-shrink-0" />
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        {majorCount} Major
+                        {majorCount} {t('site.alerts.stats_major_label')}
                     </span>
                 </div>
             </div>
@@ -214,20 +221,20 @@ const Alerts = () => {
             <div className="flex flex-wrap items-center gap-3 mb-6">
                 <div className="flex items-center gap-2">
                     <Filter size={14} className="text-slate-500" />
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Severity</span>
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('site.alerts.filter_severity_label')}</span>
                 </div>
-                <FilterChip label="All" active={severityFilter === 'all'} onClick={() => setSeverityFilter('all')} />
-                <FilterChip label="Major" active={severityFilter === 'major'} onClick={() => setSeverityFilter('major')} />
-                <FilterChip label="Minor" active={severityFilter === 'minor'} onClick={() => setSeverityFilter('minor')} />
+                <FilterChip label={t('site.alerts.filter_all')} active={severityFilter === 'all'} onClick={() => setSeverityFilter('all')} />
+                <FilterChip label={t('site.alerts.filter_major')} active={severityFilter === 'major'} onClick={() => setSeverityFilter('major')} />
+                <FilterChip label={t('site.alerts.filter_minor')} active={severityFilter === 'minor'} onClick={() => setSeverityFilter('minor')} />
 
                 <div className="w-px h-6 bg-white/10 mx-2" />
 
                 <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Status</span>
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('site.alerts.filter_status_label')}</span>
                 </div>
-                <FilterChip label="All" active={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
-                <FilterChip label="Active" active={statusFilter === 'active'} onClick={() => setStatusFilter('active')} />
-                <FilterChip label="Cleared" active={statusFilter === 'cleared'} onClick={() => setStatusFilter('cleared')} />
+                <FilterChip label={t('site.alerts.filter_all')} active={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
+                <FilterChip label={t('site.alerts.filter_active')} active={statusFilter === 'active'} onClick={() => setStatusFilter('active')} />
+                <FilterChip label={t('site.alerts.filter_cleared')} active={statusFilter === 'cleared'} onClick={() => setStatusFilter('cleared')} />
             </div>
 
             {/* Error */}
@@ -245,12 +252,12 @@ const Alerts = () => {
                         <thead className="text-slate-500 border-b border-white/5 sticky top-0 z-10 bg-slate-900">
                             <tr>
                                 <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] w-10" />
-                                <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px]">Alert</th>
-                                <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px]">Severity</th>
-                                <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px]">Target</th>
-                                <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px]">Time Raised</th>
-                                <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px]">Duration</th>
-                                <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px]">Status</th>
+                                <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px]">{t('site.alerts.table_header_alert')}</th>
+                                <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px]">{t('site.alerts.table_header_severity')}</th>
+                                <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px]">{t('site.alerts.table_header_target')}</th>
+                                <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px]">{t('site.alerts.table_header_time_raised')}</th>
+                                <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px]">{t('site.alerts.table_header_duration')}</th>
+                                <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px]">{t('site.alerts.table_header_status')}</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5 text-slate-300">
@@ -332,12 +339,12 @@ const Alerts = () => {
                                             {isActive ? (
                                                 <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-rose-400">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                                                    Active
+                                                    {t('site.alerts.alert_status_active')}
                                                 </span>
                                             ) : (
                                                 <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-500">
                                                     <CheckCircle2 size={11} />
-                                                    Cleared
+                                                    {t('site.alerts.alert_status_cleared')}
                                                 </span>
                                             )}
                                         </td>
@@ -353,11 +360,11 @@ const Alerts = () => {
                                             <div className="p-6 bg-slate-800 rounded-3xl mb-6 opacity-20">
                                                 <Bell size={64} className="text-slate-400" />
                                             </div>
-                                            <p className="text-xl font-black text-slate-700 uppercase tracking-[0.2em]">No Alerts</p>
+                                            <p className="text-xl font-black text-slate-700 uppercase tracking-[0.2em]">{t('site.alerts.empty_state_title')}</p>
                                             <p className="text-xs text-slate-600 mt-3 font-bold uppercase tracking-widest">
                                                 {rawAlerts.length > 0
-                                                    ? 'Adjust filters to see results'
-                                                    : 'All systems operational'}
+                                                    ? t('site.alerts.empty_state_filters')
+                                                    : t('site.alerts.empty_state_operational')}
                                             </p>
                                         </div>
                                     </td>

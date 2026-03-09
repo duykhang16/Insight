@@ -28,6 +28,9 @@ async def lifespan(app: FastAPI):
     await connect_to_mongo()
 
     # Super Admin Init Logic — seeds and migrates SUPER_ADMIN_EMAILS to role="super_admin"
+    from app.database.roles_crud import initialize_default_roles
+    await initialize_default_roles()
+    
     from app.database.auth_crud import hash_password
     db = get_database()
     for email in SUPER_ADMIN_EMAILS:

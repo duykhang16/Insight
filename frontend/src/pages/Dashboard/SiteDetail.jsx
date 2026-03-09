@@ -9,12 +9,12 @@ import { useLanguage } from '../../context/LanguageContext';
 import SyncIndicator from '../../components/SyncIndicator';
 import ApplicationSummaryCard from './Applications/ApplicationSummaryCard';
 
-const HEALTH_BADGE = {
-    good: { label: 'Good', cls: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
-    warning: { label: 'Warning', cls: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
-    poor: { label: 'Poor', cls: 'bg-rose-500/10 text-rose-400 border-rose-500/20' },
-    up: { label: 'Online', cls: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
-    down: { label: 'Offline', cls: 'bg-slate-500/10 text-slate-400 border-slate-500/20' },
+const HEALTH_BADGE_CLS = {
+    good: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    warning: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    poor: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+    up: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    down: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
 };
 
 const SiteDetail = () => {
@@ -90,25 +90,25 @@ const SiteDetail = () => {
         (data?.devicesOverview?.gateways?.online || 0);
 
     // Sub-metric derivations
-    const majorAlerts  = data?.alertsOverview?.activeMajorAlertsCount || 0;
-    const minorAlerts  = data?.alertsOverview?.activeMinorAlertsCount || 0;
-    const infoAlerts   = data?.alertsOverview?.activeInfoAlertsCount  || 0;
+    const majorAlerts = data?.alertsOverview?.activeMajorAlertsCount || 0;
+    const minorAlerts = data?.alertsOverview?.activeMinorAlertsCount || 0;
+    const infoAlerts = data?.alertsOverview?.activeInfoAlertsCount || 0;
 
-    const goodClients  = data?.clientsOverview?.totalClient?.goodCount || 0;
-    const fairClients  = data?.clientsOverview?.totalClient?.fairCount || 0;
-    const poorClients  = data?.clientsOverview?.totalClient?.poorCount || 0;
+    const goodClients = data?.clientsOverview?.totalClient?.goodCount || 0;
+    const fairClients = data?.clientsOverview?.totalClient?.fairCount || 0;
+    const poorClients = data?.clientsOverview?.totalClient?.poorCount || 0;
 
-    const inactiveWireless   = data?.networksOverview?.inactiveWirelessNetworks || 0;
-    const inactiveWired      = data?.networksOverview?.inactiveWiredNetworks    || 0;
-    const inactiveNetworks   = inactiveWireless + inactiveWired;
+    const inactiveWireless = data?.networksOverview?.inactiveWirelessNetworks || 0;
+    const inactiveWired = data?.networksOverview?.inactiveWiredNetworks || 0;
+    const inactiveNetworks = inactiveWireless + inactiveWired;
     const activeNetworkCount = activeNetworks - inactiveNetworks;
 
-    const apTotal      = data?.devicesOverview?.accessPoints?.total || 0;
-    const swTotal      = data?.devicesOverview?.switches?.total     || 0;
-    const stTotal      = data?.devicesOverview?.stacks?.total       || 0;
-    const wrTotal      = data?.devicesOverview?.wifiRouters?.total  || 0;
-    const gwTotal      = data?.devicesOverview?.gateways?.total     || 0;
-    const totalDevices   = apTotal + swTotal + stTotal + wrTotal + gwTotal;
+    const apTotal = data?.devicesOverview?.accessPoints?.total || 0;
+    const swTotal = data?.devicesOverview?.switches?.total || 0;
+    const stTotal = data?.devicesOverview?.stacks?.total || 0;
+    const wrTotal = data?.devicesOverview?.wifiRouters?.total || 0;
+    const gwTotal = data?.devicesOverview?.gateways?.total || 0;
+    const totalDevices = apTotal + swTotal + stTotal + wrTotal + gwTotal;
     const offlineDevices = Math.max(0, totalDevices - onlineDevices);
 
     const healthConditions = data?.healthOverview?.currentScore?.conditionsCount || 0;
@@ -116,7 +116,7 @@ const SiteDetail = () => {
     const cards = [
         {
             key: 'health',
-            label: t('dashboard.network_health'),
+            label: t('site.dashboard.card_health_label'),
             icon: <Activity className="text-emerald-500" size={24} />,
             value: healthScore,
             sub: data ? `Conditions: ${healthConditions}` : '',
@@ -124,7 +124,7 @@ const SiteDetail = () => {
         },
         {
             key: 'alerts',
-            label: t('dashboard.active_alerts'),
+            label: t('site.dashboard.card_alerts_label'),
             icon: <Bell className="text-rose-500" size={24} />,
             value: activeAlerts,
             sub: data ? `Major: ${majorAlerts} / Minor: ${minorAlerts} / Info: ${infoAlerts}` : '',
@@ -132,7 +132,7 @@ const SiteDetail = () => {
         },
         {
             key: 'clients',
-            label: t('dashboard.connected_clients'),
+            label: t('site.dashboard.card_clients_label'),
             icon: <Users className="text-blue-500" size={24} />,
             value: connectedClients,
             sub: data ? `Good: ${goodClients} / Fair: ${fairClients} / Poor: ${poorClients}` : '',
@@ -140,7 +140,7 @@ const SiteDetail = () => {
         },
         {
             key: 'networks',
-            label: t('dashboard.total_networks'),
+            label: t('site.dashboard.card_networks_label'),
             icon: <Wifi className="text-indigo-500" size={24} />,
             value: activeNetworks,
             sub: data ? `Active: ${activeNetworkCount} / Inactive: ${inactiveNetworks}` : '',
@@ -148,7 +148,7 @@ const SiteDetail = () => {
         },
         {
             key: 'devices',
-            label: t('dashboard.online_devices'),
+            label: t('site.dashboard.card_devices_label'),
             icon: <Monitor className="text-purple-500" size={24} />,
             value: onlineDevices,
             sub: data ? `Online: ${onlineDevices} / Offline: ${offlineDevices}` : '',
@@ -156,8 +156,17 @@ const SiteDetail = () => {
         },
     ];
 
+    const HEALTH_BADGE_LABEL = {
+        good: t('site.dashboard.health_badge_good'),
+        warning: t('site.dashboard.health_badge_warning'),
+        poor: t('site.dashboard.health_badge_poor'),
+        up: t('site.dashboard.health_badge_up'),
+        down: t('site.dashboard.health_badge_down'),
+    };
     const healthKey = siteInfo?.health || siteInfo?.status;
-    const badge = HEALTH_BADGE[healthKey] || null;
+    const badge = healthKey && HEALTH_BADGE_CLS[healthKey]
+        ? { label: HEALTH_BADGE_LABEL[healthKey], cls: HEALTH_BADGE_CLS[healthKey] }
+        : null;
 
     return (
         <div className="p-8 pb-32">
@@ -169,7 +178,7 @@ const SiteDetail = () => {
                         className="flex items-center gap-1 text-sm text-slate-400 hover:text-white mb-2 transition-colors"
                     >
                         <ChevronLeft size={16} />
-                        Back to Sites
+                        {t('site.dashboard.button_back')}
                     </button>
                     <div className="flex items-center gap-3">
                         <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">
@@ -182,7 +191,7 @@ const SiteDetail = () => {
                         )}
                     </div>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        {t('dashboard.subtitle')}
+                        {t('site.dashboard.subtitle')}
                     </p>
                 </div>
 
@@ -221,9 +230,17 @@ const SiteDetail = () => {
                             </span>
                         </div>
                         {card.sub && (
-                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 font-medium tracking-wide">
-                                {card.sub}
-                            </div>
+                            card.key === 'clients' ? (
+                                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 font-medium tracking-wide flex items-center gap-1">
+                                    <span onClick={(e) => { e.stopPropagation(); navigate(`/site/${siteId}/clients?health=good`); }} className="hover:text-emerald-500 transition-colors">Good: {goodClients}</span> /
+                                    <span onClick={(e) => { e.stopPropagation(); navigate(`/site/${siteId}/clients?health=fair`); }} className="hover:text-amber-500 transition-colors">Fair: {fairClients}</span> /
+                                    <span onClick={(e) => { e.stopPropagation(); navigate(`/site/${siteId}/clients?health=poor`); }} className="hover:text-rose-500 transition-colors">Poor: {poorClients}</span>
+                                </div>
+                            ) : (
+                                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 font-medium tracking-wide">
+                                    {card.sub}
+                                </div>
+                            )
                         )}
                     </div>
                 ))}

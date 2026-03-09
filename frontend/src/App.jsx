@@ -21,6 +21,7 @@ import ZoneLogs from './pages/Zones/ZoneLogs';
 import TenantManagement from './pages/Super/TenantManagement';
 import SuperLogs from './pages/Super/SuperLogs';
 import SuperUserManagement from './pages/Super/SuperUserManagement';
+import SuperPermissions from './pages/Super/SuperPermissions';
 import { SiteProvider } from './context/SiteContext';
 import { SettingsProvider } from './context/SettingsContext';
 import './App.css';
@@ -62,6 +63,15 @@ function App() {
   const [isZoneAdmin, setIsZoneAdmin] = useState(
     () => sessionStorage.getItem('isZoneAdmin') === 'true'
   );
+  const [rolePermissions, setRolePermissions] = useState(
+    () => {
+      try {
+        return JSON.parse(sessionStorage.getItem('rolePermissions')) || {};
+      } catch (e) {
+        return {};
+      }
+    }
+  );
 
   useEffect(() => {
     const verifySession = async () => {
@@ -79,18 +89,23 @@ function App() {
           // JWT session verified — use role from server response (authoritative)
           const role = res.data.role || sessionStorage.getItem('userRole') || 'viewer';
           const zoneAdmin = res.data.is_zone_admin === true;
+          const perms = res.data.permissions || {};
           sessionStorage.setItem('userRole', role);
           sessionStorage.setItem('isZoneAdmin', String(zoneAdmin));
+          sessionStorage.setItem('rolePermissions', JSON.stringify(perms));
           setIsLoggedIn(true);
           setUserRole(role);
           setIsZoneAdmin(zoneAdmin);
+          setRolePermissions(perms);
         } else {
           sessionStorage.removeItem('token');
           sessionStorage.removeItem('userRole');
+          sessionStorage.removeItem('rolePermissions');
         }
       } catch (error) {
         sessionStorage.removeItem('token');
         sessionStorage.removeItem('userRole');
+        sessionStorage.removeItem('rolePermissions');
       } finally {
         setCheckingAuth(false);
         setIsReady(true);
@@ -137,9 +152,12 @@ function App() {
     // Read synchronously so React state is set in the same tick as isLoggedIn.
     const role = sessionStorage.getItem('userRole') || 'viewer';
     const zoneAdmin = sessionStorage.getItem('isZoneAdmin') === 'true';
+    let perms = {};
+    try { perms = JSON.parse(sessionStorage.getItem('rolePermissions')) || {}; } catch (e) { }
     setTimeout(() => {
       setUserRole(role);
       setIsZoneAdmin(zoneAdmin);
+      setRolePermissions(perms);
       setIsLoggedIn(true);
     }, 500);
   };
@@ -174,11 +192,11 @@ function App() {
         <SiteProvider>
           <Routes>
             {/* Global routes — use GlobalLayout */}
-            <Route element={<GlobalLayout onLogout={handleLogout} userRole={userRole} isZoneAdmin={isZoneAdmin} />}>
+            <Route element={<GlobalLayout onLogout={handleLogout} userRole={userRole} isZoneAdmin={isZoneAdmin} rolePermissions={rolePermissions} />}>
               <Route path="/" element={<Navigate to="/zones" replace />} />
               <Route path="/config" element={
                 <ViewerRoute userRole={userRole} isZoneAdmin={isZoneAdmin}>
-                  <Configuration />
+                  <Configuration rolePermissions={rolePermissions} userRole={userRole} />
                 </ViewerRoute>
               } />
 
@@ -218,6 +236,11 @@ function App() {
               <Route path="/super/users" element={
                 <SuperRoute userRole={userRole}>
                   <SuperUserManagement />
+                </SuperRoute>
+              } />
+              <Route path="/super/permissions" element={
+                <SuperRoute userRole={userRole}>
+                  <SuperPermissions />
                 </SuperRoute>
               } />
               <Route path="/super/logs" element={

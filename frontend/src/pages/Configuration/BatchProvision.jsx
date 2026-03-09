@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import apiClient from '../../api/apiClient';
+import { useLanguage } from '../../context/LanguageContext';
 import {
     Layers, Play, Square, AlertTriangle, CheckCircle,
     XCircle, ChevronRight, Globe, Clock, Hash, Tag, Map, RefreshCw, CheckSquare, Square as SquareIcon
@@ -34,6 +35,7 @@ const getRoleBadgeInfo = (roleStr) => {
 };
 
 const BatchProvision = () => {
+    const { t } = useLanguage();
     // Config State
     const [sites, setSites] = useState([]);
     const [selectedSourceId, setSelectedSourceId] = useState('');
@@ -182,8 +184,8 @@ const BatchProvision = () => {
                         <Layers size={24} />
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Batch Site Provisioning</h2>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Mass-produce identical site configurations with specific overrides</p>
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">{t('batch_provision.title')}</h2>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">{t('batch_provision.subtitle')}</p>
                     </div>
                 </div>
 
@@ -192,18 +194,18 @@ const BatchProvision = () => {
                     {/* Panel 1: Config Form */}
                     <div className="backdrop-blur-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-3xl p-6 flex flex-col gap-5 shadow-xl dark:shadow-none min-h-[500px]">
                         <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                            <Tag size={14} className="text-violet-500" /> Configuration
+                            <Tag size={14} className="text-violet-500" /> {t('batch_provision.configuration')}
                         </h3>
 
                         <div className="flex flex-col gap-1.5">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Template Site</label>
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('batch_provision.template_site')}</label>
                             <select
                                 value={selectedSourceId}
                                 onChange={e => setSelectedSourceId(e.target.value)}
                                 disabled={isRunning}
                                 className="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 dark:text-white appearance-none focus:outline-none focus:border-violet-500/50 disabled:opacity-50"
                             >
-                                <option value="">— Select template site —</option>
+                                <option value="">{t('batch_provision.select_template')}</option>
                                 {adminTemplateSites.map(s => (
                                     <option key={s.siteId || s.id} value={s.siteId || s.id} className="bg-white dark:bg-slate-900">
                                         {s.siteName}
@@ -220,20 +222,20 @@ const BatchProvision = () => {
                         </div>
 
                         <div className="flex flex-col gap-1.5">
-                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Site Name Prefix</label>
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('batch_provision.site_name_prefix')}</label>
                             <input
                                 type="text"
                                 value={prefix}
                                 onChange={e => setPrefix(e.target.value)}
                                 disabled={isRunning}
-                                placeholder="e.g. AITC-Office"
+                                placeholder={t('batch_provision.prefix_placeholder')}
                                 className="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-violet-500/50 disabled:opacity-50"
                             />
                         </div>
 
                         <div className="flex flex-col gap-2">
                             <div className="flex justify-between items-center">
-                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5"><Hash size={11} /> Clone Target</label>
+                                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5"><Hash size={11} /> {t('batch_provision.clone_target')}</label>
                                 <span className="text-sm font-black text-violet-600 dark:text-violet-400">{cloneCount}</span>
                             </div>
                             <input
@@ -248,13 +250,13 @@ const BatchProvision = () => {
 
                         <div className="grid grid-cols-2 gap-3">
                             <div className="flex flex-col gap-1.5">
-                                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest"><Globe size={11} className="inline mr-1" /> Domain</label>
+                                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest"><Globe size={11} className="inline mr-1" /> {t('batch_provision.domain')}</label>
                                 <select value={regDomain} onChange={e => setRegDomain(e.target.value)} disabled={isRunning} className="w-full bg-slate-50 border rounded-lg px-2 py-2 text-xs appearance-none">
                                     {REG_DOMAINS.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
                                 </select>
                             </div>
                             <div className="flex flex-col gap-1.5">
-                                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest"><Clock size={11} className="inline mr-1" /> Timezone</label>
+                                <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest"><Clock size={11} className="inline mr-1" /> {t('batch_provision.timezone')}</label>
                                 <select value={timezone} onChange={e => setTimezone(e.target.value)} disabled={isRunning} className="w-full bg-slate-50 border rounded-lg px-2 py-2 text-xs appearance-none">
                                     {TIMEZONES.map(z => <option key={z.value} value={z.value}>{z.label}</option>)}
                                 </select>
@@ -266,7 +268,7 @@ const BatchProvision = () => {
                     <div className="backdrop-blur-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-3xl p-6 flex flex-col gap-4 shadow-xl dark:shadow-none min-h-[500px]">
                         <div className="flex items-center justify-between">
                             <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                                <Map size={14} className="text-violet-500" /> Target Zones
+                                <Map size={14} className="text-violet-500" /> {t('batch_provision.target_zones')}
                             </h3>
                             <button
                                 onClick={scanZones}
@@ -283,12 +285,12 @@ const BatchProvision = () => {
                                     <RefreshCw size={24} className="animate-spin" />
                                 </div>
                             ) : zones.length === 0 ? (
-                                <div className="flex-1 flex items-center justify-center text-slate-400 text-xs">No zones found.</div>
+                                <div className="flex-1 flex items-center justify-center text-slate-400 text-xs">{t('batch_provision.no_zones_found')}</div>
                             ) : (
                                 <>
                                     <div className="flex items-center justify-between border-b dark:border-white/5 pb-2 mb-2">
                                         <button onClick={handleSelectAllZones} disabled={isRunning} className="flex items-center gap-1.5 text-[10px] text-slate-600 dark:text-slate-400 hover:text-violet-500 font-bold uppercase tracking-wider">
-                                            {selectedZones.size === zones.length && zones.length > 0 ? <CheckSquare size={14} className="text-violet-500" /> : <SquareIcon size={14} />} Select All
+                                            {selectedZones.size === zones.length && zones.length > 0 ? <CheckSquare size={14} className="text-violet-500" /> : <SquareIcon size={14} />} {t('batch_provision.select_all')}
                                         </button>
                                         <span className="text-[10px] font-mono text-slate-400 font-bold"><span className="text-violet-500">{selectedZones.size}</span> / {zones.length}</span>
                                     </div>
@@ -315,19 +317,19 @@ const BatchProvision = () => {
                     {/* Panel 3: Execution Log */}
                     <div className="backdrop-blur-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-3xl p-6 flex flex-col gap-4 shadow-xl dark:shadow-none min-h-[500px]">
                         <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                            <Play size={14} className="text-violet-500" /> Execution Log
+                            <Play size={14} className="text-violet-500" /> {t('batch_provision.execution_log')}
                         </h3>
 
                         {/* Preview Summary */}
                         {prefix && selectedSourceId && !isRunning && (
                             <div className="p-3 bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/30 rounded-xl mb-2 animate-fade-in">
-                                <h4 className="text-xs font-bold text-violet-800 dark:text-violet-300">Preview Summary</h4>
+                                <h4 className="text-xs font-bold text-violet-800 dark:text-violet-300">{t('batch_provision.preview_summary')}</h4>
                                 <p className="text-[10px] text-violet-600 dark:text-violet-400 mt-1 leading-relaxed">
-                                    You will provision <strong>{cloneCount}</strong> site(s) based on {selectedSite?.siteName}.
+                                    {t('batch_provision.provision_sites')} <strong>{cloneCount}</strong> {t('batch_provision.provision_based_on')} {selectedSite?.siteName}.
                                     {selectedZones.size > 0 ? (
-                                        <> Newly created sites will be added to <strong>{selectedZones.size} Zone(s)</strong>.</>
+                                        <> {t('batch_provision.zones_assigned')} <strong>{selectedZones.size} {t('batch_provision.zones_count')}</strong></>
                                     ) : (
-                                        <> Newly created sites will be standalone (no zone assigned).</>
+                                        <> {t('batch_provision.zones_standalone')}</>
                                     )}
                                 </p>
                             </div>
@@ -337,7 +339,7 @@ const BatchProvision = () => {
                             {logs.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-600 gap-2">
                                     <Play size={20} className="opacity-50" />
-                                    <p className="font-sans text-xs">Awaiting Execution Command</p>
+                                    <p className="font-sans text-xs">{t('batch_provision.awaiting_execution')}</p>
                                 </div>
                             ) : (
                                 <div className="space-y-1.5">
@@ -361,9 +363,9 @@ const BatchProvision = () => {
                             className="w-full h-12 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-black uppercase tracking-[0.2em] text-[10px] rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             {isRunning ? (
-                                <><RefreshCw size={14} className="animate-spin" /> Provisioning via Backend...</>
+                                <><RefreshCw size={14} className="animate-spin" /> {t('batch_provision.provisioning_backend')}</>
                             ) : (
-                                <><Play size={14} /> Start Batch Clone</>
+                                <><Play size={14} /> {t('batch_provision.start_batch_clone')}</>
                             )}
                         </button>
                     </div>

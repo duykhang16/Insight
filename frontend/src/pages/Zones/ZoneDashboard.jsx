@@ -3,14 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Layers, Server, Users, ChevronRight, RefreshCw, LayoutGrid, List, ArrowUpDown } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 import ZoneRoleBadge from '../../components/Zones/ZoneRoleBadge';
-
-const SORT_OPTIONS = [
-  { value: 'name_asc',   label: 'Tên A→Z' },
-  { value: 'name_desc',  label: 'Tên Z→A' },
-  { value: 'sites_desc', label: 'Nhiều site nhất' },
-  { value: 'sites_asc',  label: 'Ít site nhất' },
-  { value: 'members_desc', label: 'Nhiều member nhất' },
-];
+import { useLanguage } from '../../context/LanguageContext';
 
 function sortZones(zones, sortKey) {
   const copy = [...zones];
@@ -25,12 +18,21 @@ function sortZones(zones, sortKey) {
 }
 
 const ZoneDashboard = () => {
+  const { t } = useLanguage();
   const [zones, setZones] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('card'); // 'card' | 'list'
   const [sortKey, setSortKey] = useState('name_asc');
   const navigate = useNavigate();
   const myEmail = sessionStorage.getItem('insight_user_email') || '';
+
+  const SORT_OPTIONS = [
+    { value: 'name_asc',     label: t('zones.dashboard.sort_name_asc') },
+    { value: 'name_desc',    label: t('zones.dashboard.sort_name_desc') },
+    { value: 'sites_desc',   label: t('zones.dashboard.sort_sites_desc') },
+    { value: 'sites_asc',    label: t('zones.dashboard.sort_sites_asc') },
+    { value: 'members_desc', label: t('zones.dashboard.sort_members_desc') },
+  ];
 
   const fetchZones = useCallback(async () => {
     setLoading(true);
@@ -70,9 +72,9 @@ const ZoneDashboard = () => {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <Layers className="w-5 h-5 text-blue-400" />
-          <h1 className="text-lg font-semibold text-white">My Zones</h1>
+          <h1 className="text-lg font-semibold text-white">{t('zones.dashboard.title')}</h1>
           <span className="text-xs text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">
-            {zones.length} zones
+            {zones.length} {t('zones.dashboard.zone_count_label')}
           </span>
         </div>
 
@@ -96,14 +98,14 @@ const ZoneDashboard = () => {
             <button
               onClick={() => setViewMode('card')}
               className={`p-1.5 transition-colors ${viewMode === 'card' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
-              title="Card view"
+              title={t('zones.dashboard.button_card_view')}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setViewMode('list')}
               className={`p-1.5 transition-colors ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
-              title="List view"
+              title={t('zones.dashboard.button_list_view')}
             >
               <List className="w-3.5 h-3.5" />
             </button>
@@ -113,7 +115,7 @@ const ZoneDashboard = () => {
             onClick={fetchZones}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 rounded-lg transition-colors"
           >
-            <RefreshCw className="w-3.5 h-3.5" /> Refresh
+            <RefreshCw className="w-3.5 h-3.5" /> {t('zones.dashboard.button_refresh')}
           </button>
         </div>
       </div>
@@ -121,8 +123,8 @@ const ZoneDashboard = () => {
       {zones.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-slate-500">
           <Layers className="w-12 h-12 mb-3 opacity-20" />
-          <p className="text-sm">Bạn chưa được thêm vào Zone nào.</p>
-          <p className="text-xs text-slate-600 mt-1">Liên hệ Admin để được phân quyền.</p>
+          <p className="text-sm">{t('zones.dashboard.empty_state_message')}</p>
+          <p className="text-xs text-slate-600 mt-1">{t('zones.dashboard.empty_state_hint')}</p>
         </div>
       ) : viewMode === 'card' ? (
         // ── Card view ──────────────────────────────────────────────────────────
@@ -158,11 +160,11 @@ const ZoneDashboard = () => {
                 <div className="px-4 py-3 flex items-center gap-4 text-xs text-slate-400">
                   <span className="flex items-center gap-1.5">
                     <Server className="w-3.5 h-3.5 text-slate-500" />
-                    {(zone.site_ids || []).length} sites
+                    {(zone.site_ids || []).length} {t('zones.dashboard.card_stats_sites')}
                   </span>
                   <span className="flex items-center gap-1.5">
                     <Users className="w-3.5 h-3.5 text-slate-500" />
-                    {(zone.members || []).length} members
+                    {(zone.members || []).length} {t('zones.dashboard.card_stats_members')}
                   </span>
                 </div>
 
@@ -172,13 +174,13 @@ const ZoneDashboard = () => {
                     onClick={e => { e.stopPropagation(); navigate(`/zones/${zone.id}/sites`); }}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 text-blue-300 text-xs font-medium rounded-lg transition-colors"
                   >
-                    <ChevronRight className="w-3.5 h-3.5" /> Vào Zone
+                    <ChevronRight className="w-3.5 h-3.5" /> {t('zones.dashboard.card_action_enter')}
                   </button>
                   <button
                     onClick={e => { e.stopPropagation(); navigate(`/zones/${zone.id}/logs`); }}
                     className="text-[11px] text-slate-500 hover:text-slate-300 transition-colors"
                   >
-                    Logs →
+                    {t('zones.dashboard.card_action_logs')} →
                   </button>
                 </div>
               </div>
@@ -191,10 +193,10 @@ const ZoneDashboard = () => {
           <table className="w-full text-sm">
             <thead className="bg-slate-800/60 border-b border-slate-700">
               <tr>
-                <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Zone</th>
-                <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Role</th>
-                <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Sites</th>
-                <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Members</th>
+                <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{t('zones.dashboard.table_header_zone')}</th>
+                <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{t('zones.dashboard.table_header_role')}</th>
+                <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{t('zones.dashboard.table_header_sites')}</th>
+                <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-400 uppercase tracking-wider">{t('zones.dashboard.table_header_members')}</th>
                 <th className="px-5 py-3"></th>
               </tr>
             </thead>
@@ -236,7 +238,7 @@ const ZoneDashboard = () => {
                           onClick={e => { e.stopPropagation(); navigate(`/zones/${zone.id}/logs`); }}
                           className="text-[11px] text-slate-500 hover:text-slate-300 transition-colors"
                         >
-                          Logs
+                          {t('zones.dashboard.card_action_logs')}
                         </button>
                         <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-slate-400 transition-colors" />
                       </div>

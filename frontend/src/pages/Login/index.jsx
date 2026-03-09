@@ -48,6 +48,9 @@ const Login = ({ onLoginSuccess }) => {
             sessionStorage.setItem('userRole', data.role || 'viewer');
             sessionStorage.setItem('insight_user_email', data.email || email);
             sessionStorage.setItem('isZoneAdmin', String(data.is_zone_admin === true));
+            if (data.permissions) {
+                sessionStorage.setItem('rolePermissions', JSON.stringify(data.permissions));
+            }
 
             // Do not setLoading(false) here, let it spin until unmount
             onLoginSuccess();
@@ -80,6 +83,9 @@ const Login = ({ onLoginSuccess }) => {
             sessionStorage.setItem('userRole', data.role || 'viewer');
             sessionStorage.setItem('insight_user_email', data.email || email);
             sessionStorage.setItem('isZoneAdmin', String(data.is_zone_admin === true));
+            if (data.permissions) {
+                sessionStorage.setItem('rolePermissions', JSON.stringify(data.permissions));
+            }
             onLoginSuccess();
         } catch (err) {
             setLoading(false);

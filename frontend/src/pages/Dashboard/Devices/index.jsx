@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { AlertCircle, RefreshCw, Search, HardDrive, Wifi, ArrowDown, ArrowUp, Cloud, CloudOff, Users } from 'lucide-react';
 import apiClient from '../../../api/apiClient';
 import { useSite } from '../../../context/SiteContext';
+import { useLanguage } from '../../../context/LanguageContext';
 
 // Aruba internal model ID → friendly display name
 const MODEL_DISPLAY_MAP = {
@@ -11,6 +12,11 @@ const MODEL_DISPLAY_MAP = {
     'AP-555': 'AP55',
     'AP-575': 'AP75',
     'AP-505H': 'AP22H',
+    'JL678A': '6200F',
+    'JL806A': '1960',
+    'JL807A': '1960',
+    'JL808A': '1960',
+    'JL809A': '1960'
 };
 const getDisplayModel = (model) => MODEL_DISPLAY_MAP[model] || model || '—';
 
@@ -61,6 +67,7 @@ const getClientCount = (device) => {
 };
 
 const Devices = () => {
+    const { t } = useLanguage();
     const [devices, setDevices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -101,7 +108,7 @@ const Devices = () => {
             setDevices(extractDevices(res.data) || []);
         } catch (err) {
             console.error('Inventory fetch error:', err);
-            if (err.response?.status !== 401) setError('Failed to fetch device inventory.');
+            if (err.response?.status !== 401) setError(t('site.devices.error_fetch'));
         } finally {
             setLoading(false);
         }
@@ -190,8 +197,8 @@ const Devices = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <div>
-                    <h1 className="text-xl font-black text-white tracking-tight uppercase italic">Infrastructure</h1>
-                    <p className="text-xs text-slate-500 mt-1 font-mono">{siteName} · {processedDevices.length} devices</p>
+                    <h1 className="text-xl font-black text-white tracking-tight uppercase italic">{t('site.devices.title')}</h1>
+                    <p className="text-xs text-slate-500 mt-1 font-mono">{siteName} · {processedDevices.length} {t('site.devices.subtitle')}</p>
                 </div>
                 <button
                     onClick={() => fetchInventory(selectedSiteId)}
@@ -199,7 +206,7 @@ const Devices = () => {
                     className="h-10 px-5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/5 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
                 >
                     <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-                    Refresh
+                    {t('site.devices.button_refresh')}
                 </button>
             </div>
 
@@ -209,7 +216,7 @@ const Devices = () => {
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" size={15} />
                     <input
                         type="text"
-                        placeholder="Search name, model, MAC, IP..."
+                        placeholder={t('site.devices.search_placeholder')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full h-10 pl-10 pr-4 bg-slate-900 border border-white/5 rounded-xl text-slate-200 text-xs focus:outline-none focus:border-purple-500/50 transition-all"
@@ -220,19 +227,19 @@ const Devices = () => {
                     onChange={(e) => setTypeFilter(e.target.value)}
                     className="h-10 bg-slate-900 border border-white/5 rounded-xl px-4 text-slate-300 text-xs font-bold focus:outline-none appearance-none min-w-[130px]"
                 >
-                    <option value="all">All Types</option>
-                    <option value="accesspoint">Access Points</option>
-                    <option value="switch">Switches</option>
+                    <option value="all">{t('site.devices.filter_type_all')}</option>
+                    <option value="accesspoint">{t('site.devices.filter_type_ap')}</option>
+                    <option value="switch">{t('site.devices.filter_type_switch')}</option>
                 </select>
                 <select
                     value={healthFilter}
                     onChange={(e) => setHealthFilter(e.target.value)}
                     className="h-10 bg-slate-900 border border-white/5 rounded-xl px-4 text-slate-300 text-xs font-bold focus:outline-none appearance-none min-w-[130px]"
                 >
-                    <option value="all">All Health</option>
-                    <option value="good">Good</option>
-                    <option value="fair">Fair</option>
-                    <option value="poor">Poor</option>
+                    <option value="all">{t('site.devices.filter_health_all')}</option>
+                    <option value="good">{t('site.devices.filter_health_good')}</option>
+                    <option value="fair">{t('site.devices.filter_health_fair')}</option>
+                    <option value="poor">{t('site.devices.filter_health_poor')}</option>
                 </select>
             </div>
 
@@ -250,31 +257,31 @@ const Devices = () => {
                         <thead className="bg-slate-800/60 border-b border-white/5">
                             <tr>
                                 <th onClick={() => handleSort('name')} className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400 cursor-pointer hover:text-slate-200 transition-colors">
-                                    Device <SortIcon column="name" />
+                                    {t('site.devices.table_header_device')} <SortIcon column="name" />
                                 </th>
                                 <th onClick={() => handleSort('health')} className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400 cursor-pointer hover:text-slate-200 transition-colors">
-                                    Health <SortIcon column="health" />
+                                    {t('site.devices.table_header_health')} <SortIcon column="health" />
                                 </th>
                                 <th className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400">
-                                    State
+                                    {t('site.devices.table_header_state')}
                                 </th>
                                 <th onClick={() => handleSort('uptime')} className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400 cursor-pointer hover:text-slate-200 transition-colors">
-                                    Duration <SortIcon column="uptime" />
+                                    {t('site.devices.table_header_duration')} <SortIcon column="uptime" />
                                 </th>
                                 <th className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400">
-                                    Type
+                                    {t('site.devices.table_header_type')}
                                 </th>
                                 <th className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400">
-                                    Model
+                                    {t('site.devices.table_header_model')}
                                 </th>
                                 <th className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400">
-                                    MAC Address
+                                    {t('site.devices.table_header_mac')}
                                 </th>
                                 <th onClick={() => handleSort('ip')} className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400 cursor-pointer hover:text-slate-200 transition-colors">
-                                    IP Address <SortIcon column="ip" />
+                                    {t('site.devices.table_header_ip')} <SortIcon column="ip" />
                                 </th>
                                 <th onClick={() => handleSort('clients')} className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400 cursor-pointer hover:text-slate-200 transition-colors text-right">
-                                    Clients <SortIcon column="clients" />
+                                    {t('site.devices.table_header_clients')} <SortIcon column="clients" />
                                 </th>
                             </tr>
                         </thead>
@@ -322,7 +329,7 @@ const Devices = () => {
                                             <div className="flex items-center gap-1.5">
                                                 <div className={`w-1.5 h-1.5 rounded-full shadow-[0_0_6px] shrink-0 ${hCfg.dot}`}></div>
                                                 <span className={`text-[10px] font-black uppercase tracking-wider ${hCfg.text}`}>
-                                                    {hCfg.label}
+                                                    {hCfg.label === 'Good' ? t('site.devices.health_label_good') : hCfg.label === 'Fair' ? t('site.devices.health_label_fair') : hCfg.label === 'Poor' ? t('site.devices.health_label_poor') : hCfg.label}
                                                 </span>
                                             </div>
                                         </td>
@@ -334,7 +341,7 @@ const Devices = () => {
                                                     ? <Cloud size={12} className="text-emerald-400 shrink-0" />
                                                     : <CloudOff size={12} className="text-slate-600 shrink-0" />}
                                                 <span className={`text-[10px] font-bold ${hCfg.isUp ? 'text-emerald-400' : 'text-slate-500'}`}>
-                                                    {hCfg.isUp ? 'Online' : 'Offline'}
+                                                    {hCfg.isUp ? t('site.devices.state_online') : t('site.devices.state_offline')}
                                                 </span>
                                             </div>
                                         </td>
@@ -353,7 +360,7 @@ const Devices = () => {
                                                     ? <Wifi size={11} className="text-purple-400 shrink-0" />
                                                     : <HardDrive size={11} className="text-slate-400 shrink-0" />}
                                                 <span className="text-slate-300 text-[10px] font-bold">
-                                                    {isAP ? 'Access Point' : isSwitch ? 'Switch' : (device.deviceType || 'Unknown')}
+                                                    {isAP ? t('site.devices.device_type_ap') : isSwitch ? t('site.devices.device_type_switch') : (device.deviceType || 'Unknown')}
                                                 </span>
                                             </div>
                                             {isAP && radioBands && (
@@ -399,8 +406,8 @@ const Devices = () => {
                                 <tr>
                                     <td colSpan={9} className="px-6 py-16 text-center">
                                         <HardDrive size={36} className="mx-auto mb-3 text-slate-700" />
-                                        <p className="text-sm font-black text-slate-600 uppercase tracking-widest">No devices found</p>
-                                        <p className="text-[10px] text-slate-700 mt-1">Try adjusting your filters</p>
+                                        <p className="text-sm font-black text-slate-600 uppercase tracking-widest">{t('site.devices.empty_state_title')}</p>
+                                        <p className="text-[10px] text-slate-700 mt-1">{t('site.devices.empty_state_hint')}</p>
                                     </td>
                                 </tr>
                             )}

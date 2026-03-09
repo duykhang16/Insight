@@ -23,7 +23,7 @@ const SyncIndicator = ({ isSyncing, lastUpdated }) => {
                     }`}
                 title={isAutoRefreshEnabled ? t('common.auto_refresh_on') : t('common.auto_refresh_off')}
             >
-                <Power size={16} />
+                <RefreshCw size={16} className={isAutoRefreshEnabled ? "animate-spin-slow" : ""} />
             </button>
 
             {/* Status Section */}

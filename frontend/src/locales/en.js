@@ -622,11 +622,16 @@ export const en = {
             table_header_client: "Client",
             table_header_health: "Health",
             table_header_state: "State",
-            table_header_duration: "Duration",
-            table_header_network: "Network & Interface",
+            table_header_duration: "State Duration",
+            table_header_network: "Network",
+            table_header_mac: "MAC Address",
+            table_header_ip: "IP Address",
+            table_header_device: "Device",
             table_header_type: "Type",
             table_header_addressing: "Addressing",
             table_header_usage: "Usage",
+            reset_columns: "Reset to Default",
+            drag_reorder: "Drag to reorder",
             state_online: "Online",
             state_offline: "Offline",
             type_wired: "Wired",
@@ -690,11 +695,11 @@ export const en = {
             empty_state_hint: "Try adjusting your filters"
         },
         applications: {
-            title: "Application Traffic",
+            title: "Applications",
             subtitle: "Deep Packet Inspection for",
             search_placeholder: "Search App Category (e.g. streaming, web)...",
             stats_categories_label: "Categories Tracked",
-            error_fetch: "Failed to synchronize application traffic analytics."
+            error_fetch: "Failed to synchronize application analytics."
         }
     }
 };

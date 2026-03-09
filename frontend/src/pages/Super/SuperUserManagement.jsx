@@ -1,16 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Plus, Pencil, Trash2, KeyRound, Check, AlertTriangle, X, ChevronDown, ChevronRight } from 'lucide-react';
 import apiClient from '../../api/apiClient';
+import { useLanguage } from '../../context/LanguageContext';
 
 // ── constants ─────────────────────────────────────────────────────────────────
 
 const VALID_ROLES = ['super_admin', 'tenant_admin', 'manager', 'viewer'];
-const ROLE_LABEL = {
-  super_admin: 'Super Admin',
-  tenant_admin: 'Tenant Admin',
-  manager: 'Manager',
-  viewer: 'Viewer',
-};
 const ROLE_BADGE_COLOR = {
   super_admin: 'bg-purple-900/40 text-purple-300',
   tenant_admin: 'bg-blue-900/40 text-blue-300',
@@ -26,6 +21,13 @@ const getDomain = (email) => {
 };
 
 function RoleBadge({ role }) {
+  const { t } = useLanguage();
+  const ROLE_LABEL = {
+    super_admin: t('super.users.role_super_admin'),
+    tenant_admin: t('super.users.role_tenant_admin'),
+    manager: t('super.users.role_manager'),
+    viewer: t('super.users.role_viewer'),
+  };
   return (
     <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold ${ROLE_BADGE_COLOR[role] || 'bg-slate-700 text-slate-300'}`}>
       {ROLE_LABEL[role] || role}
@@ -109,6 +111,7 @@ function Modal({ title, onClose, children }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function SuperUserManagement() {
+  const { t } = useLanguage();
   const [users, setUsers] = useState([]);
   const [tenants, setTenants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -125,6 +128,13 @@ export default function SuperUserManagement() {
   const [formRole, setFormRole] = useState('viewer');
   const [formParent, setFormParent] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const ROLE_LABEL = {
+    super_admin: t('super.users.role_super_admin'),
+    tenant_admin: t('super.users.role_tenant_admin'),
+    manager: t('super.users.role_manager'),
+    viewer: t('super.users.role_viewer'),
+  };
 
   const currentEmail = sessionStorage.getItem('insight_user_email') || '';
 
@@ -144,7 +154,7 @@ export default function SuperUserManagement() {
       setUsers(uRes.data);
       setTenants(tRes.data);
     } catch (e) {
-      setError(e?.response?.data?.detail || 'Không thể tải dữ liệu.');
+      setError(e?.response?.data?.detail || t('super.users.error_load_data'));
     } finally {
       setLoading(false);
     }
@@ -154,7 +164,7 @@ export default function SuperUserManagement() {
 
   const allEmails = users.map(u => u.email);
   const tenantAdmins = users.filter(u => u.role === 'tenant_admin');
-  const tenantMap = Object.fromEntries(tenants.map(t => [t.admin_email, t.name]));
+  const tenantMap = Object.fromEntries(tenants.map(tenant => [tenant.admin_email, tenant.name]));
 
   // Count sub-accounts per tenant_admin
   const subCountMap = {};
@@ -178,11 +188,11 @@ export default function SuperUserManagement() {
         role: formRole,
         parent_admin_id: formParent || undefined,
       });
-      showToast('Tạo user thành công. User sẽ đặt mật khẩu khi đăng nhập lần đầu.');
+      showToast(t('super.users.toast_create_success'));
       setCreateModal(false);
       fetchData();
     } catch (e) {
-      showToast(e?.response?.data?.detail || 'Lỗi tạo user.', 'error');
+      showToast(e?.response?.data?.detail || t('super.users.toast_create_error'), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -202,11 +212,11 @@ export default function SuperUserManagement() {
         isApproved: editTarget.isApproved,
         parent_admin_id: formParent || undefined,
       });
-      showToast('Cập nhật thành công.');
+      showToast(t('super.users.toast_update_success'));
       setEditTarget(null);
       fetchData();
     } catch (e) {
-      showToast(e?.response?.data?.detail || 'Lỗi cập nhật.', 'error');
+      showToast(e?.response?.data?.detail || t('super.users.toast_update_error'), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -217,11 +227,11 @@ export default function SuperUserManagement() {
     setSubmitting(true);
     try {
       await apiClient.delete(`/super/users/${deleteTarget.id}`);
-      showToast('Đã xóa user.');
+      showToast(t('super.users.toast_delete_success'));
       setDeleteTarget(null);
       fetchData();
     } catch (e) {
-      showToast(e?.response?.data?.detail || 'Lỗi xóa.', 'error');
+      showToast(e?.response?.data?.detail || t('super.users.toast_delete_error'), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -232,11 +242,11 @@ export default function SuperUserManagement() {
     setSubmitting(true);
     try {
       await apiClient.post(`/super/users/${resetTarget.id}/reset-password`, {});
-      showToast('Đã reset. User sẽ đặt mật khẩu mới khi đăng nhập.');
+      showToast(t('super.users.toast_reset_success'));
       setResetTarget(null);
       fetchData();
     } catch (e) {
-      showToast(e?.response?.data?.detail || 'Lỗi reset.', 'error');
+      showToast(e?.response?.data?.detail || t('super.users.toast_reset_error'), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -247,14 +257,14 @@ export default function SuperUserManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-white">User Management</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Toàn bộ tài khoản hệ thống — Super Admin.</p>
+          <h1 className="text-lg font-bold text-white">{t('super.users.title')}</h1>
+          <p className="text-xs text-slate-500 mt-0.5">{t('super.users.subtitle')}</p>
         </div>
         <button
           onClick={openCreate}
           className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
         >
-          <Plus className="w-4 h-4" /> Thêm User
+          <Plus className="w-4 h-4" /> {t('super.users.add_button')}
         </button>
       </div>
 
@@ -280,11 +290,11 @@ export default function SuperUserManagement() {
           <table className="w-full text-sm">
             <thead className="bg-slate-800/60">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Email</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Role</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Tenant</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Hành động</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('super.users.table_header_email')}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('super.users.table_header_role')}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('super.users.table_header_tenant')}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('super.users.table_header_status')}</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('super.users.table_header_actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -305,13 +315,13 @@ export default function SuperUserManagement() {
                   if (isSelf) return null;
                   return (
                     <div className="flex items-center gap-2">
-                      <button onClick={() => openEdit(u)} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-slate-700 transition-colors" title="Chỉnh sửa">
+                      <button onClick={() => openEdit(u)} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-slate-700 transition-colors" title={t('super.users.button_tooltip_edit')}>
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
-                      <button onClick={() => setResetTarget(u)} className="p-1.5 rounded text-slate-400 hover:text-amber-400 hover:bg-slate-700 transition-colors" title="Reset mật khẩu">
+                      <button onClick={() => setResetTarget(u)} className="p-1.5 rounded text-slate-400 hover:text-amber-400 hover:bg-slate-700 transition-colors" title={t('super.users.button_tooltip_reset_password')}>
                         <KeyRound className="w-3.5 h-3.5" />
                       </button>
-                      <button onClick={() => setDeleteTarget(u)} className="p-1.5 rounded text-slate-400 hover:text-red-400 hover:bg-slate-700 transition-colors" title="Xóa">
+                      <button onClick={() => setDeleteTarget(u)} className="p-1.5 rounded text-slate-400 hover:text-red-400 hover:bg-slate-700 transition-colors" title={t('super.users.button_tooltip_delete')}>
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -343,11 +353,11 @@ export default function SuperUserManagement() {
                           ) : <span className="w-5 inline-block" />}
                           <span className="text-white font-mono text-xs">{u.email}</span>
                           {u.must_set_password && (
-                            <span className="text-[10px] bg-yellow-900/40 text-yellow-400 px-1.5 py-0.5 rounded">Chưa đặt pass</span>
+                            <span className="text-[10px] bg-yellow-900/40 text-yellow-400 px-1.5 py-0.5 rounded">{t('super.users.password_not_set_badge')}</span>
                           )}
                           {children.length > 0 && (
                             <span className="text-[10px] bg-blue-900/30 text-blue-400 px-1.5 py-0.5 rounded">
-                              {children.length} sub
+                              {children.length} {t('super.users.sub_accounts_badge')}
                             </span>
                           )}
                         </div>
@@ -356,8 +366,8 @@ export default function SuperUserManagement() {
                       <td className="px-4 py-3 text-slate-400 text-xs">{tenantName || '—'}</td>
                       <td className="px-4 py-3">
                         {u.isApproved
-                          ? <span className="text-xs text-emerald-400">Active</span>
-                          : <span className="text-xs text-yellow-400">Pending</span>}
+                          ? <span className="text-xs text-emerald-400">{t('super.users.status_active')}</span>
+                          : <span className="text-xs text-yellow-400">{t('super.users.status_pending')}</span>}
                       </td>
                       <td className="px-4 py-3"><ActionButtons u={u} /></td>
                     </tr>
@@ -374,7 +384,7 @@ export default function SuperUserManagement() {
                               <span className="text-slate-600 mr-1">└</span>
                               <span className="text-slate-300 font-mono text-xs">{c.email}</span>
                               {c.must_set_password && (
-                                <span className="text-[10px] bg-yellow-900/40 text-yellow-400 px-1.5 py-0.5 rounded">Chưa đặt pass</span>
+                                <span className="text-[10px] bg-yellow-900/40 text-yellow-400 px-1.5 py-0.5 rounded">{t('super.users.password_not_set_badge')}</span>
                               )}
                             </div>
                           </td>
@@ -382,8 +392,8 @@ export default function SuperUserManagement() {
                           <td className="px-4 py-2.5 text-slate-500 text-xs">{tenantName || u.email}</td>
                           <td className="px-4 py-2.5">
                             {c.isApproved
-                              ? <span className="text-xs text-emerald-400">Active</span>
-                              : <span className="text-xs text-yellow-400">Pending</span>}
+                              ? <span className="text-xs text-emerald-400">{t('super.users.status_active')}</span>
+                              : <span className="text-xs text-yellow-400">{t('super.users.status_pending')}</span>}
                           </td>
                           <td className="px-4 py-2.5"><ActionButtons u={c} /></td>
                         </tr>
@@ -400,20 +410,20 @@ export default function SuperUserManagement() {
 
       {/* Create modal */}
       {createModal && (
-        <Modal title="Thêm User mới" onClose={() => setCreateModal(false)}>
+        <Modal title={t('super.users.modal_create_title')} onClose={() => setCreateModal(false)}>
           <div className="space-y-4">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Email *</label>
+              <label className="block text-xs text-slate-400 mb-1">{t('super.users.modal_create_email_label')}</label>
               <EmailInput
                 value={formEmail}
                 onChange={setFormEmail}
                 existingEmails={allEmails}
-                placeholder="user@company.com"
+                placeholder={t('super.users.modal_create_email_placeholder')}
               />
-              <p className="text-[10px] text-slate-500 mt-1">User sẽ tự đặt mật khẩu khi đăng nhập lần đầu.</p>
+              <p className="text-[10px] text-slate-500 mt-1">{t('super.users.modal_create_email_hint')}</p>
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Role *</label>
+              <label className="block text-xs text-slate-400 mb-1">{t('super.users.modal_create_role_label')}</label>
               <select
                 className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
                 value={formRole}
@@ -424,13 +434,13 @@ export default function SuperUserManagement() {
             </div>
             {['manager', 'viewer'].includes(formRole) && (
               <div>
-                <label className="block text-xs text-slate-400 mb-1">Tenant Admin (parent)</label>
+                <label className="block text-xs text-slate-400 mb-1">{t('super.users.modal_create_parent_label')}</label>
                 <select
                   className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
                   value={formParent}
                   onChange={e => setFormParent(e.target.value)}
                 >
-                  <option value="">— Không gán —</option>
+                  <option value="">{t('super.users.modal_create_parent_option')}</option>
                   {tenantAdmins.map(u => (
                     <option key={u.email} value={u.email}>
                       {u.email}{tenantMap[u.email] ? ` (${tenantMap[u.email]})` : ''}
@@ -440,13 +450,13 @@ export default function SuperUserManagement() {
               </div>
             )}
             <div className="flex justify-end gap-2 pt-1">
-              <button onClick={() => setCreateModal(false)} className="px-3 py-2 text-sm text-slate-400 hover:text-white">Hủy</button>
+              <button onClick={() => setCreateModal(false)} className="px-3 py-2 text-sm text-slate-400 hover:text-white">{t('super.users.modal_create_cancel')}</button>
               <button
                 onClick={handleCreate}
                 disabled={!formEmail.trim() || submitting}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm rounded"
               >
-                {submitting ? 'Đang tạo...' : 'Tạo User'}
+                {submitting ? t('super.users.modal_create_submitting') : t('super.users.modal_create_submit')}
               </button>
             </div>
           </div>
@@ -455,10 +465,10 @@ export default function SuperUserManagement() {
 
       {/* Edit modal */}
       {editTarget && (
-        <Modal title={`Chỉnh sửa: ${editTarget.email}`} onClose={() => setEditTarget(null)}>
+        <Modal title={`${t('super.users.modal_edit_title')}: ${editTarget.email}`} onClose={() => setEditTarget(null)}>
           <div className="space-y-4">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Role</label>
+              <label className="block text-xs text-slate-400 mb-1">{t('super.users.modal_edit_role_label')}</label>
               <select
                 className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
                 value={formRole}
@@ -469,13 +479,13 @@ export default function SuperUserManagement() {
             </div>
             {['manager', 'viewer'].includes(formRole) && (
               <div>
-                <label className="block text-xs text-slate-400 mb-1">Tenant Admin (parent)</label>
+                <label className="block text-xs text-slate-400 mb-1">{t('super.users.modal_edit_parent_label')}</label>
                 <select
                   className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
                   value={formParent}
                   onChange={e => setFormParent(e.target.value)}
                 >
-                  <option value="">— Không gán —</option>
+                  <option value="">{t('super.users.modal_edit_parent_option')}</option>
                   {tenantAdmins.map(u => (
                     <option key={u.email} value={u.email}>
                       {u.email}{tenantMap[u.email] ? ` (${tenantMap[u.email]})` : ''}
@@ -485,13 +495,13 @@ export default function SuperUserManagement() {
               </div>
             )}
             <div className="flex justify-end gap-2 pt-1">
-              <button onClick={() => setEditTarget(null)} className="px-3 py-2 text-sm text-slate-400 hover:text-white">Hủy</button>
+              <button onClick={() => setEditTarget(null)} className="px-3 py-2 text-sm text-slate-400 hover:text-white">{t('super.users.modal_edit_cancel')}</button>
               <button
                 onClick={handleEdit}
                 disabled={submitting}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm rounded"
               >
-                {submitting ? 'Đang lưu...' : 'Lưu'}
+                {submitting ? t('super.users.modal_edit_submitting') : t('super.users.modal_edit_submit')}
               </button>
             </div>
           </div>
@@ -500,19 +510,19 @@ export default function SuperUserManagement() {
 
       {/* Delete confirm */}
       {deleteTarget && (
-        <Modal title="Xác nhận xóa User" onClose={() => setDeleteTarget(null)}>
+        <Modal title={t('super.users.modal_delete_title')} onClose={() => setDeleteTarget(null)}>
           <div className="space-y-4">
             <p className="text-sm text-slate-300">
-              Bạn có chắc muốn xóa tài khoản <span className="font-semibold text-white">{deleteTarget.email}</span>?
+              {t('super.users.modal_delete_confirm_text')} <span className="font-semibold text-white">{deleteTarget.email}</span>?
             </p>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setDeleteTarget(null)} className="px-3 py-2 text-sm text-slate-400 hover:text-white">Hủy</button>
+              <button onClick={() => setDeleteTarget(null)} className="px-3 py-2 text-sm text-slate-400 hover:text-white">{t('super.users.modal_delete_cancel')}</button>
               <button
                 onClick={handleDelete}
                 disabled={submitting}
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm rounded"
               >
-                {submitting ? 'Đang xóa...' : 'Xóa'}
+                {submitting ? t('super.users.modal_delete_submitting') : t('super.users.modal_delete_submit')}
               </button>
             </div>
           </div>
@@ -521,22 +531,22 @@ export default function SuperUserManagement() {
 
       {/* Reset password confirm */}
       {resetTarget && (
-        <Modal title="Reset mật khẩu" onClose={() => setResetTarget(null)}>
+        <Modal title={t('super.users.modal_reset_title')} onClose={() => setResetTarget(null)}>
           <div className="space-y-4">
             <p className="text-sm text-slate-300">
-              Reset mật khẩu của <span className="font-semibold text-white">{resetTarget.email}</span>?
+              {t('super.users.modal_reset_confirm_text')} <span className="font-semibold text-white">{resetTarget.email}</span>?
             </p>
             <p className="text-xs text-slate-500">
-              Sau khi reset, user sẽ được yêu cầu đặt mật khẩu mới khi đăng nhập lần tiếp theo.
+              {t('super.users.modal_reset_hint')}
             </p>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setResetTarget(null)} className="px-3 py-2 text-sm text-slate-400 hover:text-white">Hủy</button>
+              <button onClick={() => setResetTarget(null)} className="px-3 py-2 text-sm text-slate-400 hover:text-white">{t('super.users.modal_reset_cancel')}</button>
               <button
                 onClick={handleReset}
                 disabled={submitting}
                 className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-sm rounded"
               >
-                {submitting ? 'Đang reset...' : 'Reset mật khẩu'}
+                {submitting ? t('super.users.modal_reset_submitting') : t('super.users.modal_reset_submit')}
               </button>
             </div>
           </div>

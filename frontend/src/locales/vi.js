@@ -623,10 +623,15 @@ export const vi = {
             table_header_health: "Sức khỏe",
             table_header_state: "Trạng thái",
             table_header_duration: "Thời lượng",
-            table_header_network: "Mạng & Giao diện",
+            table_header_network: "Mạng",
+            table_header_mac: "Địa chỉ MAC",
+            table_header_ip: "Địa chỉ IP",
+            table_header_device: "Thiết bị",
             table_header_type: "Loại",
             table_header_addressing: "Địa chỉ",
             table_header_usage: "Lưu lượng",
+            reset_columns: "Khôi phục mặc định",
+            drag_reorder: "Kéo để sắp xếp",
             state_online: "Online",
             state_offline: "Offline",
             type_wired: "Có dây",
@@ -690,11 +695,11 @@ export const vi = {
             empty_state_hint: "Thử điều chỉnh bộ lọc"
         },
         applications: {
-            title: "Lưu lượng Ứng dụng",
+            title: "Ứng dụng",
             subtitle: "Phân tích DPI tại",
             search_placeholder: "Tìm danh mục ứng dụng (VD: streaming, web)...",
             stats_categories_label: "Danh mục đang theo dõi",
-            error_fetch: "Không thể đồng bộ phân tích lưu lượng ứng dụng."
+            error_fetch: "Không thể đồng bộ phân tích ứng dụng."
         }
     }
 };

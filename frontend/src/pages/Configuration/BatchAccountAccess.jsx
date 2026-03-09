@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import apiClient from '../../api/apiClient';
+import { useLanguage } from '../../context/LanguageContext';
 import {
     Users, AlertTriangle, Mail, Tag, Shield, Map, RefreshCw, Play, Square, CheckSquare, Square as SquareIcon, CheckCircle, XCircle, Search
 } from 'lucide-react';
@@ -10,6 +11,7 @@ const AVAILABLE_ROLES = [
 ];
 
 const BatchAccountAccess = () => {
+    const { t } = useLanguage();
     const [zones, setZones] = useState([]);
     const [selectedZones, setSelectedZones] = useState(new Set());
     const [isLoadingZones, setIsLoadingZones] = useState(false);
@@ -238,8 +240,8 @@ const BatchAccountAccess = () => {
                         <Users size={24} />
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Batch Account Management</h2>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Add or revoke user access across multiple zones simultaneously.</p>
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">{t('batch_account.title')}</h2>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">{t('batch_account.subtitle')}</p>
                     </div>
                 </div>
 
@@ -251,7 +253,7 @@ const BatchAccountAccess = () => {
                         {/* Config Panel */}
                         <div className="backdrop-blur-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-3xl p-6 shadow-xl dark:shadow-none">
                             <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 mb-6 flex items-center gap-2">
-                                <Shield size={14} className="text-blue-500" /> Identity Configuration
+                                <Shield size={14} className="text-blue-500" /> {t('batch_account.identity_config')}
                             </h3>
 
                             <div className="flex gap-2 mb-6 p-1 bg-slate-100 dark:bg-black/40 rounded-xl">
@@ -259,33 +261,33 @@ const BatchAccountAccess = () => {
                                     onClick={() => setMode('add')}
                                     className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mode === 'add' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200 dark:border-white/10' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                                 >
-                                    Grant Access
+                                    {t('batch_account.grant_access')}
                                 </button>
                                 <button
                                     onClick={() => setMode('remove')}
                                     className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mode === 'remove' ? 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 shadow-sm border border-slate-200 dark:border-white/10' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                                 >
-                                    Revoke Access
+                                    {t('batch_account.revoke_access')}
                                 </button>
                             </div>
 
                             <div className="space-y-5">
                                 <div>
                                     <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">
-                                        <Mail size={12} className="text-slate-400" /> Target Email
+                                        <Mail size={12} className="text-slate-400" /> {t('batch_account.target_email')}
                                     </label>
                                     <input
                                         type="email"
                                         value={email}
                                         onChange={e => setEmail(e.target.value)}
-                                        placeholder="user@example.com"
+                                        placeholder={t('batch_account.email_placeholder')}
                                         className="w-full text-sm bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl py-3 px-4 text-slate-800 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono"
                                     />
                                 </div>
 
                                 <div className={`transition-all duration-300 ${mode === 'remove' ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
                                     <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">
-                                        <Tag size={12} className="text-slate-400" /> Access Role
+                                        <Tag size={12} className="text-slate-400" /> {t('batch_account.access_role')}
                                     </label>
                                     <select
                                         value={selectedRole}
@@ -304,7 +306,7 @@ const BatchAccountAccess = () => {
                         <div className="backdrop-blur-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-3xl p-6 shadow-xl dark:shadow-none flex-1 flex flex-col min-h-[300px]">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                                    <Map size={14} className="text-blue-500" /> Target Selection
+                                    <Map size={14} className="text-blue-500" /> {t('batch_account.target_selection')}
                                 </h3>
                                 <button
                                     onClick={() => { scanZones(); scanSites(); }}
@@ -312,7 +314,7 @@ const BatchAccountAccess = () => {
                                     className="flex items-center gap-1.5 text-[10px] font-bold uppercase hover:text-blue-500 text-slate-500 dark:text-slate-400 transition-colors disabled:opacity-50"
                                 >
                                     <RefreshCw size={12} className={isLoadingZones || isLoadingSites ? 'animate-spin' : ''} />
-                                    Refresh
+                                    {t('batch_account.refresh')}
                                 </button>
                             </div>
 
@@ -321,13 +323,13 @@ const BatchAccountAccess = () => {
                                     onClick={() => setActiveTab('zones')}
                                     className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'zones' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200 dark:border-white/10' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                                 >
-                                    Quản lý theo Zone
+                                    {t('batch_account.zones_tab')}
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('sites')}
                                     className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'sites' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200 dark:border-white/10' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                                 >
-                                    Chọn Site lẻ
+                                    {t('batch_account.sites_tab')}
                                 </button>
                             </div>
 
@@ -335,12 +337,12 @@ const BatchAccountAccess = () => {
                                 isLoadingZones ? (
                                     <div className="flex-1 flex flex-col items-center justify-center gap-3 text-slate-400 dark:text-slate-600">
                                         <RefreshCw size={24} className="animate-spin" />
-                                        <p className="text-xs">Loading zones...</p>
+                                        <p className="text-xs">{t('batch_account.loading_zones')}</p>
                                     </div>
                                 ) : zones.length === 0 ? (
                                     <div className="flex-1 flex flex-col items-center justify-center gap-2 text-amber-500/50">
                                         <AlertTriangle size={24} />
-                                        <p className="text-xs text-center text-slate-400">No zones available.</p>
+                                        <p className="text-xs text-center text-slate-400">{t('batch_account.no_zones_available')}</p>
                                     </div>
                                 ) : (
                                     <>
@@ -351,9 +353,9 @@ const BatchAccountAccess = () => {
                                                 className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors disabled:opacity-50"
                                             >
                                                 {selectedZones.size === zones.length ? (
-                                                    <><CheckSquare size={16} className="text-blue-500" /> Deselect All</>
+                                                    <><CheckSquare size={16} className="text-blue-500" /> {t('batch_account.deselect_all')}</>
                                                 ) : (
-                                                    <><SquareIcon size={16} className="text-slate-400" /> Select All</>
+                                                    <><SquareIcon size={16} className="text-slate-400" /> {t('batch_account.select_all')}</>
                                                 )}
                                             </button>
                                             <span className="font-mono text-[10px] font-bold text-slate-400">
@@ -380,7 +382,7 @@ const BatchAccountAccess = () => {
                                                     <div className="flex-1 min-w-0 flex items-center justify-between">
                                                         <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">{zone.name}</p>
                                                         <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-500">
-                                                            {zone.site_count || 0} Sites
+                                                            {zone.site_count || 0} {t('batch_account.sites_count')}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -392,12 +394,12 @@ const BatchAccountAccess = () => {
                                 isLoadingSites ? (
                                     <div className="flex-1 flex flex-col items-center justify-center gap-3 text-slate-400 dark:text-slate-600">
                                         <RefreshCw size={24} className="animate-spin" />
-                                        <p className="text-xs">Loading sites...</p>
+                                        <p className="text-xs">{t('batch_account.loading_sites')}</p>
                                     </div>
                                 ) : sites.length === 0 ? (
                                     <div className="flex-1 flex flex-col items-center justify-center gap-2 text-amber-500/50">
                                         <AlertTriangle size={24} />
-                                        <p className="text-xs text-center text-slate-400">No sites available.</p>
+                                        <p className="text-xs text-center text-slate-400">{t('batch_account.no_sites_available')}</p>
                                     </div>
                                 ) : (
                                     <>
@@ -408,7 +410,7 @@ const BatchAccountAccess = () => {
                                                 </div>
                                                 <input
                                                     type="text"
-                                                    placeholder="Search sites..."
+                                                    placeholder={t('batch_account.search_sites')}
                                                     value={searchTargetTerm}
                                                     onChange={(e) => setSearchTargetTerm(e.target.value)}
                                                     className="w-full text-sm bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-xl py-3 pl-10 pr-4 text-slate-800 dark:text-white focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 transition-all font-mono"
@@ -419,7 +421,7 @@ const BatchAccountAccess = () => {
                                                 onChange={(e) => setSelectedZoneFilter(e.target.value)}
                                                 className="h-[46px] bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-xl px-4 text-slate-800 dark:text-white text-sm font-bold focus:outline-none min-w-[150px] md:max-w-[200px]"
                                             >
-                                                <option value="all">Tất cả Group (Zone)</option>
+                                                <option value="all">{t('batch_account.all_groups')}</option>
                                                 {zones.map(z => (
                                                     <option key={z.id || z._id} value={z.id || z._id}>{z.name}</option>
                                                 ))}
@@ -432,9 +434,9 @@ const BatchAccountAccess = () => {
                                                 className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors disabled:opacity-50"
                                             >
                                                 {selectedSites.length === sites.length && sites.length > 0 ? (
-                                                    <><CheckSquare size={16} className="text-blue-500" /> Deselect All</>
+                                                    <><CheckSquare size={16} className="text-blue-500" /> {t('batch_account.deselect_all')}</>
                                                 ) : (
-                                                    <><SquareIcon size={16} className="text-slate-400" /> Select All</>
+                                                    <><SquareIcon size={16} className="text-slate-400" /> {t('batch_account.select_all')}</>
                                                 )}
                                             </button>
                                             <span className="font-mono text-[10px] font-bold text-slate-400">
@@ -482,7 +484,7 @@ const BatchAccountAccess = () => {
                     {/* Panel 2: Execution */}
                     <div className="backdrop-blur-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-3xl p-6 flex flex-col gap-4 shadow-xl dark:shadow-none min-h-[500px]">
                         <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                            <Play size={14} className="text-blue-500" /> Execution Platform
+                            <Play size={14} className="text-blue-500" /> {t('batch_account.execution_platform')}
                         </h3>
 
                         {/* Preview UI */}
@@ -497,11 +499,11 @@ const BatchAccountAccess = () => {
                                 </div>
                                 <div className="flex-1">
                                     <h4 className={`text-sm font-bold ${mode === 'add' ? 'text-emerald-800 dark:text-emerald-300' : 'text-rose-800 dark:text-rose-300'}`}>
-                                        Execution Preview
+                                        {t('batch_account.execution_preview')}
                                     </h4>
                                     <p className={`text-xs mt-0.5 ${mode === 'add' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                                        Tổng hợp: <strong className="font-bold">{selectedZones.size}</strong> Zone và <strong className="font-bold">{selectedSites.length}</strong> Site lẻ.
-                                        Hệ thống sẽ xử lý tổng cộng <strong className="font-bold">{totalExecutionSites}</strong> Site.
+                                        {t('batch_account.summary_zones')} <strong className="font-bold">{selectedZones.size}</strong> {t('batch_account.summary_zones_count')} <strong className="font-bold">{selectedSites.length}</strong> {t('batch_account.summary_sites_count')}
+                                        {t('batch_account.summary_total_sites')} <strong className="font-bold">{totalExecutionSites}</strong> {t('batch_account.summary_total_sites_count')}
                                     </p>
                                     {(() => {
                                         const adminSiteIds = new Set(sites.map(s => s.siteId));
@@ -516,7 +518,7 @@ const BatchAccountAccess = () => {
                                                 <div className="mt-2 flex items-start gap-1.5 p-2 bg-white/50 dark:bg-black/20 rounded-lg border border-amber-200 dark:border-amber-500/20">
                                                     <AlertTriangle size={12} className="text-amber-500 shrink-0 mt-0.5" />
                                                     <p className="text-[10px] text-amber-700 dark:text-amber-400 font-bold">
-                                                        Phát hiện {skippedViewerCount} Site trong Zone là "Viewer". Sẽ tự động bỏ qua.
+                                                        {t('batch_account.detected_viewer_sites')} {skippedViewerCount} {t('batch_account.viewer_sites_skipped')}
                                                     </p>
                                                 </div>
                                             );
@@ -531,7 +533,7 @@ const BatchAccountAccess = () => {
                             {logs.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-600 gap-2">
                                     <SquareIcon size={24} className="opacity-50" />
-                                    <p className="font-sans text-xs">Awaiting Execution Command</p>
+                                    <p className="font-sans text-xs">{t('batch_account.awaiting_execution')}</p>
                                 </div>
                             ) : (
                                 <div className="space-y-2">
@@ -550,7 +552,7 @@ const BatchAccountAccess = () => {
                         </div>
 
                         <div className="mt-2 text-center">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{mode === 'add' ? 'Grant Access' : 'Revoke Access'} Mode Active</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{mode === 'add' ? t('batch_account.grant_access') : t('batch_account.revoke_access')} {t('batch_account.mode_active')}</span>
                         </div>
 
                         <button
@@ -562,9 +564,9 @@ const BatchAccountAccess = () => {
                                 }`}
                         >
                             {isRunning || isPrechecking ? (
-                                <><RefreshCw size={16} className="animate-spin" /> {isPrechecking ? 'Running Pre-Check...' : 'Processing...'}</>
+                                <><RefreshCw size={16} className="animate-spin" /> {isPrechecking ? t('batch_account.running_precheck') : t('batch_account.processing')}</>
                             ) : (
-                                <><Play size={16} /> Execute Batch {mode === 'add' ? 'Add' : 'Remove'}</>
+                                <><Play size={16} /> {t('batch_account.execute_batch')} {mode === 'add' ? t('batch_account.add') : t('batch_account.remove')}</>
                             )}
                         </button>
                     </div>
@@ -581,9 +583,9 @@ const BatchAccountAccess = () => {
                                 <div className="w-12 h-12 bg-amber-100 dark:bg-amber-500/20 rounded-full flex items-center justify-center text-amber-600 dark:text-amber-400 mb-4 mx-auto shadow-[0_0_20px_rgba(245,158,11,0.3)]">
                                     <AlertTriangle size={24} />
                                 </div>
-                                <h2 className="text-xl font-black text-center text-slate-900 dark:text-white mb-2">Trùng Lặp Tài Khoản</h2>
+                                <h2 className="text-xl font-black text-center text-slate-900 dark:text-white mb-2">{t('batch_account.duplicate_accounts')}</h2>
                                 <p className="text-sm text-center text-slate-600 dark:text-slate-400 mb-4">
-                                    Phát hiện <strong>{existingSites.length}</strong> site đã chứa email <strong className="text-blue-500">{email}</strong>.
+                                    {t('batch_account.duplicate_detected')} <strong>{existingSites.length}</strong> {t('batch_account.duplicate_email')} <strong className="text-blue-500">{email}</strong>.
                                 </p>
 
                                 <div className="bg-slate-50 dark:bg-black/30 p-3 rounded-xl border border-slate-100 dark:border-white/5 max-h-32 overflow-y-auto mb-4 custom-scrollbar">
@@ -593,7 +595,7 @@ const BatchAccountAccess = () => {
                                 </div>
 
                                 <p className="text-sm font-bold text-center text-slate-700 dark:text-slate-300 mb-6">
-                                    Bạn có muốn bỏ qua các site này và tiếp tục với phần còn lại?
+                                    {t('batch_account.duplicate_skip_continue')}
                                 </p>
                             </div>
 
@@ -602,13 +604,13 @@ const BatchAccountAccess = () => {
                                     onClick={() => setShowPrecheckModal(false)}
                                     className="h-12 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 font-bold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 transition-all"
                                 >
-                                    Hủy Bỏ
+                                    {t('batch_account.cancel')}
                                 </button>
                                 <button
                                     onClick={() => handleStart(existingSites.map(s => s.site_id))}
                                     className="h-12 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 text-white font-black tracking-widest text-xs rounded-xl shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
                                 >
-                                    <Play size={16} /> Bỏ Qua & Tiếp Tục
+                                    <Play size={16} /> {t('batch_account.skip_continue')}
                                 </button>
                             </div>
                         </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Users, Plus, Trash2, KeyRound, ShieldCheck, AlertTriangle, CheckCircle, Lock, X } from 'lucide-react';
 import apiClient from '../../api/apiClient';
+import { useLanguage } from '../../context/LanguageContext';
 
 const TENANT_ADMIN_CREATABLE_ROLES = ['manager', 'viewer'];
 
@@ -18,7 +19,7 @@ const ROLE_BADGE = {
 
 const getDomain = (email) => { const i = email.indexOf('@'); return i >= 0 ? email.slice(i) : ''; };
 
-function EmailInput({ value, onChange, existingEmails }) {
+function EmailInput({ value, onChange, existingEmails, placeholder }) {
     const [suggestions, setSuggestions] = useState([]);
     const [open, setOpen] = useState(false);
     const ref = useRef(null);
@@ -55,7 +56,7 @@ function EmailInput({ value, onChange, existingEmails }) {
                 onChange={handleChange}
                 onFocus={() => { if (suggestions.length) setOpen(true); }}
                 className="w-full bg-slate-800 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
-                placeholder="user@company.com"
+                placeholder={placeholder}
                 autoComplete="off"
             />
             {open && (
@@ -94,6 +95,7 @@ const Alert = ({ type, message, onClose }) => {
 // ── Main component ────────────────────────────────────────────────────────────
 
 const UserManagement = () => {
+    const { t } = useLanguage();
     const currentUserEmail = sessionStorage.getItem('insight_user_email') || '';
 
     const [users, setUsers] = useState([]);
@@ -121,7 +123,7 @@ const UserManagement = () => {
             const res = await apiClient.get('/admin/users');
             setUsers(res.data);
         } catch (err) {
-            showAlert('error', err.response?.data?.detail || 'Tải danh sách user thất bại.');
+            showAlert('error', err.response?.data?.detail || t('admin.users.error_load_failed'));
         } finally {
             setLoading(false);
         }
@@ -134,7 +136,7 @@ const UserManagement = () => {
             await apiClient.put(`/admin/users/${userId}`, { role, isApproved });
             setUsers(prev => prev.map(u => u.id === userId ? { ...u, role, isApproved } : u));
         } catch (err) {
-            showAlert('error', err.response?.data?.detail || 'Cập nhật thất bại.');
+            showAlert('error', err.response?.data?.detail || t('admin.users.error_update_failed'));
         }
     };
 
@@ -143,13 +145,13 @@ const UserManagement = () => {
     };
 
     const handleDelete = async (user) => {
-        if (!confirm(`Xóa tài khoản ${user.email}?`)) return;
+        if (!confirm(`${t('admin.users.delete_success')} ${user.email}?`)) return;
         try {
             await apiClient.delete(`/admin/users/${user.id}`);
             setUsers(prev => prev.filter(u => u.id !== user.id));
-            showAlert('success', `Đã xóa ${user.email}.`);
+            showAlert('success', `${t('admin.users.delete_success')} ${user.email}.`);
         } catch (err) {
-            showAlert('error', err.response?.data?.detail || 'Xóa user thất bại.');
+            showAlert('error', err.response?.data?.detail || t('admin.users.error_delete_failed'));
         }
     };
 
@@ -158,13 +160,13 @@ const UserManagement = () => {
         setCreating(true);
         try {
             await apiClient.post('/admin/users', { email: formEmail, role: formRole });
-            showAlert('success', `Tạo tài khoản ${formEmail} thành công. User sẽ đặt mật khẩu khi đăng nhập lần đầu.`);
+            showAlert('success', `${t('admin.users.create_success')} ${formEmail} ${t('admin.users.create_success_suffix')}`);
             setFormEmail('');
             setFormRole('viewer');
             setShowCreate(false);
             fetchUsers();
         } catch (err) {
-            showAlert('error', err.response?.data?.detail || 'Tạo user thất bại.');
+            showAlert('error', err.response?.data?.detail || t('admin.users.error_create_failed'));
         } finally {
             setCreating(false);
         }
@@ -174,10 +176,10 @@ const UserManagement = () => {
         setResetting(true);
         try {
             await apiClient.post(`/admin/users/${resetTarget.id}/reset-password`, {});
-            showAlert('success', `Đã reset mật khẩu ${resetTarget.email}. User sẽ được yêu cầu đặt mật khẩu mới khi đăng nhập.`);
+            showAlert('success', `${t('admin.users.reset_password_confirm')} ${resetTarget.email}. ${t('admin.users.reset_password_note')}`);
             setResetTarget(null);
         } catch (err) {
-            showAlert('error', err.response?.data?.detail || 'Reset mật khẩu thất bại.');
+            showAlert('error', err.response?.data?.detail || t('admin.users.error_reset_failed'));
         } finally {
             setResetting(false);
         }
@@ -202,9 +204,9 @@ const UserManagement = () => {
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                     <Users className="w-5 h-5 text-blue-400" />
-                    <h1 className="text-lg font-semibold text-white">User Management</h1>
+                    <h1 className="text-lg font-semibold text-white">{t('admin.users.title')}</h1>
                     <span className="text-xs text-slate-500 bg-slate-800 border border-slate-700 rounded px-2 py-0.5">
-                        {subUsers.length} sub-account{subUsers.length !== 1 ? 's' : ''}
+                        {subUsers.length} {subUsers.length !== 1 ? t('admin.users.sub_accounts') : t('admin.users.sub_account')}
                     </span>
                 </div>
                 <button
@@ -212,7 +214,7 @@ const UserManagement = () => {
                     className="flex items-center gap-1.5 px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
                 >
                     <Plus className="w-4 h-4" />
-                    Tạo User
+                    {t('admin.users.create_user')}
                 </button>
             </div>
 
@@ -222,18 +224,23 @@ const UserManagement = () => {
             {showCreate && (
                 <div className="bg-[#0F172A] border border-slate-700 rounded-xl p-5 mb-6">
                     <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-sm font-semibold text-white">Tạo tài khoản mới</h2>
+                        <h2 className="text-sm font-semibold text-white">{t('admin.users.create_new_account')}</h2>
                         <button onClick={() => setShowCreate(false)} className="text-slate-500 hover:text-white">
                             <X className="w-4 h-4" />
                         </button>
                     </div>
                     <form onSubmit={handleCreate} className="flex flex-wrap gap-3 items-end">
                         <div className="flex-1 min-w-[220px]">
-                            <label className="block text-xs text-slate-400 mb-1">Email *</label>
-                            <EmailInput value={formEmail} onChange={setFormEmail} existingEmails={allEmails} />
+                            <label className="block text-xs text-slate-400 mb-1">{t('admin.users.email_label')} *</label>
+                            <EmailInput
+                                value={formEmail}
+                                onChange={setFormEmail}
+                                existingEmails={allEmails}
+                                placeholder={t('admin.users.email_placeholder')}
+                            />
                         </div>
                         <div className="w-36">
-                            <label className="block text-xs text-slate-400 mb-1">Role *</label>
+                            <label className="block text-xs text-slate-400 mb-1">{t('admin.users.role_label')} *</label>
                             <select
                                 value={formRole}
                                 onChange={e => setFormRole(e.target.value)}
@@ -250,12 +257,12 @@ const UserManagement = () => {
                                 disabled={creating || !formEmail}
                                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
                             >
-                                {creating ? 'Đang tạo...' : 'Tạo'}
+                                {creating ? t('admin.users.creating_button') : t('admin.users.create_button')}
                             </button>
                         </div>
                     </form>
                     <p className="text-[11px] text-slate-500 mt-3">
-                        User sẽ được yêu cầu đặt mật khẩu tự chọn khi đăng nhập lần đầu tiên.
+                        {t('admin.users.password_note')}
                     </p>
                 </div>
             )}
@@ -266,13 +273,13 @@ const UserManagement = () => {
                     <div className="bg-[#0F172A] border border-slate-700 rounded-xl p-6 w-full max-w-sm mx-4">
                         <div className="flex items-center gap-2 mb-3">
                             <KeyRound className="w-4 h-4 text-amber-400" />
-                            <h3 className="text-sm font-semibold text-white">Reset mật khẩu</h3>
+                            <h3 className="text-sm font-semibold text-white">{t('admin.users.reset_password_title')}</h3>
                         </div>
                         <p className="text-sm text-slate-300 mb-1">
-                            Reset mật khẩu của <span className="font-semibold text-white">{resetTarget.email}</span>?
+                            {t('admin.users.reset_password_confirm')} <span className="font-semibold text-white">{resetTarget.email}</span>?
                         </p>
                         <p className="text-xs text-slate-500 mb-5">
-                            Sau khi reset, user sẽ được yêu cầu tự đặt mật khẩu mới khi đăng nhập lần tiếp theo.
+                            {t('admin.users.reset_password_note')}
                         </p>
                         <div className="flex gap-2">
                             <button
@@ -280,13 +287,13 @@ const UserManagement = () => {
                                 disabled={resetting}
                                 className="flex-1 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
                             >
-                                {resetting ? 'Đang reset...' : 'Xác nhận Reset'}
+                                {resetting ? t('admin.users.resetting_button') : t('admin.users.reset_confirm_button')}
                             </button>
                             <button
                                 onClick={() => setResetTarget(null)}
                                 className="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded-lg transition-colors"
                             >
-                                Hủy
+                                {t('admin.users.cancel')}
                             </button>
                         </div>
                     </div>
@@ -298,10 +305,10 @@ const UserManagement = () => {
                 <table className="w-full text-sm">
                     <thead>
                         <tr className="border-b border-slate-800 text-left">
-                            <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Email</th>
-                            <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Role</th>
-                            <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                            <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Joined</th>
+                            <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('admin.users.table_email')}</th>
+                            <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('admin.users.table_role')}</th>
+                            <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('admin.users.table_status')}</th>
+                            <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('admin.users.table_joined')}</th>
                             <th className="px-4 py-3"></th>
                         </tr>
                     </thead>
@@ -316,7 +323,7 @@ const UserManagement = () => {
                                         {user.email}
                                         {user.must_set_password && (
                                             <span className="ml-2 text-[10px] bg-yellow-900/40 text-yellow-400 px-1.5 py-0.5 rounded">
-                                                Chưa đặt pass
+                                                {t('admin.users.not_set_password')}
                                             </span>
                                         )}
                                         {isLocked && <Lock className="w-3 h-3 text-amber-500 inline ml-1.5" title="Locked" />}
@@ -350,7 +357,7 @@ const UserManagement = () => {
                                             }`}
                                         >
                                             <ShieldCheck className="w-3 h-3" />
-                                            {user.isApproved ? 'Approved' : 'Pending'}
+                                            {user.isApproved ? t('admin.users.approved') : t('admin.users.pending')}
                                         </button>
                                     </td>
                                     <td className="px-4 py-3 text-slate-500 text-xs">
@@ -361,7 +368,7 @@ const UserManagement = () => {
                                             <button
                                                 onClick={() => setResetTarget(user)}
                                                 disabled={isDisabled}
-                                                title="Reset mật khẩu (user tự đặt lại)"
+                                                title={t('admin.users.reset_password_title')}
                                                 className="p-1.5 text-slate-500 hover:text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                             >
                                                 <KeyRound className="w-3.5 h-3.5" />
@@ -369,7 +376,7 @@ const UserManagement = () => {
                                             <button
                                                 onClick={() => handleDelete(user)}
                                                 disabled={isDisabled}
-                                                title="Xóa user"
+                                                title={t('admin.users.delete_success')}
                                                 className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                                             >
                                                 <Trash2 className="w-3.5 h-3.5" />
@@ -382,7 +389,7 @@ const UserManagement = () => {
                         {subUsers.length === 0 && (
                             <tr>
                                 <td colSpan={5} className="px-4 py-8 text-center text-slate-600 text-sm">
-                                    Chưa có sub-account nào. Nhấn "Tạo User" để thêm.
+                                    {t('admin.users.no_subaccounts')}
                                 </td>
                             </tr>
                         )}
