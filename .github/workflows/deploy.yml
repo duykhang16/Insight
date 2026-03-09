@@ -11,7 +11,7 @@ jobs:
       - name: Deploy Code
         run: |
           # Di chuyển vào thư mục dự án
-          cd /home/cuong-deploy/API-Testing
+          cd /home/cuong-deploy/Insight
           
           # Loại bỏ các thay đổi local nếu có để tránh xung đột khi pull
           git reset --hard origin/main
