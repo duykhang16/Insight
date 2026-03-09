@@ -29,50 +29,36 @@ async def replay_login(username: str, password: str, client_id: Optional[str] = 
     url = ARUBA_SSO_VALIDATE_URL
 
     async with httpx.AsyncClient(verify=True) as client:
-        # --- PHASE 0: Discovery ---
-        # Fetching settings.json to get dynamic OIDC IDs
-        target_client_id_authn = client_id # Provided ID as first fallback
-        target_client_id_authz = client_id # Provided ID as first fallback
+        # HARDCODED SECURE DEFAULTS (Known working for portal.instant-on.hpe.com)
+        # We try to discover dynamic ones, but these are the primary production IDs.
+        target_client_id_authn = "8d02000d-0ba3-468a-b674-9a8052347d9b"
+        target_client_id_authz = "987b543b-210d-9ed6-54a2-10a2c4567fa0"
         target_resource = ARUBA_BASE_URL
 
         try:
             settings_url = f"{target_resource}/settings.json"
-            settings_resp = await client.get(settings_url, timeout=10.0)
+            settings_resp = await client.get(settings_url, timeout=5.0) # Lower timeout
             if settings_resp.status_code == 200:
                 s = settings_resp.json()
-                target_client_id_authn = s.get("ssoClientIdAuthN") or target_client_id_authn
-                target_client_id_authz = s.get("ssoClientIdAuthZ") or target_client_id_authz
+                discovered_authn = s.get("ssoClientIdAuthN")
+                discovered_authz = s.get("ssoClientIdAuthZ")
+                if discovered_authn: target_client_id_authn = discovered_authn
+                if discovered_authz: target_client_id_authz = discovered_authz
 
                 # Pick the most robust URL key
-                discovered_resource = s.get("restApiUrl") or s.get("portalUrl") or s.get("portalFqdn")
+                discovered_resource = s.get("restApiUrl") or s.get("portalUrl")
                 if discovered_resource:
                     if not discovered_resource.startswith("http"):
                         discovered_resource = f"https://{discovered_resource}"
                     target_resource = discovered_resource
-
-                print(f"[REPLAY] Discovery Success: AuthN={target_client_id_authn}, AuthZ={target_client_id_authz}, Resource={target_resource}")
+                print(f"[REPLAY] Discovery (settings.json) Success.")
             else:
-                print(f"[REPLAY] Discovery (settings.json) failed: {settings_resp.status_code}")
-
-            # Fallback: Scrape from portal homepage redirect
-            if not target_client_id_authn or not target_client_id_authz:
-                print(f"[REPLAY] Falling back to Portal Redirect discovery...")
-                portal_resp = await client.get(target_resource, follow_redirects=True, timeout=10.0)
-                final_url = str(portal_resp.url)
-                if "client_id=" in final_url:
-                    from urllib.parse import urlparse, parse_qs
-                    parsed_p = urlparse(final_url)
-                    qs_p = parse_qs(parsed_p.query)
-                    target_client_id_authn = qs_p.get("client_id", [None])[0] or target_client_id_authn
-                    target_client_id_authz = target_client_id_authn # Often same
-                    print(f"[REPLAY] Discovery Success (Scrape): client_id={target_client_id_authn}")
+                # If settings.json fails, don't fallback to portal scraping (too many requests)
+                # Just use the robust defaults.
+                print(f"[REPLAY] Discovery (settings.json) status {settings_resp.status_code}. Using fallback defaults.")
 
         except Exception as e:
-            print(f"[REPLAY WARNING] Discovery failed: {e}")
-
-        # Final hardcoded fallbacks if everything still None
-        target_client_id_authn = target_client_id_authn or "8d02000d-0ba3-468a-b674-9a8052347d9b"
-        target_client_id_authz = target_client_id_authz or "987b543b-210d-9ed6-54a2-10a2c4567fa0"
+            print(f"[REPLAY WARNING] Discovery failed: {e}. Using defaults.")
 
         # --- STEP 1: SSO Login ---
         try:
@@ -97,31 +83,24 @@ async def replay_login(username: str, password: str, client_id: Optional[str] = 
             # Variant 1: Pure Form-URLEncoded (Postman/Curl standard - No client_id needed in Step 1)
             # We prioritize variants based on the account type (aitc-jsc.com usually needs identification)
             variants = []
+            # Variant 1: Pure Form-URLEncoded
+            # We prioritize variants based on the account type
+            variants = []
             if "@aitc-jsc.com" in username.lower():
-                # Newer accounts usually need 'identification'
                 variants = [
                     {"type": "form", "data": {"identification": username, "password": password, "client_id": target_client_id_authn}},
-                    {"type": "form", "data": {"username": username, "password": password}},
-                    {"type": "json", "data": {"identification": username, "password": password, "client_id": target_client_id_authn}},
                 ]
             else:
-                # Standard legacy flow
                 variants = [
                     {"type": "form", "data": {"username": username, "password": password}},
-                    {"type": "form", "data": {"identification": username, "password": password, "client_id": target_client_id_authn}},
-                    {"type": "json", "data": {"identification": username, "password": password, "client_id": target_client_id_authn}},
                 ]
 
-            # Add secondary variants
-            variants.extend([
-                {"type": "form", "data": {"username": username, "password": password, "client_id": target_client_id_authn}},
-                {"type": "json", "data": {"username": username, "password": password, "client_id": target_client_id_authn}},
-            ])
+            # Simplified variants to reduce attempt count (avoiding 429)
+            variants.append({"type": "form", "data": {"username": username, "password": password, "client_id": target_client_id_authn}})
 
             response = None
             for v in variants:
                 try:
-                    print(f"[REPLAY] Trying Step 1 variant: {v['type']} ({list(v['data'].keys())})")
                     v_headers = headers.copy()
                     if v["type"] == "form":
                         v_headers["Content-Type"] = "application/x-www-form-urlencoded"
@@ -131,13 +110,12 @@ async def replay_login(username: str, password: str, client_id: Optional[str] = 
                         response = await client.post(url, headers=v_headers, json=v['data'], timeout=15.0)
 
                     if response.status_code == 200:
-                        print(f"[REPLAY] Step 1 Success with variant: {v['type']} ({list(v['data'].keys())})")
                         break
                     elif response.status_code == 429:
-                        print(f"[REPLAY ERROR] 429 Too Many Requests detected. Aborting variants to avoid ban.")
-                        break # Stop immediately
+                        print(f"[REPLAY ERROR] 429 detected on first attempt. This IP is likely banned.")
+                        return {"status": "error", "message": "Aruba SSO rate limit (429). Please wait 2-5 minutes."}
                     else:
-                        print(f"[REPLAY] Variant failed ({response.status_code}): {response.text[:100]}...")
+                        print(f"[REPLAY] Variant failed ({response.status_code})")
                 except Exception as e:
                     print(f"[REPLAY] Variant error: {e}")
 

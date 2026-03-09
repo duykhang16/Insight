@@ -97,6 +97,8 @@ const SiteDetail = () => {
     const goodClients = data?.clientsOverview?.totalClient?.goodCount || 0;
     const fairClients = data?.clientsOverview?.totalClient?.fairCount || 0;
     const poorClients = data?.clientsOverview?.totalClient?.poorCount || 0;
+    const wiredClients = data?.clientsOverview?.wiredClient?.total || 0;
+    const wirelessClients = data?.clientsOverview?.wirelessClient?.total || 0;
 
     const inactiveWireless = data?.networksOverview?.inactiveWirelessNetworks || 0;
     const inactiveWired = data?.networksOverview?.inactiveWiredNetworks || 0;
@@ -231,10 +233,16 @@ const SiteDetail = () => {
                         </div>
                         {card.sub && (
                             card.key === 'clients' ? (
-                                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 font-medium tracking-wide flex items-center gap-1">
-                                    <span onClick={(e) => { e.stopPropagation(); navigate(`/site/${siteId}/clients?health=good`); }} className="hover:text-emerald-500 transition-colors">Good: {goodClients}</span> /
-                                    <span onClick={(e) => { e.stopPropagation(); navigate(`/site/${siteId}/clients?health=fair`); }} className="hover:text-amber-500 transition-colors">Fair: {fairClients}</span> /
-                                    <span onClick={(e) => { e.stopPropagation(); navigate(`/site/${siteId}/clients?health=poor`); }} className="hover:text-rose-500 transition-colors">Poor: {poorClients}</span>
+                                <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5 font-medium tracking-wide flex flex-col gap-1">
+                                    <div className="flex items-center gap-1">
+                                        <span onClick={(e) => { e.stopPropagation(); navigate(`/site/${siteId}/clients?type=wired`); }} className="hover:text-emerald-500 transition-colors cursor-pointer">Wired: {wiredClients}</span> /
+                                        <span onClick={(e) => { e.stopPropagation(); navigate(`/site/${siteId}/clients?type=wireless`); }} className="hover:text-blue-500 transition-colors cursor-pointer ml-1">Wireless: {wirelessClients}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <span onClick={(e) => { e.stopPropagation(); navigate(`/site/${siteId}/clients?health=good`); }} className="hover:text-emerald-500 transition-colors cursor-pointer">Good: {goodClients}</span> /
+                                        <span onClick={(e) => { e.stopPropagation(); navigate(`/site/${siteId}/clients?health=fair`); }} className="hover:text-amber-500 transition-colors cursor-pointer ml-1">Fair: {fairClients}</span> /
+                                        <span onClick={(e) => { e.stopPropagation(); navigate(`/site/${siteId}/clients?health=poor`); }} className="hover:text-rose-500 transition-colors cursor-pointer ml-1">Poor: {poorClients}</span>
+                                    </div>
                                 </div>
                             ) : (
                                 <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 font-medium tracking-wide">

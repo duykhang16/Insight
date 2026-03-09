@@ -14,7 +14,8 @@ async def get_live_account_sites(aruba_token: str) -> List[Dict[str, Any]]:
         res = await aruba_service.call_api(
             method="GET",
             endpoint="/api/sites",
-            aruba_token=aruba_token
+            aruba_token=aruba_token,
+            use_master_auto=True
         )
 
         if res.status_code in [401, 403]:
@@ -22,7 +23,8 @@ async def get_live_account_sites(aruba_token: str) -> List[Dict[str, Any]]:
             res = await aruba_service.call_api(
                 method="GET",
                 endpoint="/api/v1/sites",
-                aruba_token=aruba_token
+                aruba_token=aruba_token,
+                use_master_auto=True
             )
 
         if res.status_code in [401, 403]:
@@ -60,7 +62,8 @@ async def fetch_site_config_live(site_id: str, aruba_token: str) -> Dict[str, An
         res_nets = await aruba_service.call_api(
             method="GET",
             endpoint=f"/api/sites/{site_id}/networksSummary",
-            aruba_token=aruba_token
+            aruba_token=aruba_token,
+            use_master_auto=True
         )
 
         if res_nets.status_code in [401, 403]:
@@ -68,7 +71,8 @@ async def fetch_site_config_live(site_id: str, aruba_token: str) -> Dict[str, An
             res_nets = await aruba_service.call_api(
                 method="GET",
                 endpoint=f"/api/v1/sites/{site_id}/networksSummary",
-                aruba_token=aruba_token
+                aruba_token=aruba_token,
+                use_master_auto=True
             )
 
         if res_nets.status_code in [401, 403]:
@@ -80,7 +84,8 @@ async def fetch_site_config_live(site_id: str, aruba_token: str) -> Dict[str, An
         res_guest = await aruba_service.call_api(
             method="GET",
             endpoint=f"/api/sites/{site_id}/guestPortalSettings",
-            aruba_token=aruba_token
+            aruba_token=aruba_token,
+            use_master_auto=True
         )
 
         # Safe JSON parsing

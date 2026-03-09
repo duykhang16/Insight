@@ -58,28 +58,45 @@ const Clients = () => {
     const { selectedSiteId, sites, fetchSites } = useSite();
     const { isAutoRefreshEnabled } = useSettings();
 
-    // Default column order
+    // Part Number to Model Name mapping (Task 1)
+    const PART_NUMBER_MAP = {
+        'JL678A': '6200F',
+        'JL439A': '2930F',
+        'R2X11A': 'AP-505',
+        'R2H28A': 'AP-515',
+        'JZ336A': 'AP-535',
+        'Q9H62A': 'AP-515',
+        'R4H16A': 'AP-565',
+        'Q9H59A': 'AP-514',
+    };
+
+    // Default 11-column sequence (Task 1)
     const DEFAULT_COLUMNS = [
         { id: 'client', labelKey: 'site.clients.table_header_client', minWidth: 250, sortable: true },
+        { id: 'network', labelKey: 'site.clients.table_header_network', minWidth: 150, sortable: true },
+        { id: 'usage', labelKey: 'site.clients.table_header_usage', minWidth: 120, sortable: true },
         { id: 'health', labelKey: 'site.clients.table_header_health', minWidth: 100, sortable: true },
         { id: 'state', labelKey: 'site.clients.table_header_state', minWidth: 100, sortable: false },
+        { id: 'duration', labelKey: 'site.clients.table_header_duration', minWidth: 100, sortable: true },
         { id: 'type', labelKey: 'site.clients.table_header_type', minWidth: 100, sortable: false },
-        { id: 'network', labelKey: 'site.clients.table_header_network', minWidth: 150, sortable: true },
-        { id: 'mac', labelKey: 'site.clients.table_header_mac', minWidth: 150, sortable: false },
-        { id: 'ip', labelKey: 'site.clients.table_header_ip', minWidth: 150, sortable: false },
+        { id: 'ip', labelKey: 'site.clients.table_header_ip', minWidth: 120, sortable: false },
         { id: 'device', labelKey: 'site.clients.table_header_device', minWidth: 150, sortable: false },
-        { id: 'usage', labelKey: 'site.clients.table_header_usage', minWidth: 120, sortable: true },
-        { id: 'duration', labelKey: 'site.clients.table_header_duration', minWidth: 100, sortable: true }
+        { id: 'interface', labelKey: 'site.clients.table_header_interface', minWidth: 150, sortable: false },
     ];
 
     const [columns, setColumns] = useState(() => {
-        const saved = localStorage.getItem('insight_clients_cols');
+        const saved = localStorage.getItem('client_table_layout');
         if (saved) {
             try {
                 const parsed = JSON.parse(saved);
-                // Validate parsed contains same columns as default
-                if (parsed.length === DEFAULT_COLUMNS.length && parsed.every(c => DEFAULT_COLUMNS.find(d => d.id === c.id))) {
-                    return parsed;
+                // Validate parsed contains all required IDs
+                const defaultIds = DEFAULT_COLUMNS.map(c => c.id);
+                if (parsed.length === DEFAULT_COLUMNS.length && parsed.every(c => defaultIds.includes(c.id))) {
+                    // Re-attach metadata from default columns to saved IDs
+                    return parsed.map(p => ({
+                        ...DEFAULT_COLUMNS.find(d => d.id === p.id),
+                        ...p
+                    }));
                 }
             } catch (e) {
                 console.error("Invalid column data in localStorage");
@@ -90,7 +107,7 @@ const Clients = () => {
 
     const resetColumns = () => {
         setColumns(DEFAULT_COLUMNS);
-        localStorage.removeItem('insight_clients_cols');
+        localStorage.removeItem('client_table_layout');
     };
 
     // Sensor for Drag and Drop
@@ -106,7 +123,7 @@ const Clients = () => {
                 const oldIndex = items.findIndex((i) => i.id === active.id);
                 const newIndex = items.findIndex((i) => i.id === over.id);
                 const newArray = arrayMove(items, oldIndex, newIndex);
-                localStorage.setItem('insight_clients_cols', JSON.stringify(newArray));
+                localStorage.setItem('client_table_layout', JSON.stringify(newArray));
                 return newArray;
             });
         }
@@ -135,10 +152,9 @@ const Clients = () => {
         try {
             let res;
             const endpoints = [
+                `/overview/sites/${siteId}/clients`,
                 `/overview/sites/${siteId}/clientSummary`,
                 `/overview/sites/${siteId}/clientsSummary`,
-                `/overview/sites/${siteId}/clients`,
-                `/overview/sites/${siteId}/clients`,
                 `/overview/sites/${siteId}/dashboard`
             ];
 
@@ -181,26 +197,31 @@ const Clients = () => {
         }
     }, isAutoRefreshEnabled ? 60000 : null, [selectedSiteId, loading, isAutoRefreshEnabled]);
 
-    const formatDuration = (seconds) => {
-        if (!seconds || seconds < 0) return '0m';
-        const d = Math.floor(seconds / 86400);
-        const h = Math.floor((seconds % 86400) / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        if (d > 0) return h > 0 ? `${d}d${h}h` : `${d}d`;
-        if (h > 0) return m > 0 ? `${h}h${m}m` : `${h}h`;
-        return `${m}m`;
+    const formatDuration = (item) => {
+        const rawSeconds = item?.stateDurationInSeconds ?? item?.connectionDurationInSeconds ?? 0;
+        if (rawSeconds <= 0) return '';
+        const m = Math.floor(rawSeconds / 60);
+        return `${m} min`;
     };
 
-    const formatInterface = (client) => {
-        const isWired = client.clientType === 'wired';
+    const formatInterface = (item) => {
+        if (!item) return '';
+        const isWired = item.clientType?.toLowerCase() === 'wired';
         if (isWired) {
-            const port = client.connectedToPorts?.[0]?.portNumber || client.portId;
-            return port ? `(Port ${port})` : 'Wired';
+            // Extract port string if array exists
+            const port = item.connectedToPorts?.[0]?.portNumber || item.portId;
+            return port ? `Port ${port}` : '';
         }
-        if (client.wirelessBand) {
-            return client.wirelessBand.toLowerCase().replace('ghz', ' GHz');
+        // Wireless: Map from item.wirelessBand
+        if (item.wirelessBand) {
+            return item.wirelessBand.toLowerCase().replace('ghz', ' GHz');
         }
-        return '-';
+        return '';
+    };
+
+    const capitalize = (str) => {
+        if (!str) return '';
+        return str.charAt(0).toUpperCase() + str.slice(1);
     };
 
     const getHealthColor = (health) => {
@@ -263,10 +284,9 @@ const Clients = () => {
                     valB = b.connectionDurationInSeconds || 0;
                     break;
                 case 'network':
-                    valA = a.clientType === 'wired' ? (a.accessedWiredNetworks?.[0]?.networkName || `VLAN ${a.vlanId || ''}`) : (a.wirelessNetworkName || '');
-                    valB = b.clientType === 'wired' ? (b.accessedWiredNetworks?.[0]?.networkName || `VLAN ${b.vlanId || ''}`) : (b.wirelessNetworkName || '');
-                    valA = valA.toLowerCase();
-                    valB = valB.toLowerCase();
+                    // Task 1: Sort by SSID
+                    valA = (a.wirelessNetworkName || a.accessedWiredNetworks?.[0]?.networkName || '').toLowerCase();
+                    valB = (b.wirelessNetworkName || b.accessedWiredNetworks?.[0]?.networkName || '').toLowerCase();
                     break;
                 case 'usage':
                     valA = a.downstreamDataTransferredInBytes || 0;
@@ -308,7 +328,7 @@ const Clients = () => {
                         className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg border border-white/10 transition-colors"
                     >
                         <RefreshCw size={14} />
-                        {t('site.clients.reset_columns') || 'Reset to Default'}
+                        {t('site.clients.reset_columns') || 'Đặt lại giao diện'}
                     </button>
                 </div>
             </div>
@@ -384,18 +404,28 @@ const Clients = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5 text-slate-300">
-                                {processedClients.map((client) => {
-                                    const isWired = client.clientType === 'wired';
-                                    const clientName = client.name || client.hostName || client.macAddress;
-                                    const isUp = (client.status || "").toLowerCase() === 'up';
+                                {processedClients.map((item) => {
+                                    const isWired = item.clientType?.toLowerCase() === 'wired';
 
-                                    // Network Mapping logic
-                                    const networkDisplay = isWired
-                                        ? (client.accessedWiredNetworks?.[0]?.networkName || `VLAN ${client.vlanId || '-'}`)
-                                        : (client.wirelessNetworkName || '-');
+                                    // Rule: Client: Use item.name. If name is null or same as mac, fallback to item.hostName or item.macAddress.
+                                    const clientName = (item.name && item.name !== item.macAddress)
+                                        ? item.name
+                                        : (item.hostName || item.macAddress || '');
 
-                                    // Device Mapping Logic
-                                    const deviceDisplay = client.associatedDeviceName || client.associatedToDeviceName || client.switchName || client.connectedDeviceName || client.associatedDeviceMacAddress || '-';
+                                    const isUp = (item.status || "").toLowerCase() === 'up';
+
+                                    // Rule: Network: Smart deep search (Wireless -> Wired -> Connected Ports -> VLAN)
+                                    const networkDisplay = item.wirelessNetworkName ||
+                                        item.wiredNetworkName ||
+                                        item.connectedToPorts?.[0]?.accessedWiredNetworks?.[0]?.networkName ||
+                                        (item.vlanId ? `VLAN ${item.vlanId}` : '');
+
+                                    // Rule: Device (AP/Switch Name): Map directly from item.deviceName
+                                    const deviceDisplayName = item.deviceName || '';
+
+                                    // Device Model Mapping (Task 1 Context)
+                                    const devicePartNumber = item.associatedDevicePartNumber || item.partNumber || '';
+                                    const modelName = PART_NUMBER_MAP[devicePartNumber] || '';
 
                                     const renderCell = (colId) => {
                                         switch (colId) {
@@ -406,9 +436,11 @@ const Clients = () => {
                                                             <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-blue-400 border border-white/5 group-hover:border-blue-500/30 transition-colors">
                                                                 <Laptop size={18} />
                                                             </div>
-                                                            <div>
+                                                            <div className="min-w-0 flex-1">
                                                                 <div className="text-white font-bold tracking-tight text-sm truncate max-w-[180px]" title={clientName}>{clientName}</div>
-                                                                <div className="text-[10px] text-slate-500 font-mono uppercase truncate max-w-[180px]">{client.osType || client.clientOs || '-'}</div>
+                                                                <div className="text-[10px] text-slate-500 font-mono uppercase truncate max-w-[180px] flex items-center gap-1">
+                                                                    <span>{item.macAddress || ''}</span>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </td>
@@ -417,9 +449,9 @@ const Clients = () => {
                                                 return (
                                                     <td key={colId} className="px-6 py-4">
                                                         <div className="flex items-center gap-2">
-                                                            <div className={`w-2 h-2 rounded-full ${getHealthColor(client.health)} shadow-[0_0_8px] shadow-current`}></div>
-                                                            <span className={`text-[10px] font-black uppercase tracking-widest ${getHealthTextClass(client.health)}`}>
-                                                                {client.health || 'Unknown'}
+                                                            <div className={`w-2 h-2 rounded-full ${getHealthColor(item.health)} shadow-[0_0_8px] shadow-current`}></div>
+                                                            <span className={`text-[10px] font-black uppercase tracking-widest ${getHealthTextClass(item.health)}`}>
+                                                                {capitalize(item.health)}
                                                             </span>
                                                         </div>
                                                     </td>
@@ -438,7 +470,7 @@ const Clients = () => {
                                                     <td key={colId} className="px-6 py-4">
                                                         <div className="flex items-center gap-2 text-xs font-bold">
                                                             {isWired ? <Globe size={14} className="text-emerald-500" /> : <Wifi size={14} className="text-blue-500" />}
-                                                            <span className="text-slate-200">{isWired ? t('site.clients.type_wired') : t('site.clients.type_wireless')}</span>
+                                                            <span className="text-slate-200">{capitalize(item.clientType)}</span>
                                                         </div>
                                                     </td>
                                                 );
@@ -446,14 +478,19 @@ const Clients = () => {
                                                 return (
                                                     <td key={colId} className="px-6 py-4">
                                                         <div className="text-xs font-bold text-slate-200">{networkDisplay}</div>
-                                                        <div className="text-[10px] text-slate-500 italic mt-0.5">{formatInterface(client)}</div>
+                                                    </td>
+                                                );
+                                            case 'interface':
+                                                return (
+                                                    <td key={colId} className="px-6 py-4">
+                                                        <div className="text-xs font-bold text-slate-200 font-mono">{formatInterface(item)}</div>
                                                     </td>
                                                 );
                                             case 'mac':
                                                 return (
                                                     <td key={colId} className="px-6 py-4">
                                                         <div className="text-xs font-black text-slate-200 font-mono">
-                                                            {client.macAddress || '-'}
+                                                            {item.macAddress || '-'}
                                                         </div>
                                                     </td>
                                                 );
@@ -461,29 +498,35 @@ const Clients = () => {
                                                 return (
                                                     <td key={colId} className="px-6 py-4">
                                                         <div className="text-xs font-black text-slate-200 font-mono">
-                                                            {client.ipAddress || client.reservedIpAddress || '-'}
+                                                            {item.ipAddress || ''}
                                                         </div>
                                                     </td>
                                                 );
                                             case 'device':
                                                 return (
                                                     <td key={colId} className="px-6 py-4">
-                                                        <div className="text-xs font-bold text-slate-200">{deviceDisplay}</div>
+                                                        <div className="text-xs font-bold text-white uppercase tracking-tight">
+                                                            {deviceDisplayName}
+                                                        </div>
+                                                        <div className="text-[9px] text-slate-500 font-bold">
+                                                            {modelName !== '' ? modelName : (devicePartNumber || '')}
+                                                        </div>
                                                     </td>
                                                 );
                                             case 'usage':
+                                                const totalBytes = (item.downstreamDataTransferredInBytes || 0) + (item.upstreamDataTransferredInBytes || 0);
                                                 return (
                                                     <td key={colId} className="px-6 py-4 text-right">
                                                         <div className="text-white font-black text-xs tracking-tighter">
-                                                            {formatBytes(client.downstreamDataTransferredInBytes || 0)}
+                                                            {formatBytes(totalBytes)}
                                                         </div>
-                                                        <div className="text-[9px] text-slate-500 font-bold uppercase">{t('site.clients.usage_downstream')}</div>
+                                                        <div className="text-[9px] text-slate-500 font-bold uppercase">{t('site.clients.usage_total')}</div>
                                                     </td>
                                                 );
                                             case 'duration':
                                                 return (
                                                     <td key={colId} className="px-6 py-4 text-xs font-bold text-slate-400">
-                                                        {formatDuration(client.connectionDurationInSeconds)}
+                                                        {formatDuration(item)}
                                                     </td>
                                                 );
                                             default: return <td key={colId}></td>;
@@ -491,7 +534,7 @@ const Clients = () => {
                                     };
 
                                     return (
-                                        <tr key={client.id || client.macAddress} className="hover:bg-white/[0.02] transition-colors group border-b border-white/5 last:border-0 hover:-translate-y-0.5">
+                                        <tr key={item.id || item.macAddress} className="hover:bg-white/[0.02] transition-colors group border-b border-white/5 last:border-0 hover:-translate-y-0.5">
                                             {columns.map(col => renderCell(col.id))}
                                         </tr>
                                     );

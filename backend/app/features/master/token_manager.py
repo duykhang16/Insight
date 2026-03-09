@@ -26,42 +26,17 @@ def _is_token_expiring_soon(expires_at) -> bool:
 
 
 async def _do_refresh():
-    """Attempt to refresh the master token using stored credentials."""
-    from app.database.master_crud import get_master_config, update_master_token
-    from app.features.replay.service import replay_login
+    """Attempt to refresh the master token using centralized auto logic."""
+    from app.features.master.service import get_master_token_auto
     
     try:
-        from app.shared.encryption import decrypt_password
-    except ImportError:
-        pass
-
-    config = await get_master_config()
-    if not config or not config.get("is_active"):
-        return
-
-    expires_at = config.get("expires_at")
-    if expires_at and not _is_token_expiring_soon(expires_at):
-        return  # Token still valid, skip refresh
-
-    print("[MASTER TOKEN MANAGER] Refreshing master Aruba token...")
-    try:
-        from app.shared.encryption import decrypt_password
-        plain_pass = decrypt_password(config["encrypted_password"])
-        username = config["username"]
-
-        result = await replay_login(username, plain_pass)
-        if result.get("status") == "success":
-            new_token = result["data"].get("access_token", "")
-            expires_in = result.get("expires_in", 1799)
-            ok = await update_master_token(new_token, expires_in)
-            if ok:
-                print(f"[MASTER TOKEN MANAGER] Token refreshed. Expires in {expires_in}s.")
-            else:
-                print("[MASTER TOKEN MANAGER] WARNING: Token refresh succeeded but DB update failed.")
+        token = await get_master_token_auto()
+        if token:
+            print("[MASTER TOKEN MANAGER] Token check/refresh completed successfully.")
         else:
-            print(f"[MASTER TOKEN MANAGER] ERROR: Aruba login failed — {result.get('message')}")
+            print("[MASTER TOKEN MANAGER] No active master account or refresh failed.")
     except Exception as e:
-        print(f"[MASTER TOKEN MANAGER] ERROR during refresh: {e}")
+        print(f"[MASTER TOKEN MANAGER] ERROR during refresh loop: {e}")
 
 
 async def _refresh_loop():

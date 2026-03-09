@@ -87,17 +87,16 @@ async def require_internal_admin(request: Request) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 async def require_master_token() -> str:
-    """Return the active master Aruba Bearer token.
+    """Return the active master Aruba Bearer token with auto-refresh.
 
-    Raises HTTP 503 if master account is not linked.
-    Use as Depends() on any route that calls Aruba API.
+    Raises HTTP 503 if master account is not linked or refresh fails.
     """
-    from app.database.master_crud import get_master_token
-    token = await get_master_token()
+    from app.features.master.service import get_master_token_auto
+    token = await get_master_token_auto()
     if not token:
         raise HTTPException(
             status_code=503,
-            detail="Master Account chưa được cấu hình. Liên hệ Admin để liên kết tài khoản Aruba."
+            detail="Master Account chưa được cấu hình hoặc token hết hạn. Liên hệ Admin để liên kết lại."
         )
     return token
 

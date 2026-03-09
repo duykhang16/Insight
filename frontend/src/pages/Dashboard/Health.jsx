@@ -81,7 +81,7 @@ const ChartTooltip = ({ active, payload }) => {
     const isScore = payload[0]?.dataKey === 'score';
 
     return (
-        <div className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs shadow-xl pointer-events-none min-w-[140px]">
+        <div className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs shadow-xl min-w-[140px]">
             <p className="text-slate-400 mb-2 font-mono text-[10px]">{formatVN(d.sampleTime)}</p>
             {isScore ? (
                 <p className="text-emerald-400 font-bold">Score: {d.score}%</p>
@@ -531,8 +531,8 @@ const Health = () => {
                                         <td className="px-6 py-4">{item.name || item.id || '—'}</td>
                                         <td className="px-6 py-4">
                                             <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${isMajor
-                                                    ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                                                    : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                                ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                                                : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                                                 }`}>
                                                 <span className={`w-2 h-2 rounded-full ${isMajor ? 'bg-rose-500' : 'bg-emerald-500'}`} />
                                                 {severityLabel}

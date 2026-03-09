@@ -627,6 +627,7 @@ export const vi = {
             table_header_mac: "Địa chỉ MAC",
             table_header_ip: "Địa chỉ IP",
             table_header_device: "Thiết bị",
+            table_header_interface: "Cổng/Băng tần",
             table_header_type: "Loại",
             table_header_addressing: "Địa chỉ",
             table_header_usage: "Lưu lượng",
@@ -637,6 +638,7 @@ export const vi = {
             type_wired: "Có dây",
             type_wireless: "Không dây",
             usage_downstream: "Tải xuống",
+            usage_total: "Tổng cộng",
             wired_fallback: "Có dây",
             empty_state_title: "Không tìm thấy client",
             empty_state_hint: "Điều chỉnh bộ lọc hoặc từ khóa tìm kiếm"

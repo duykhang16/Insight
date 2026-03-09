@@ -49,6 +49,7 @@ class OverviewService:
                 method="GET",
                 endpoint=endpoint,
                 aruba_token=aruba_token,
+                use_master_auto=True
             )
             if response.status_code == 200:
                 break

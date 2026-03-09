@@ -39,7 +39,7 @@ const UserWidget = ({ onLogout }) => {
                                 className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-slate-700/50 transition-colors group"
                             >
                                 <div className="flex items-center gap-3">
-                                    <Power size={14} className={isAutoRefreshEnabled ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'} />
+                                    <RefreshCw size={14} className={isAutoRefreshEnabled ? 'text-emerald-500 dark:text-emerald-400 animate-spin-slow' : 'text-slate-400 dark:text-slate-500'} />
                                     <span className="text-xs font-bold text-slate-300 group-hover:text-white">Auto-refresh (60s)</span>
                                 </div>
                                 <div className={`w-8 h-4 rounded-full transition-colors relative ${isAutoRefreshEnabled ? 'bg-emerald-500/20' : 'bg-slate-700'}`}>

@@ -627,6 +627,7 @@ export const en = {
             table_header_mac: "MAC Address",
             table_header_ip: "IP Address",
             table_header_device: "Device",
+            table_header_interface: "Interface",
             table_header_type: "Type",
             table_header_addressing: "Addressing",
             table_header_usage: "Usage",
@@ -637,6 +638,7 @@ export const en = {
             type_wired: "Wired",
             type_wireless: "Wireless",
             usage_downstream: "Downstream",
+            usage_total: "Total",
             wired_fallback: "Wired",
             empty_state_title: "No clients found",
             empty_state_hint: "Adjust your filters or search term to see results"
