@@ -1,0 +1,24 @@
+name: Auto Deploy INSIGHT
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Deploy Code
+        run: |
+          # Di chuyển vào thư mục dự án
+          cd /home/cuong-deploy/API-Testing
+          
+          # Loại bỏ các thay đổi local nếu có để tránh xung đột khi pull
+          git reset --hard origin/main
+          git pull origin main
+          
+          # Build và chạy lại container
+          docker compose up -d --build
+          
+          # Dọn dẹp image cũ để tránh đầy ổ cứng server
+          docker image prune -f
