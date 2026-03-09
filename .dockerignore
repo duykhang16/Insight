@@ -1,0 +1,26 @@
+# Exclude everything from build context by default
+**
+
+# Allow specific source files
+!backend/
+!frontend/
+!docker-compose.yml
+!.env.example
+
+# Exclude heavy/unnecessary files from context
+**/node_modules
+**/venv
+**/.venv
+**/__pycache__
+**/dist
+**/*.log
+**/*.txt
+**/*.bak
+**/.git
+**/.vscode
+**/.idea
+**/.env
+**/.dockerignore
+**/.gitignore
+**/README.md
+**/docs

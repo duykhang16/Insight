@@ -1,0 +1,21 @@
+.recharts-bar-rectangles path {
+    fill: #6366f1 !important; /* Màu xanh dương tím nổi bật */
+}
+
+/* Nếu muốn đổi màu khi hover hoặc active, có thể thêm: */
+.recharts-bar-rectangles path:hover {
+    fill: #a21caf !important; /* Tím đậm khi hover */
+}
+/* Xóa bỏ hoàn toàn đường viền focus của Recharts trên toàn hệ thống */
+.recharts-wrapper:focus {
+    outline: none !important;
+}
+
+.recharts-surface:focus {
+    outline: none !important;
+}
+
+/* Đảm bảo vùng chứa biểu đồ không có viền khi click */
+.recharts-responsive-container:focus {
+    outline: none !important;
+}

@@ -1,0 +1,13 @@
+node_modules/
+dist/
+dist-ssr/
+*.log
+*.txt
+*.bak
+Dockerfile
+.dockerignore
+.gitignore
+.vite/
+coverage/
+node_modules.bak/
+package-lock.json

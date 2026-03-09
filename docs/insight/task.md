@@ -1,0 +1,26 @@
+# Task: Backup & Rollback Overhaul, Role Separation & Token Refresh
+
+- [x] Research & Planning
+    - [x] Initial research on Admin Log and Cloner Role bugs
+    - [x] Analyze current Backup & Rollback implementation
+    - [x] Analyze Token Refresh and Stateless Session requirements
+    - [x] Draft split Backup & Secure Token Refresh plan
+- [ ] Role Separation
+    - [ ] Strictly separate Web App Role from Aruba API Role in Frontend/Backend
+    - [ ] Update UI access based on Web App Role (sessionStorage)
+- [ ] Secure Stateless Token Refresh (PyJWT)
+    - [ ] Modify `cloner_login` to return signed `refresh_token`
+    - [ ] Create `/api/cloner/refresh` endpoint for background re-auth
+    - [ ] Update `apiClient.js` interceptor for client-driven refresh using `refresh_token`
+- [ ] UI Cleanup
+    - [ ] Remove "Captured" source from Configuration UI
+- [ ] Backup Mechanism Overhaul (Site vs SSID)
+    - [ ] Implement split Site Backup (full config payload)
+    - [ ] Implement split SSID Backup (granular SSID selection/payloads)
+- [ ] Rollback/Commit Enhancement
+    - [ ] Update Rollback to reuse Cloner's deep config logic (sync/apply sequences)
+- [ ] Verification & Cleanup
+    - [ ] Verify role separation and UI permissions
+    - [ ] Test token refresh with multiple browser instances
+    - [ ] Test Site and SSID backup/rollback
+    - [ ] Clean up generated garbage files (`__pycache__`, `.pyc`)

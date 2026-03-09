@@ -1,0 +1,93 @@
+export const en = {
+    common: {
+        save: "Save",
+        cancel: "Cancel",
+        loading: "Loading...",
+        close: "Close",
+        done: "Done",
+        search_placeholder: "Search...",
+        refresh: "REFRESH",
+        syncing: "SYNCING...",
+        no_data: "No data available.",
+        live_data: "Live Data",
+        updated: "Updated:",
+        awaiting_data: "Awaiting data...",
+        auto_refresh_on: "Auto-refresh is ON",
+        auto_refresh_off: "Auto-refresh is OFF"
+    },
+    login: {
+        title: "INSIGHT",
+        subtitle: "Portal Access",
+        email: "Email Address",
+        password: "Password",
+        powered_by: "Powered by INSIGHT",
+        sign_in: "Sign in",
+        error_invalid: "Incorrect Username or Password. Please try again.",
+        error_failed: "Login failed. Please check your credentials.",
+        verifying: "Verifying..."
+    },
+    sidebar: {
+        dashboard: "Overview",
+        health: "Health",
+        alerts: "Alerts",
+        clients: "Clients",
+        networks: "Networks",
+        devices: "Devices",
+        applications: "Applications",
+        cloner_portal: "Cloner",
+        logout: "Log out",
+        auto_refresh: "Auto-refresh (60s)",
+        signed_in_as: "Signed in as"
+    },
+    dashboard: {
+        title: "Dashboard Overview",
+        subtitle: "Live metrics from selected site",
+        select_site: "-- Select Site --",
+        unnamed_site: "Unnamed Site",
+        network_health: "Network Health",
+        active_alerts: "Active Alerts",
+        connected_clients: "Connected Clients",
+        total_networks: "Total Networks",
+        online_devices: "Online Devices",
+        error_fetch: "Failed to fetch dashboard data. Check backend logs or session active status."
+    },
+    health: {
+        title: "Health",
+        subtitle: "Live health metrics from selected site",
+        trend: "Health Trend",
+        score: "Score",
+        conditions: "Conditions",
+        items: "Items",
+        no_conditions: "No conditions detected. Everything looks good!",
+        severity_poor: "Poor",
+        severity_fair: "Fair",
+        severity_good: "Good",
+        severity_none: "None",
+        histogram_title: "Alert Density",
+        filter_active: "Filtered",
+        clear_filter: "Clear filter",
+        conditions_count: "conditions"
+    },
+    cloner: {
+        title: "Configuration Source",
+        subtitle: "Select the blueprint data for migration",
+        origin_site: "-- Choose Origin Site --",
+        decode: "Inspect Site Configuration",
+        decoding: "Decoding Topology...",
+        blueprint_elements: "Blueprint Elements",
+        select_all: "Select All",
+        deselect_all: "Deselect All",
+        detected: "DETECTED",
+        target_deployment: "Target Deployment",
+        search_destination: "Search destination site...",
+        initiate: "Initiate Migration",
+        deploying: "Deploying...",
+        completed: "MIGRATION COMPLETED SUCCESSFULLY",
+        payload_inspector: "Payload Inspector",
+        steps: {
+            source: "Source",
+            review: "Review",
+            execute: "Execute"
+        }
+    }
+};
