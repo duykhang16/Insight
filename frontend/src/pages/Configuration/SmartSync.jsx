@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import apiClient from '../../api/apiClient';
 import styles from './Cloner.module.css';
 import { useLanguage } from '../../context/LanguageContext';
 import {
-    Activity, Shield, Rocket, Server, Sliders, CheckCircle, Wifi, Search, XCircle, Lock, Network
+    Activity, Shield, Rocket, Server, Sliders, CheckCircle, Wifi, Search, XCircle, Lock, Network, RotateCcw, Layers, Database, ChevronRight, AlertCircle
 } from 'lucide-react';
 
 const SmartSync = () => {
@@ -23,24 +23,9 @@ const SmartSync = () => {
     // Step 2: Analysis & Configuration
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [hasAnalyzed, setHasAnalyzed] = useState(false);
-    const [compiledSSIDs, setCompiledSSIDs] = useState([]); // Unique SSIDs across selected sites
-    const [selectedSSIDName, setSelectedSSIDName] = useState(''); // We use name instead of ID for cross-site matching
+    const [compiledSSIDs, setCompiledSSIDs] = useState([]); 
+    const [selectedSSIDName, setSelectedSSIDName] = useState(''); 
     const [newPassword, setNewPassword] = useState('');
-
-    // State for Config Sync Create
-    const [newSSIDName, setNewSSIDName] = useState('');
-    const [newNetworkType, setNewNetworkType] = useState('EMPLOYEE');
-    const [newSecurity, setNewSecurity] = useState('WPA2_PSK');
-
-    // Advanced Create States
-    const [showAdvanced, setShowAdvanced] = useState(false);
-    const [newVlanId, setNewVlanId] = useState('');
-    const [newIsHidden, setNewIsHidden] = useState(false);
-    const [newWifi6Enabled, setNewWifi6Enabled] = useState(true);
-    const [newBand24, setNewBand24] = useState(true);
-    const [newBand5, setNewBand5] = useState(true);
-    const [newBand6, setNewBand6] = useState(true);
-    const [newClientIsolation, setNewClientIsolation] = useState(false);
 
     // State for Config Sync Mode
     const [selectedSourceSiteId, setSelectedSourceSiteId] = useState('');
@@ -50,6 +35,10 @@ const SmartSync = () => {
     // Step 3: Execution
     const [executionLoading, setExecutionLoading] = useState(false);
     const [executionResult, setExecutionResult] = useState(null);
+    const [executionLogs, setExecutionLogs] = useState([]);
+    const [progress, setProgress] = useState(0);
+    const [isStopping, setIsStopping] = useState(false);
+    const stopRef = useRef(false);
 
     // --- 2. Khởi tạo ---
     useEffect(() => {
@@ -109,27 +98,12 @@ const SmartSync = () => {
             setSelectedSourceSiteId('');
             setSourceSSIDs([]);
             setNewPassword('');
-            setNewSSIDName('');
-            setNewNetworkType('EMPLOYEE');
-            setNewSecurity('WPA2_PSK');
-            setShowAdvanced(false);
-            setNewVlanId('');
-            setNewIsHidden(false);
-            setNewWifi6Enabled(true);
-            setNewBand24(true);
-            setNewBand5(true);
-            setNewBand6(true);
-            setNewClientIsolation(false);
-
-            // Reset Scanner
-            setScannedNetworks([]);
-            setScannerTargetSiteId('');
-            setIsScanningSite(false);
+            setExecutionLogs([]);
+            setProgress(0);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedTargetIds, selectedAction]);
 
-    // Fetch SSIDs of Source Site if action is deep config sync
+    // Fetch SSIDs of Source Site
     useEffect(() => {
         setSourceSSIDs([]);
         if (!selectedSourceSiteId) return;
@@ -158,30 +132,45 @@ const SmartSync = () => {
         setSelectedSourceSiteId('');
 
         try {
-            // Fetch SSIDs from all selected sites concurrently
             const siteIds = Array.from(selectedTargetIds);
-            const fetchPromises = siteIds.map(siteId => apiClient.get(`/cloner/sites/${siteId}/ssids`).catch(() => ({ data: [] })));
-            const responses = await Promise.all(fetchPromises);
+            const results = [];
+            
+            // Process sequentially with small delay for stability on large zones
+            for (let i = 0; i < siteIds.length; i++) {
+                const siteId = siteIds[i];
+                try {
+                    const res = await apiClient.get(`/cloner/sites/${siteId}/ssids`);
+                    results.push({ siteId, data: res.data || [] });
+                } catch (err) {
+                    console.warn(`Failed to fetch SSIDs for site ${siteId}`, err);
+                    results.push({ siteId, data: [] });
+                }
+                if (i < siteIds.length - 1) await new Promise(r => setTimeout(r, 100));
+            }
 
-            // Compile unique SSIDs by networkName
             const uniqueSSIDMap = new Map();
-            responses.forEach((res, index) => {
-                const siteId = siteIds[index];
+            results.forEach((item) => {
+                const siteId = item.siteId;
                 const siteInfo = liveSites.find(s => s.siteId === siteId);
                 const siteName = siteInfo ? siteInfo.siteName : siteId;
-                const ssids = res.data || [];
+                const ssids = item.data;
+                
                 ssids.forEach(ssid => {
-                    if (!uniqueSSIDMap.has(ssid.networkName)) {
-                        uniqueSSIDMap.set(ssid.networkName, {
-                            networkName: ssid.networkName,
+                    const name = ssid.networkName || ssid.name;
+                    if (!uniqueSSIDMap.has(name)) {
+                        uniqueSSIDMap.set(name, {
+                            networkName: name,
                             security: ssid.security,
                             isGuestPortalEnabled: ssid.isGuestPortalEnabled,
                             foundInSites: 1,
+                            foundInSiteIds: [siteId],
                             foundInSiteNames: [siteName]
                         });
                     } else {
-                        uniqueSSIDMap.get(ssid.networkName).foundInSites += 1;
-                        uniqueSSIDMap.get(ssid.networkName).foundInSiteNames.push(siteName);
+                        const entry = uniqueSSIDMap.get(name);
+                        entry.foundInSites += 1;
+                        entry.foundInSiteIds.push(siteId);
+                        entry.foundInSiteNames.push(siteName);
                     }
                 });
             });
@@ -189,11 +178,7 @@ const SmartSync = () => {
             const compiledList = Array.from(uniqueSSIDMap.values()).sort((a, b) => a.networkName.localeCompare(b.networkName));
             setCompiledSSIDs(compiledList);
             setHasAnalyzed(true);
-
-            // For create, default to step 2 immediately and setup defaults if needed.
-            // But we actually still want the user to go to Step 2.
             setCurrentStep(2);
-
         } catch (e) {
             console.error("Error analyzing sites", e);
             alert("Đã xảy ra lỗi khi phân tích các Sites");
@@ -202,34 +187,14 @@ const SmartSync = () => {
         }
     };
 
-    const handleScanTargetSite = async () => {
-        if (!scannerTargetSiteId) return alert("Vui lòng chọn Site để quét");
-
-        try {
-            setIsScanningSite(true);
-            const res = await apiClient.get(`/cloner/site-overview/${scannerTargetSiteId}`);
-            if (res.data && res.data.networks) {
-                setScannedNetworks(res.data.networks);
-            } else {
-                setScannedNetworks([]);
-            }
-        } catch (error) {
-            console.error("Failed to scan site:", error);
-            alert("Đã xảy ra lỗi khi quét cấu hình Site.");
-            setScannedNetworks([]);
-        } finally {
-            setIsScanningSite(false);
-        }
-    };
-
     const handleProceedToExecution = () => {
-        // Security gate: block if any selected target is view-only
         const unauthorizedTargets = Array.from(selectedTargetIds)
             .map(id => liveSites.find(s => s.siteId === id))
             .filter(s => s && !getRoleBadgeInfo(s.role).canClone);
+        
         if (unauthorizedTargets.length > 0) {
             const names = unauthorizedTargets.map(s => s.siteName).join(', ');
-            return alert(`Unauthorized: You do not have administrator permissions to write to: ${names}`);
+            return alert(`Unauthorized: Bạn không có quyền Administrator để ghi dữ liệu vào các site: ${names}`);
         }
 
         if (selectedAction === 'update_ssid_password') {
@@ -244,20 +209,6 @@ const SmartSync = () => {
             if (!selectedSourceSiteId) return alert("Vui lòng chọn Origin Site.");
         } else if (selectedAction === 'delete_ssid') {
             if (!selectedSSIDName) return alert("Vui lòng chọn một SSID.");
-        } else if (selectedAction === 'create_ssid') {
-            if (!newSSIDName) return alert("Vui lòng nhập tên mạng (SSID).");
-            if (compiledSSIDs.some(s => s.networkName === newSSIDName)) {
-                return alert(`SSID '${newSSIDName}' đã tồn tại trên một số Site mục tiêu. Vui lòng chọn tên khác.`);
-            }
-            if (newSecurity === 'WPA2_PSK' && (!newPassword || newPassword.length < 8)) {
-                return alert("Mật khẩu WPA2 phải từ 8 ký tự trở lên.");
-            }
-            if (newVlanId !== '' && (isNaN(newVlanId) || newVlanId < 1 || newVlanId > 4094)) {
-                return alert("VLAN ID phải là số từ 1 đến 4094.");
-            }
-            if (!newBand24 && !newBand5 && !newBand6) {
-                return alert("Phải chọn ít nhất 1 băng tần (2.4GHz, 5GHz, hoặc 6GHz).");
-            }
         }
 
         setCurrentStep(3);
@@ -265,82 +216,131 @@ const SmartSync = () => {
 
     const handleExecuteSync = async () => {
         if (selectedTargetIds.size === 0) return;
-        if (selectedAction !== 'create_ssid' && !selectedSSIDName) return;
-
-        let confirmMsg = '';
+        
+        let confirmMsg = `Xác nhận thực thi tác vụ trên ${selectedTargetIds.size} sites?`;
         if (selectedAction === 'delete_ssid') {
             confirmMsg = `⚠️ CẢNH BÁO NGUY HIỂM ⚠️\nBạn có chắc chắn muốn XÓA SSID "${selectedSSIDName}" trên ${selectedTargetIds.size} sites không?\nHành động này không thể hoàn tác!`;
-        } else if (selectedAction === 'create_ssid') {
-            confirmMsg = `Xác nhận tạo SSID mới "${newSSIDName}" trên ${selectedTargetIds.size} sites?`;
-        } else {
-            confirmMsg = `Xác nhận cập nhật cho SSID "${selectedSSIDName}" trên ${selectedTargetIds.size} sites?`;
         }
-
         if (!confirm(confirmMsg)) return;
 
         setExecutionLoading(true);
         setExecutionResult(null);
-        try {
-            let res;
-            if (selectedAction === 'update_ssid_password') {
-                const payload = {
-                    source_network_name: selectedSSIDName,
-                    new_password: newPassword,
-                    target_site_ids: Array.from(selectedTargetIds)
-                };
-                res = await apiClient.post('/cloner/sync-password', payload);
-            } else if (selectedAction === 'update_ssid_config') {
-                const payload = {
-                    source_site_id: selectedSourceSiteId,
-                    source_network_name: selectedSSIDName,
-                    target_site_ids: Array.from(selectedTargetIds)
-                };
-                res = await apiClient.post('/cloner/sync-config', payload);
-            } else if (selectedAction === 'delete_ssid') {
-                const payload = {
-                    source_network_name: selectedSSIDName,
-                    target_site_ids: Array.from(selectedTargetIds)
-                };
-                res = await apiClient.post('/cloner/sync-delete', payload);
-            } else if (selectedAction === 'create_ssid') {
-                const payload = {
-                    network_name: newSSIDName,
-                    network_type: newNetworkType,
-                    security: newSecurity,
-                    password: newSecurity === 'WPA2_PSK' ? newPassword : '',
-                    is_hidden: newIsHidden,
-                    is_wifi6_enabled: newWifi6Enabled,
-                    band_24: newBand24,
-                    band_5: newBand5,
-                    band_6: newBand6,
-                    client_isolation: newClientIsolation,
-                    vlan_id: newVlanId ? parseInt(newVlanId, 10) : null,
-                    target_site_ids: Array.from(selectedTargetIds)
-                };
-                res = await apiClient.post('/cloner/sync-create', payload);
+        setExecutionLogs([]);
+        setProgress(0);
+        setIsStopping(false);
+        stopRef.current = false;
+
+        const targetIds = Array.from(selectedTargetIds);
+        const results = [];
+        
+        for (let i = 0; i < targetIds.length; i++) {
+            if (stopRef.current) {
+                setExecutionLogs(prev => [{ siteName: "SYSTEM", status: "STOPPED", detail: "Thao tác đã bị dừng bởi người dùng." }, ...prev]);
+                break;
             }
 
-            if (res?.data?.status === 'success') {
-                // Combine existing sites info with execution results
-                const resultsWithSiteInfo = res.data.results.map(er => {
-                    const siteInfo = liveSites.find(s => s.siteId === er.target);
-                    return {
-                        ...er,
-                        siteName: siteInfo ? siteInfo.siteName : er.target
-                    };
-                });
-                // Sort by status: Error first, then Skipped, then Success
-                const sortedResults = resultsWithSiteInfo.sort((a, b) => {
-                    const order = { 'ERROR': 1, 'SKIPPED': 2, 'SUCCESS': 3 };
-                    return (order[a.status] || 99) - (order[b.status] || 99);
-                });
-                setExecutionResult(sortedResults);
+            const siteId = targetIds[i];
+            const siteInfo = liveSites.find(s => s.siteId === siteId);
+            const siteName = siteInfo ? siteInfo.siteName : siteId;
+
+            // Conflict Check: If SSID not in site, skip
+            const ssidEntry = compiledSSIDs.find(s => s.networkName === selectedSSIDName);
+            if (!ssidEntry || !ssidEntry.foundInSiteIds.includes(siteId)) {
+                const skipLog = { siteName, status: "SKIPPED", detail: `SSID '${selectedSSIDName}' không tồn tại trên site này. Bỏ qua.` };
+                results.push(skipLog);
+                setExecutionLogs(prev => [skipLog, ...prev]);
+                setProgress(Math.round(((i + 1) / targetIds.length) * 100));
+                continue;
             }
-        } catch (error) {
-            alert("Lỗi thực thi: " + (error.response?.data?.detail || error.message));
-        } finally {
-            setExecutionLoading(false);
+
+            let attempt = 0;
+            let success = false;
+            let lastError = null;
+
+            while (attempt < 2 && !success && !stopRef.current) {
+                attempt++;
+                try {
+                    let res;
+                    const singleSiteRef = [siteId];
+                    if (selectedAction === 'update_ssid_password') {
+                        res = await apiClient.post('/cloner/sync-password', {
+                            source_network_name: selectedSSIDName,
+                            new_password: newPassword,
+                            target_site_ids: singleSiteRef
+                        });
+                    } else if (selectedAction === 'update_ssid_config') {
+                        res = await apiClient.post('/cloner/sync-config', {
+                            source_site_id: selectedSourceSiteId,
+                            source_network_name: selectedSSIDName,
+                            target_site_ids: singleSiteRef
+                        });
+                    } else if (selectedAction === 'delete_ssid') {
+                        res = await apiClient.post('/cloner/sync-delete', {
+                            source_network_name: selectedSSIDName,
+                            target_site_ids: singleSiteRef
+                        });
+                    }
+
+                    const siteResult = res.data.results[0];
+                    if (siteResult.status === 'SUCCESS') {
+                        success = true;
+                        const okLog = { siteName, status: "SUCCESS", detail: siteResult.detail || "Cập nhật thành công." };
+                        results.push(okLog);
+                        setExecutionLogs(prev => [okLog, ...prev]);
+                    } else {
+                        lastError = siteResult.detail;
+                        if (attempt < 2) {
+                            setExecutionLogs(prev => [{ siteName, status: "RETRYING", detail: `Lần thử ${attempt}/2 thất bại. Đang thử lại...` }, ...prev]);
+                            await new Promise(r => setTimeout(r, 1500));
+                        }
+                    }
+                } catch (err) {
+                    lastError = err.response?.data?.detail || err.message;
+                    if (attempt < 2) {
+                        setExecutionLogs(prev => [{ siteName, status: "RETRYING", detail: `Lỗi kết nối lần ${attempt}. Đang thử lại...` }, ...prev]);
+                        await new Promise(r => setTimeout(r, 2000));
+                    }
+                }
+            }
+
+            if (!success && !stopRef.current) {
+                const errLog = { siteName, status: "ERROR", detail: lastError || "Thất bại sau 2 lần thử." };
+                results.push(errLog);
+                setExecutionLogs(prev => [errLog, ...prev]);
+            }
+
+            setProgress(Math.round(((i + 1) / targetIds.length) * 100));
+            if (i < targetIds.length - 1) await new Promise(r => setTimeout(r, 400));
         }
+
+        setExecutionResult(results);
+        setExecutionLoading(false);
+
+        // Auto refresh after 7s to reflect changes
+        if (!stopRef.current) {
+            setExecutionLogs(prev => [{ 
+                siteName: "SYSTEM", 
+                status: "INFO", 
+                detail: "Tác vụ hoàn tất. Trang web sẽ tự động làm mới sau 7 giây..." 
+            }, ...prev]);
+            setTimeout(() => { window.location.reload(); }, 7000);
+        }
+    };
+
+    const handleStop = () => {
+        if (executionLoading) {
+            setIsStopping(true);
+            stopRef.current = true;
+        }
+    };
+
+    const generateRandomPassword = () => {
+        const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+";
+        let retVal = "";
+        for (let i = 0, n = charset.length; i < 12; ++i) {
+            retVal += charset.charAt(Math.floor(Math.random() * n));
+        }
+        setNewPassword(retVal);
     };
 
     // --- 4. Giao diện ---
@@ -386,628 +386,434 @@ const SmartSync = () => {
                 </div>
 
                 {/* Workflow Cards */}
-                <div className="grid grid-cols-1 gap-12 max-w-6xl mx-auto">
+                <div className="grid grid-cols-1 gap-12 max-w-6xl mx-auto flex-1">
 
                     {/* Step 1: Scope & Target */}
-                    <section className={`relative transition-all duration-700 ${currentStep > 1 ? 'opacity-40 blur-[1px] pointer-events-none' : ''}`}>
-                        <div className="backdrop-blur-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-3xl p-10 shadow-xl dark:shadow-2xl">
-                            <div className="flex items-center gap-4 mb-10">
-                                <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-500 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20">
-                                    <Wifi size={24} />
+                    {currentStep === 1 && (
+                        <section className="animate-fade-in flex flex-col gap-10">
+                            <div className="backdrop-blur-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-3xl p-10 shadow-xl dark:shadow-2xl">
+                                <div className="flex items-center gap-4 mb-10">
+                                    <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-500 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20">
+                                        <Wifi size={24} />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Smart Synchronization</h2>
+                                        <p className="text-sm text-slate-500">Update configuration across multiple sites efficiently.</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Smart Synchronization</h2>
-                                    <p className="text-sm text-slate-500">Targeted functionality updates across multiple sites.</p>
-                                </div>
-                            </div>
 
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                {/* Left Column: Action */}
-                                <div className="lg:col-span-1 space-y-6">
-                                    <div className="relative">
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                                    {/* Action Type */}
+                                    <div className="space-y-6">
                                         <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">1. Select Action Type</label>
-                                        <select
-                                            value={selectedAction}
-                                            onChange={e => setSelectedAction(e.target.value)}
-                                            className="w-full h-16 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-2xl px-6 text-slate-800 dark:text-white text-lg font-bold appearance-none focus:outline-none focus:border-emerald-500/50"
-                                        >
-                                            <option value="update_ssid_password">Update Wireless PSK</option>
-                                            <option value="update_ssid_config">Update Deep SSID Config</option>
-                                            <option value="delete_ssid">Delete SSID Multi-Site</option>
-                                            {/* <option value="create_ssid">Create New SSID Multi-Site</option> */}
-                                        </select>
-                                    </div>
-                                    <div className="p-5 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/30 rounded-2xl">
-                                        <p className="text-sm text-blue-700 dark:text-blue-400 leading-relaxed">
-                                            Chọn các <strong>Sites</strong> mà bạn muốn chèn cấu hình ở cột bên cạnh, sau đó bấm <strong>Analyze</strong> để phân tích thông tin trước khi thực thi.
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Right Column: Target Sites */}
-                                <div className="lg:col-span-2 flex flex-col h-[500px]">
-                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 flex justify-between">
-                                        <span>2. Search & Select Target Sites</span>
-                                        <span className="text-emerald-600 dark:text-emerald-400">Selected: {selectedTargetIds.size}</span>
-                                    </label>
-                                    <div className="flex gap-3 mb-4 shrink-0">
-                                        <div className="relative flex-1">
-                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <Search size={16} className="text-slate-400 dark:text-slate-500" />
-                                            </div>
-                                            <input
-                                                type="text"
-                                                placeholder="Search sites..."
-                                                value={searchTargetTerm}
-                                                onChange={(e) => setSearchTargetTerm(e.target.value)}
-                                                className="w-full text-sm bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-xl py-3 pl-10 pr-4 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
-                                            />
-                                        </div>
-                                        <select
-                                            value={selectedZone}
-                                            onChange={(e) => setSelectedZone(e.target.value)}
-                                            className="h-[46px] bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-xl px-4 text-slate-800 dark:text-white text-sm font-bold focus:outline-none min-w-[150px] md:max-w-[200px] appearance-none"
-                                        >
-                                            <option value="all">Tất cả Group (Zone)</option>
-                                            {zones.map(z => (
-                                                <option key={z.id || z._id} value={z.id || z._id}>{z.name}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-
-                                    <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar border border-slate-200 dark:border-white/5 rounded-xl p-2 bg-slate-50/50 dark:bg-black/20">
-                                        {liveSites.filter(site => {
-                                            const matchesSearch = site.siteName.toLowerCase().includes(searchTargetTerm.toLowerCase());
-                                            let matchesZone = true;
-                                            if (selectedZone !== 'all') {
-                                                const zoneObj = zones.find(z => String(z.id || z._id) === selectedZone);
-                                                matchesZone = zoneObj ? (zoneObj.site_ids || []).includes(site.siteId) : false;
-                                            }
-                                            return matchesSearch && matchesZone;
-                                        }).map((site) => {
-                                            const roleInfo = getRoleBadgeInfo(site.role);
-                                            const isSelected = selectedTargetIds.has(site.siteId);
-                                            const canSelect = roleInfo.canClone;
-
-                                            let labelClass = 'bg-white dark:bg-black/40 border-slate-200 dark:border-white/10 hover:border-slate-300';
-                                            if (isSelected) {
-                                                labelClass = 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-500 cursor-pointer shadow-sm';
-                                            } else if (!canSelect) {
-                                                labelClass = 'opacity-50 grayscale bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/5 cursor-not-allowed';
-                                            } else {
-                                                labelClass = 'bg-white dark:bg-black/40 border-slate-200 dark:border-white/10 hover:border-slate-400 cursor-pointer';
-                                            }
-
-                                            return (
-                                                <label key={site.siteId} className={`p-3 rounded-xl border flex items-center justify-between transition-all ${labelClass}`}>
-                                                    <div className="flex items-center gap-3 overflow-hidden">
-                                                        <div className="flex flex-col min-w-0">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className={`text-sm font-bold truncate ${isSelected ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'}`}>{site.siteName}</span>
-                                                                <span className={`px-1.5 py-0.5 rounded border text-[8px] font-black uppercase tracking-widest shrink-0 ${roleInfo.classes}`}>
-                                                                    {roleInfo.text}
-                                                                </span>
-                                                            </div>
-                                                            <span className="text-[9px] font-mono text-slate-500 dark:text-slate-600 mt-0.5 truncate">{site.siteId}</span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-3 shrink-0 ml-2">
-                                                        <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${isSelected ? 'border-emerald-500 bg-emerald-100 dark:bg-emerald-500/20' : 'border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-black/50'}`}>
-                                                            {isSelected && <div className="w-2 h-2 rounded-sm bg-emerald-500 dark:bg-emerald-400"></div>}
-                                                        </div>
-                                                        <input
-                                                            type="checkbox"
-                                                            disabled={!canSelect}
-                                                            checked={isSelected}
-                                                            onChange={(e) => {
-                                                                const newSet = new Set(selectedTargetIds);
-                                                                if (e.target.checked) newSet.add(site.siteId);
-                                                                else newSet.delete(site.siteId);
-                                                                setSelectedTargetIds(newSet);
-                                                            }}
-                                                            className="hidden"
-                                                        />
-                                                    </div>
-                                                </label>
-                                            );
-                                        })}
-                                    </div>
-
-                                    <div className="mt-4 flex gap-3">
-                                        <button
-                                            onClick={() => {
-                                                const validSites = liveSites.filter(s => getRoleBadgeInfo(s.role).canClone).map(s => s.siteId);
-                                                if (selectedTargetIds.size === validSites.length && validSites.length > 0) {
-                                                    setSelectedTargetIds(new Set());
-                                                } else {
-                                                    setSelectedTargetIds(new Set(validSites));
-                                                }
-                                            }}
-                                            className="px-4 py-3 rounded-xl font-bold text-xs bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 transition-colors"
-                                        >
-                                            {selectedTargetIds.size > 0 ? "Deselect All" : "Select All Valid"}
-                                        </button>
-                                        <button
-                                            onClick={handleAnalyzeSites}
-                                            disabled={isAnalyzing || selectedTargetIds.size === 0}
-                                            className="flex-1 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black uppercase tracking-widest shadow-lg hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-30 disabled:hover:scale-100 flex items-center justify-center gap-2"
-                                        >
-                                            {isAnalyzing ? (
-                                                <><div className="w-4 h-4 rounded-full border-2 border-white/50 border-t-transparent animate-spin"></div> Scanning Data...</>
-                                            ) : (
-                                                <><Search size={16} /> Analyze Selected</>
-                                            )}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* Step 2: Filter & Config */}
-                    {hasAnalyzed && (
-                        <section className={`transition-all duration-700 animate-fade-in ${currentStep > 2 ? 'opacity-40 blur-[1px] pointer-events-none' : ''}`}>
-                            <div className="backdrop-blur-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-3xl p-10 shadow-xl dark:shadow-2xl">
-                                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 mb-8 flex items-center gap-2">
-                                    <Sliders size={16} className="text-blue-500" /> Parameter Configuration
-                                </h3>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
-                                    {selectedAction === 'create_ssid' ? (
-                                        <>
-                                            <div className="space-y-6">
-                                                <div>
-                                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">3. Network Name (SSID)</label>
-                                                    <input
-                                                        type="text"
-                                                        className="w-full bg-white dark:bg-black/60 border border-slate-200 dark:border-white/10 rounded-2xl px-6 h-14 text-lg font-bold focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 focus:outline-none placeholder:text-slate-300 dark:placeholder:text-slate-700"
-                                                        placeholder="Enter Wi-Fi Name..."
-                                                        value={newSSIDName}
-                                                        onChange={(e) => setNewSSIDName(e.target.value)}
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Network Type</label>
-                                                    <div className="flex gap-4">
-                                                        <label className={`flex-1 p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-center gap-2 ${newNetworkType === 'EMPLOYEE' ? 'bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-white border-slate-200 text-slate-500 dark:bg-black/40 dark:border-white/10 dark:text-slate-400'}`}>
-                                                            <input type="radio" name="networkType" value="EMPLOYEE" checked={newNetworkType === 'EMPLOYEE'} onChange={() => setNewNetworkType('EMPLOYEE')} className="hidden" />
-                                                            <Lock size={16} /> Employee
-                                                        </label>
-                                                        <label className={`flex-1 p-3 rounded-xl border cursor-pointer transition-all flex items-center justify-center gap-2 ${newNetworkType === 'GUEST' ? 'bg-emerald-50 border-emerald-500 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-white border-slate-200 text-slate-500 dark:bg-black/40 dark:border-white/10 dark:text-slate-400'}`}>
-                                                            <input type="radio" name="networkType" value="GUEST" checked={newNetworkType === 'GUEST'} onChange={() => setNewNetworkType('GUEST')} className="hidden" />
-                                                            <Wifi size={16} /> Guest
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-6">
-                                                <div>
-                                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Security</label>
-                                                    <select
-                                                        value={newSecurity}
-                                                        onChange={e => {
-                                                            setNewSecurity(e.target.value);
-                                                            if (e.target.value !== 'WPA2_PSK') setNewPassword('');
-                                                        }}
-                                                        className="w-full h-14 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-2xl px-6 text-slate-800 dark:text-white font-bold appearance-none focus:outline-none focus:border-emerald-500/50"
-                                                    >
-                                                        <option value="WPA2_PSK">WPA2 Personal</option>
-                                                        <option value="OPEN">Open (No Password)</option>
-                                                    </select>
-                                                </div>
-
-                                                {newSecurity === 'WPA2_PSK' && (
-                                                    <div>
-                                                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 flex items-center gap-2">
-                                                            <Lock size={12} className="text-slate-400" /> Password
-                                                        </label>
-                                                        <input
-                                                            type="text"
-                                                            className="w-full bg-white dark:bg-black/60 border border-slate-200 dark:border-white/10 rounded-2xl px-6 h-14 text-lg font-mono focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 focus:outline-none placeholder:text-slate-300 dark:placeholder:text-slate-700"
-                                                            placeholder="Enter min 8 characters..."
-                                                            value={newPassword}
-                                                            onChange={(e) => setNewPassword(e.target.value)}
-                                                        />
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* Advanced Settings Link */}
-                                            <div className="md:col-span-2 mt-4 pt-4 border-t border-slate-100 dark:border-white/5">
+                                        <div className="grid grid-cols-1 gap-3">
+                                            {[
+                                                { id: 'update_ssid_password', label: 'Update Wireless PSK', icon: Lock, color: 'text-emerald-500' },
+                                                { id: 'update_ssid_config', label: 'Clone Deep Config', icon: RotateCcw, color: 'text-blue-500' },
+                                                { id: 'delete_ssid', label: 'Bulk Delete SSID', icon: XCircle, color: 'text-rose-500' }
+                                            ].map(action => (
                                                 <button
-                                                    onClick={() => setShowAdvanced(!showAdvanced)}
-                                                    className="flex items-center gap-2 text-sm font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors"
+                                                    key={action.id}
+                                                    onClick={() => setSelectedAction(action.id)}
+                                                    className={`p-4 rounded-2xl border transition-all flex items-center gap-4 text-left group ${selectedAction === action.id 
+                                                        ? 'bg-emerald-500/10 border-emerald-500 shadow-lg shadow-emerald-500/5' 
+                                                        : 'bg-white dark:bg-black/40 border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10'}`}
                                                 >
-                                                    <Sliders size={16} />
-                                                    {showAdvanced ? "Hide Advanced Settings" : "Show Advanced Settings"}
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${selectedAction === action.id ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-white/5 ' + action.color}`}>
+                                                        <action.icon size={20} />
+                                                    </div>
+                                                    <span className={`text-sm font-bold ${selectedAction === action.id ? 'text-emerald-900 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400'}`}>
+                                                        {action.label}
+                                                    </span>
                                                 </button>
-                                            </div>
-
-                                            {/* Advanced Settings Panel */}
-                                            {showAdvanced && (
-                                                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-8 mt-4 animate-fade-in bg-slate-50/50 dark:bg-black/20 p-6 rounded-2xl border border-slate-200 dark:border-white/5">
-
-                                                    {/* Left Column Advanced */}
-                                                    <div className="space-y-6">
-                                                        {newNetworkType === 'EMPLOYEE' && (
-                                                            <div>
-                                                                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">VLAN Assignment</label>
-                                                                <div className="flex items-center gap-4">
-                                                                    <div className="flex-1">
-                                                                        <select
-                                                                            className="w-full h-12 bg-white dark:bg-black/60 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm font-bold appearance-none focus:outline-none focus:border-emerald-500/50"
-                                                                            value={newVlanId ? 'CUSTOM' : 'DEFAULT'}
-                                                                            onChange={(e) => {
-                                                                                if (e.target.value === 'DEFAULT') setNewVlanId('');
-                                                                                else setNewVlanId('1'); // Default custom vlan
-                                                                            }}
-                                                                        >
-                                                                            <option value="DEFAULT">Default Network (Untagged)</option>
-                                                                            <option value="CUSTOM">Specific VLAN</option>
-                                                                        </select>
-                                                                    </div>
-                                                                    {newVlanId !== '' && (
-                                                                        <input
-                                                                            type="number"
-                                                                            min="1" max="4094"
-                                                                            className="w-24 h-12 bg-white dark:bg-black/60 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm font-bold focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 focus:outline-none"
-                                                                            placeholder="ID"
-                                                                            value={newVlanId}
-                                                                            onChange={(e) => setNewVlanId(e.target.value)}
-                                                                        />
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        )}
-
-                                                        <div>
-                                                            <label className="flex items-center gap-3 cursor-pointer group">
-                                                                <div className="relative">
-                                                                    <input type="checkbox" checked={newIsHidden} onChange={(e) => setNewIsHidden(e.target.checked)} className="peer sr-only" />
-                                                                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500"></div>
-                                                                </div>
-                                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Hide SSID from broadcast</span>
-                                                            </label>
-                                                        </div>
-
-                                                        <div>
-                                                            <label className="flex items-center gap-3 cursor-pointer group">
-                                                                <div className="relative">
-                                                                    <input type="checkbox" checked={newWifi6Enabled} onChange={(e) => setNewWifi6Enabled(e.target.checked)} className="peer sr-only" />
-                                                                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500"></div>
-                                                                </div>
-                                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Enable Wi-Fi 6 (802.11ax)</span>
-                                                            </label>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Right Column Advanced */}
-                                                    <div className="space-y-6">
-                                                        <div>
-                                                            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Radio Bands</label>
-                                                            <div className="flex gap-4">
-                                                                <label className="flex items-center gap-2 cursor-pointer">
-                                                                    <input type="checkbox" checked={newBand24} onChange={e => setNewBand24(e.target.checked)} className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
-                                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">2.4 GHz</span>
-                                                                </label>
-                                                                <label className="flex items-center gap-2 cursor-pointer">
-                                                                    <input type="checkbox" checked={newBand5} onChange={e => setNewBand5(e.target.checked)} className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
-                                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">5 GHz</span>
-                                                                </label>
-                                                                <label className="flex items-center gap-2 cursor-pointer">
-                                                                    <input type="checkbox" checked={newBand6} onChange={e => setNewBand6(e.target.checked)} className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" />
-                                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-300">6 GHz</span>
-                                                                </label>
-                                                            </div>
-                                                        </div>
-
-                                                        {newNetworkType === 'EMPLOYEE' && (
-                                                            <div>
-                                                                <label className="flex items-start gap-3 cursor-pointer group mt-4">
-                                                                    <div className="relative mt-0.5">
-                                                                        <input type="checkbox" checked={newClientIsolation} onChange={(e) => setNewClientIsolation(e.target.checked)} className="peer sr-only" />
-                                                                        <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-emerald-500"></div>
-                                                                    </div>
-                                                                    <div>
-                                                                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors block">Restrict Client Access</span>
-                                                                        <span className="text-[10px] text-slate-500 leading-tight block mt-1">Clients on this network will only be able to reach the internet and cannot communicate with each other.</span>
-                                                                    </div>
-                                                                </label>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {/* Target Site Scanner Panel */}
-                                            <div className="md:col-span-2 mt-8 pt-8 border-t border-slate-200 dark:border-white/10">
-                                                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-4 flex items-center gap-2">
-                                                    <Search size={16} className="text-blue-500" /> Target Site Scanner
-                                                </h4>
-                                                <p className="text-xs text-slate-500 mb-4">Select a target site to scan its existing networks and VLAN IDs before creating a new SSID.</p>
-
-                                                <div className="flex gap-4 mb-4">
-                                                    <select
-                                                        value={scannerTargetSiteId}
-                                                        onChange={(e) => setScannerTargetSiteId(e.target.value)}
-                                                        className="flex-1 h-12 bg-white dark:bg-black/60 border border-slate-200 dark:border-white/10 rounded-xl px-4 text-sm font-bold appearance-none focus:outline-none focus:border-emerald-500/50"
-                                                    >
-                                                        <option value="">-- Select Target Site to Scan --</option>
-                                                        {Array.from(selectedTargetIds).map(siteId => {
-                                                            const site = liveSites.find(s => s.siteId === siteId);
-                                                            return <option key={siteId} value={siteId}>{site ? site.siteName : siteId}</option>;
-                                                        })}
-                                                    </select>
-                                                    <button
-                                                        onClick={handleScanTargetSite}
-                                                        disabled={!scannerTargetSiteId || isScanningSite}
-                                                        className="px-6 h-12 bg-blue-500 hover:bg-blue-600 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white rounded-xl font-bold transition-colors flex items-center gap-2"
-                                                    >
-                                                        {isScanningSite ? <Activity size={16} className="animate-spin" /> : <Search size={16} />}
-                                                        Scan
-                                                    </button>
-                                                </div>
-
-                                                {scannedNetworks.length > 0 && (
-                                                    <div className="bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-xl overflow-hidden">
-                                                        <div className="max-h-60 overflow-y-auto">
-                                                            <table className="w-full text-left text-sm">
-                                                                <thead className="bg-slate-100 dark:bg-white/5 sticky top-0">
-                                                                    <tr>
-                                                                        <th className="px-4 py-3 font-bold text-slate-600 dark:text-slate-400">Network Name</th>
-                                                                        <th className="px-4 py-3 font-bold text-slate-600 dark:text-slate-400">Type</th>
-                                                                        <th className="px-4 py-3 font-bold text-slate-600 dark:text-slate-400">VLAN ID</th>
-                                                                        <th className="px-4 py-3 font-bold text-slate-600 dark:text-slate-400">Status</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody className="divide-y divide-slate-200 dark:divide-white/5">
-                                                                    {scannedNetworks.map(net => (
-                                                                        <tr key={net.id} className="hover:bg-white dark:hover:bg-white/5">
-                                                                            <td className="px-4 py-3 font-medium text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                                                                                {net.isWireless ? <Wifi size={14} className="text-blue-500" /> : <Network size={14} className="text-emerald-500" />}
-                                                                                {net.name}
-                                                                            </td>
-                                                                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400 text-xs font-bold uppercase">{net.type}</td>
-                                                                            <td className="px-4 py-3">
-                                                                                {net.vlanId ? (
-                                                                                    <span className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-1 rounded text-xs font-bold font-mono">
-                                                                                        VLAN {net.vlanId}
-                                                                                    </span>
-                                                                                ) : (
-                                                                                    <span className="text-slate-400 dark:text-slate-600 text-xs">-</span>
-                                                                                )}
-                                                                            </td>
-                                                                            <td className="px-4 py-3">
-                                                                                {net.isEnabled ? (
-                                                                                    <span className="text-emerald-500 flex items-center gap-1 text-xs font-bold"><CheckCircle size={12} /> Enabled</span>
-                                                                                ) : (
-                                                                                    <span className="text-slate-400 flex items-center gap-1 text-xs font-bold"><XCircle size={12} /> Disabled</span>
-                                                                                )}
-                                                                            </td>
-                                                                        </tr>
-                                                                    ))}
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </>
-                                    ) : selectedAction === 'update_ssid_password' || selectedAction === 'delete_ssid' ? (
-                                        <>
-                                            <div className="space-y-6">
-                                                <div>
-                                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">3. Select Target Network (SSID)</label>
-                                                    <select
-                                                        value={selectedSSIDName}
-                                                        onChange={e => setSelectedSSIDName(e.target.value)}
-                                                        className="w-full h-14 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-2xl px-6 text-slate-800 dark:text-white font-bold appearance-none focus:outline-none focus:border-emerald-500/50"
-                                                    >
-                                                        <option value="">-- Choose Analyzed SSID --</option>
-                                                        {compiledSSIDs.map(ssid => {
-                                                            const isDisabled = selectedAction === 'update_ssid_password' && ssid.isGuestPortalEnabled;
-                                                            return (
-                                                                <option
-                                                                    key={ssid.networkName}
-                                                                    value={ssid.networkName}
-                                                                    className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 disabled:opacity-50 disabled:bg-slate-100"
-                                                                    disabled={isDisabled}
-                                                                    title={ssid.foundInSiteNames.join(', ')}
-                                                                >
-                                                                    {ssid.networkName} (Found in {ssid.foundInSites} site{ssid.foundInSites > 1 ? 's' : ''}: {ssid.foundInSiteNames.join(', ')}) {isDisabled ? '[GUEST - Password Update Not Supported]' : ''}
-                                                                </option>
-                                                            );
-                                                        })}
-                                                    </select>
-                                                </div>
-                                            </div>
-
-                                            {selectedAction === 'update_ssid_password' && (
-                                                <div className="space-y-6">
-                                                    <div>
-                                                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 flex items-center gap-2">
-                                                            <Lock size={12} className="text-slate-400" /> 4. New Configuration (Password)
-                                                        </label>
-                                                        <input
-                                                            type="text"
-                                                            className="w-full bg-white dark:bg-black/60 border border-slate-200 dark:border-white/10 rounded-2xl px-6 h-14 text-lg font-mono focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 focus:outline-none placeholder:text-slate-300 dark:placeholder:text-slate-700"
-                                                            placeholder="Enter min 8 characters..."
-                                                            value={newPassword}
-                                                            onChange={(e) => setNewPassword(e.target.value)}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div className="space-y-6">
-                                                <div>
-                                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">3. Select Origin Site</label>
-                                                    <select
-                                                        value={selectedSourceSiteId}
-                                                        onChange={e => {
-                                                            setSelectedSourceSiteId(e.target.value);
-                                                            setSelectedSSIDName('');
-                                                        }}
-                                                        className="w-full h-14 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-2xl px-6 text-slate-800 dark:text-white font-bold appearance-none focus:outline-none focus:border-emerald-500/50"
-                                                    >
-                                                        <option value="">-- Choose Origin Site --</option>
-                                                        {liveSites.map(site => (
-                                                            <option key={site.siteId} value={site.siteId} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">{site.siteName}</option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div className="space-y-6">
-                                                <div>
-                                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2 flex justify-between items-center">
-                                                        <span>4. Select Source SSID to Clone From</span>
-                                                        {isLoadingSourceSSIDs && <span className="text-emerald-500 animate-pulse capitalize">Loading...</span>}
-                                                    </label>
-                                                    <select
-                                                        value={selectedSSIDName}
-                                                        onChange={e => setSelectedSSIDName(e.target.value)}
-                                                        disabled={!selectedSourceSiteId || isLoadingSourceSSIDs}
-                                                        className="w-full h-14 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-2xl px-6 text-slate-800 dark:text-white font-bold appearance-none focus:outline-none focus:border-emerald-500/50 disabled:opacity-50"
-                                                    >
-                                                        <option value="">-- Choose Origin SSID --</option>
-                                                        {sourceSSIDs.map(ssid => {
-                                                            const matchingSSID = compiledSSIDs.find(s => s.networkName === ssid.networkName);
-                                                            const existsInTarget = !!matchingSSID;
-                                                            return (
-                                                                <option
-                                                                    key={ssid.networkId || ssid.networkName}
-                                                                    value={ssid.networkName}
-                                                                    className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200"
-                                                                    title={existsInTarget ? matchingSSID.foundInSiteNames.join(', ') : ''}
-                                                                >
-                                                                    {ssid.networkName} {existsInTarget ? `(Matches ${matchingSSID.foundInSites} targets: ${matchingSSID.foundInSiteNames.join(', ')})` : '(Will skip on targets)'}
-                                                                </option>
-                                                            );
-                                                        })}
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-
-                                <div className="flex justify-between items-center mt-8 pt-8 border-t border-slate-100 dark:border-white/5">
-                                    <button
-                                        onClick={() => setCurrentStep(1)}
-                                        className="px-6 py-3 rounded-xl font-bold text-sm bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 transition-colors"
-                                    >
-                                        Back to Sites
-                                    </button>
-                                    <button
-                                        onClick={handleProceedToExecution}
-                                        disabled={selectedAction === 'update_ssid_password' ? (!selectedSSIDName || !newPassword || newPassword.length < 8) : selectedAction === 'delete_ssid' ? !selectedSSIDName : selectedAction === 'create_ssid' ? (!newSSIDName || (newSecurity === 'WPA2_PSK' && (!newPassword || newPassword.length < 8))) : (!selectedSSIDName || !selectedSourceSiteId)}
-                                        className="h-14 px-10 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black uppercase tracking-widest rounded-xl shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30 disabled:hover:scale-100"
-                                    >
-                                        Proceed to Deploy
-                                    </button>
-                                </div>
-                            </div>
-                        </section>
-                    )}
-
-                    {/* Step 3: Execution Log */}
-                    {currentStep === 3 && (
-                        <section className="transition-all duration-700 animate-fade-in pb-20">
-                            <div className="backdrop-blur-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-3xl p-10 shadow-xl dark:shadow-2xl">
-                                <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                                        <Activity size={16} className="text-emerald-500" /> Deployment Log
-                                    </h3>
-                                    <div className="flex gap-4">
-                                        {!executionLoading && (
-                                            <button
-                                                onClick={() => setCurrentStep(2)}
-                                                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 font-bold text-xs uppercase tracking-widest rounded-xl transition-colors active:scale-95"
-                                            >
-                                                Back
-                                            </button>
-                                        )}
-                                        {!executionResult && !executionLoading && (
-                                            <button
-                                                onClick={handleExecuteSync}
-                                                className="px-6 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold text-sm uppercase tracking-widest rounded-xl transition-colors shadow-lg shadow-rose-600/20 active:scale-95"
-                                            >
-                                                Confirm & Execute
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {executionLoading && (
-                                    <div className="flex flex-col items-center justify-center py-12 space-y-4 bg-slate-100/50 dark:bg-black/20 rounded-2xl border border-slate-200 dark:border-white/5">
-                                        <div className="w-10 h-10 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin"></div>
-                                        <p className="text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-widest text-sm animate-pulse">Running batch updates on {selectedTargetIds.size} sites...</p>
-                                    </div>
-                                )}
-
-                                {executionResult && (
-                                    <div className="bg-[#0f172a] border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
-                                        <div className="bg-[#020617] px-6 py-4 border-b border-slate-800 flex justify-between items-center">
-                                            <span className="text-xs font-mono text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                                <Server size={14} /> Console Output
-                                            </span>
-                                            <span className="text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded">COMPLETED</span>
+                                            ))}
                                         </div>
-                                        <div className="p-4 max-h-[500px] overflow-y-auto space-y-2 font-mono text-xs custom-scrollbar">
-                                            {executionResult.map((log, index) => {
-                                                let colorClass = 'text-slate-400';
-                                                let bgClass = 'hover:bg-white/[0.02]';
-                                                let icon = null;
+                                    </div>
 
-                                                if (log.status === 'SUCCESS') {
-                                                    colorClass = 'text-emerald-400';
-                                                    bgClass = 'bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/10';
-                                                    icon = <CheckCircle size={14} className="inline mr-2" />;
-                                                } else if (log.status === 'ERROR') {
-                                                    colorClass = 'text-rose-400';
-                                                    bgClass = 'bg-rose-500/5 hover:bg-rose-500/10 border border-rose-500/10';
-                                                    icon = <XCircle size={14} className="inline mr-2" />;
-                                                } else if (log.status === 'SKIPPED') {
-                                                    colorClass = 'text-amber-400/80';
-                                                    bgClass = 'hover:bg-white/[0.02] border border-transparent';
+                                    {/* Filter Targets */}
+                                    <div className="lg:col-span-2 flex flex-col h-[500px]">
+                                        <div className="flex justify-between items-end mb-4">
+                                            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500">2. Select Target Sites</label>
+                                            <span className="text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                                                Selected: {selectedTargetIds.size}
+                                            </span>
+                                        </div>
+                                        
+                                        <div className="flex gap-3 mb-4 shrink-0">
+                                            <div className="relative flex-1">
+                                                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Search sites..."
+                                                    value={searchTargetTerm}
+                                                    onChange={(e) => setSearchTargetTerm(e.target.value)}
+                                                    className="w-full text-sm bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-2xl py-3 pl-12 pr-4 text-slate-800 dark:text-white focus:outline-none focus:border-emerald-500/50"
+                                                />
+                                            </div>
+                                            <select
+                                                value={selectedZone}
+                                                onChange={(e) => setSelectedZone(e.target.value)}
+                                                className="h-12 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-2xl px-6 text-slate-800 dark:text-white text-sm font-bold focus:outline-none appearance-none min-w-[160px]"
+                                            >
+                                                <option value="all">All Groups</option>
+                                                {zones.map(z => <option key={z.id || z._id} value={z.id || z._id}>{z.name}</option>)}
+                                            </select>
+                                        </div>
+
+                                        <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar border border-slate-200 dark:border-white/5 rounded-2xl p-4 bg-slate-50/50 dark:bg-black/20">
+                                            {liveSites.filter(site => {
+                                                const matchesSearch = site.siteName.toLowerCase().includes(searchTargetTerm.toLowerCase());
+                                                let matchesZone = true;
+                                                if (selectedZone !== 'all') {
+                                                    const zoneObj = zones.find(z => String(z.id || z._id) === selectedZone);
+                                                    matchesZone = zoneObj ? (zoneObj.site_ids || []).includes(site.siteId) : false;
                                                 }
+                                                return matchesSearch && matchesZone;
+                                            }).map((site) => {
+                                                const roleInfo = getRoleBadgeInfo(site.role);
+                                                const isSelected = selectedTargetIds.has(site.siteId);
+                                                const canSelect = roleInfo.canClone;
+
+                                                const toggleSite = () => {
+                                                    if (!canSelect) return;
+                                                    const newSet = new Set(selectedTargetIds);
+                                                    if (isSelected) newSet.delete(site.siteId);
+                                                    else newSet.add(site.siteId);
+                                                    setSelectedTargetIds(newSet);
+                                                };
 
                                                 return (
-                                                    <div key={index} className={`p-3 rounded-xl flex flex-col md:flex-row md:items-center gap-2 md:gap-4 transition-all ${colorClass} ${bgClass}`}>
-                                                        <div className="w-[200px] shrink-0 font-bold truncate tracking-wide" title={log.siteName}>
-                                                            [{log.siteName}]
-                                                        </div>
-                                                        <div className="shrink-0 w-[90px] font-black tracking-widest">
-                                                            {log.status}
-                                                        </div>
-                                                        <div className="text-slate-400 flex-1 opacity-80 overflow-hidden">
-                                                            <div className="flex items-center gap-2 mb-1 truncate">
-                                                                {icon}
-                                                                {typeof log.detail === 'object' && log.detail.message ? log.detail.message : (typeof log.detail === 'string' ? log.detail : 'Execution detailed log:')}
+                                                    <div 
+                                                        key={site.siteId} 
+                                                        onClick={toggleSite}
+                                                        className={`p-4 rounded-xl border flex items-center justify-between transition-all cursor-pointer ${isSelected 
+                                                            ? 'bg-emerald-500/10 border-emerald-500 shadow-sm' 
+                                                            : !canSelect ? 'opacity-40 grayscale bg-slate-100 dark:bg-white/5' : 'bg-white dark:bg-black/40 border-slate-200 dark:border-white/10 hover:border-slate-300'}`}
+                                                    >
+                                                        <div className="flex items-center gap-4">
+                                                            <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${isSelected ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 dark:border-white/10'}`}>
+                                                                {isSelected && <CheckCircle size={14} />}
                                                             </div>
-                                                            {typeof log.detail === 'object' && (
-                                                                <div className="mt-2 bg-black/40 p-3 rounded-lg overflow-x-auto">
-                                                                    <pre className="text-[10px] text-slate-400 break-all whitespace-pre-wrap font-mono">
-                                                                        {JSON.stringify(log.detail.api_error || log.detail, null, 2)}
-                                                                    </pre>
+                                                            <div className="flex flex-col">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className={`text-sm font-bold ${isSelected ? 'text-emerald-900 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-300'}`}>{site.siteName}</span>
+                                                                    <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${roleInfo.classes}`}>
+                                                                        {roleInfo.text}
+                                                                    </span>
                                                                 </div>
-                                                            )}
+                                                                <span className="text-[9px] font-mono text-slate-500 dark:text-slate-500">{site.siteId}</span>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 );
                                             })}
                                         </div>
+
+                                        <div className="mt-6 flex gap-4">
+                                            <button
+                                                onClick={() => {
+                                                    const validSites = liveSites.filter(s => getRoleBadgeInfo(s.role).canClone).map(s => s.siteId);
+                                                    setSelectedTargetIds(selectedTargetIds.size === validSites.length ? new Set() : new Set(validSites));
+                                                }}
+                                                className="px-6 h-12 rounded-2xl font-bold text-xs bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 transition-colors"
+                                            >
+                                                {selectedTargetIds.size > 0 ? "Deselect All" : "Select All Valid"}
+                                            </button>
+                                            <button
+                                                onClick={handleAnalyzeSites}
+                                                disabled={isAnalyzing || selectedTargetIds.size === 0}
+                                                className="flex-1 h-12 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black uppercase tracking-widest shadow-lg hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-30 disabled:hover:scale-100 flex items-center justify-center gap-2"
+                                            >
+                                                {isAnalyzing ? <Activity size={18} className="animate-spin" /> : <Search size={18} />}
+                                                Analyze Selection
+                                            </button>
+                                        </div>
                                     </div>
-                                )}
+                                </div>
+                            </div>
+                        </section>
+                    )}
+
+                    {/* Step 2: Action Details & Conflict Review */}
+                    {currentStep === 2 && (
+                        <section className="animate-fade-in grid grid-cols-1 lg:grid-cols-5 gap-10">
+                            {/* Panel: Configuration */}
+                            <div className="lg:col-span-2 space-y-8">
+                                <div className="backdrop-blur-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-3xl p-8 shadow-xl">
+                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-8 flex items-center gap-2">
+                                        <Sliders size={16} className="text-emerald-500" /> Action Configuration
+                                    </h3>
+
+                                    <div className="space-y-8">
+                                        {/* SSID Selector */}
+                                        <div className="space-y-3">
+                                            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500">Target SSID</label>
+                                            <select
+                                                value={selectedSSIDName}
+                                                onChange={e => setSelectedSSIDName(e.target.value)}
+                                                className="w-full h-14 bg-slate-50 dark:bg-black/60 border border-slate-200 dark:border-white/10 rounded-2xl px-6 text-sm font-bold focus:border-emerald-500/50 outline-none"
+                                            >
+                                                <option value="">-- Choose Network --</option>
+                                                {compiledSSIDs.map(ssid => (
+                                                    <option key={ssid.networkName} value={ssid.networkName}>
+                                                        {ssid.networkName} ({ssid.foundInSites} sites)
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        {/* Source Site for Clone */}
+                                        {selectedAction === 'update_ssid_config' && (
+                                            <div className="space-y-3">
+                                                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500">Source Site (Origin)</label>
+                                                <select
+                                                    value={selectedSourceSiteId}
+                                                    onChange={e => setSelectedSourceSiteId(e.target.value)}
+                                                    className="w-full h-14 bg-slate-50 dark:bg-black/60 border border-slate-200 dark:border-white/10 rounded-2xl px-6 text-sm font-bold focus:border-emerald-500/50 outline-none"
+                                                >
+                                                    <option value="">-- Choose Source --</option>
+                                                    {liveSites.map(site => (
+                                                        <option key={site.siteId} value={site.siteId}>{site.siteName}</option>
+                                                    ))}
+                                                </select>
+                                                <div className="p-4 bg-blue-500/5 border border-blue-500/10 rounded-2xl">
+                                                    <p className="text-[11px] text-blue-600 dark:text-blue-400 leading-relaxed italic">
+                                                        Deep Config sẽ sao chép toàn bộ thuộc tính của SSID từ Site mẫu (VLAN, Radio, Rate, Isolation,...) đè lên các Site đích.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Password Field */}
+                                        {selectedAction === 'update_ssid_password' && (
+                                            <div className="space-y-3">
+                                                <div className="flex justify-between items-center">
+                                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500">New Password (PSK)</label>
+                                                    <button 
+                                                        onClick={generateRandomPassword}
+                                                        className="text-[10px] font-black uppercase text-emerald-500 hover:underline flex items-center gap-1"
+                                                    >
+                                                        <Rocket size={12} /> Auto Gen
+                                                    </button>
+                                                </div>
+                                                <div className="relative">
+                                                    <Lock size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" />
+                                                    <input
+                                                        type="text"
+                                                        value={newPassword}
+                                                        onChange={e => setNewPassword(e.target.value)}
+                                                        className="w-full h-14 bg-slate-50 dark:bg-black/60 border border-slate-200 dark:border-white/10 rounded-2xl pl-14 pr-6 font-mono text-lg focus:border-emerald-500/50 outline-none"
+                                                        placeholder="Min 8 characters"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {selectedAction === 'delete_ssid' && (
+                                            <div className="p-6 bg-rose-500/10 border border-rose-500/20 rounded-3xl flex items-start gap-4">
+                                                <AlertCircle className="text-rose-500 mt-1" size={20} />
+                                                <div>
+                                                    <h4 className="text-sm font-black text-rose-700 dark:text-rose-400 uppercase tracking-widest mb-1">Warning</h4>
+                                                    <p className="text-[11px] text-rose-600 dark:text-rose-500/80 leading-relaxed">
+                                                        Hành động xóa SSID sẽ gỡ bỏ hoàn toàn mạng này khỏi các site mục tiêu. Kết nối người dùng sẽ bị ngắt lập tức.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <button
+                                            onClick={handleProceedToExecution}
+                                            disabled={
+                                                selectedAction === 'update_ssid_password' ? (!selectedSSIDName || !newPassword || newPassword.length < 8) : 
+                                                selectedAction === 'delete_ssid' ? !selectedSSIDName : 
+                                                (!selectedSSIDName || !selectedSourceSiteId)
+                                            }
+                                            className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl hover:scale-[1.02] active:scale-98 transition-all disabled:opacity-30 flex items-center justify-center gap-2 mt-4"
+                                        >
+                                            Next: Deployment Review <ChevronRight size={18} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Panel: Mapping Analysis */}
+                            <div className="lg:col-span-3 backdrop-blur-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden flex flex-col shadow-xl">
+                                <div className="p-8 border-b border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-white/5 flex justify-between items-center">
+                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                                        <Activity size={16} className="text-blue-500" /> Conflict & Matching Analysis
+                                    </h3>
+                                    {selectedSSIDName && (
+                                        <div className="flex items-center gap-4 text-xs font-bold">
+                                            <span className="flex items-center gap-1 text-emerald-500">
+                                                <CheckCircle size={14} /> {compiledSSIDs.find(s => s.networkName === selectedSSIDName)?.foundInSites || 0} Matches
+                                            </span>
+                                            <span className="flex items-center gap-1 text-rose-500">
+                                                <XCircle size={14} /> {selectedTargetIds.size - (compiledSSIDs.find(s => s.networkName === selectedSSIDName)?.foundInSites || 0)} Conflicts
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex-1 overflow-y-auto custom-scrollbar">
+                                    <table className="w-full text-left">
+                                        <thead className="sticky top-0 bg-white dark:bg-[#0f172a] z-10">
+                                            <tr className="border-b border-slate-200 dark:border-white/5">
+                                                <th className="p-4 text-[10px] font-black uppercase text-slate-400">Target Site</th>
+                                                <th className="p-4 text-[10px] font-black uppercase text-slate-400 text-center">Status</th>
+                                                <th className="p-4 text-[10px] font-black uppercase text-slate-400">Operational Note</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                                            {Array.from(selectedTargetIds).map(siteId => {
+                                                const site = liveSites.find(s => s.siteId === siteId);
+                                                const ssidEntry = compiledSSIDs.find(s => s.networkName === selectedSSIDName);
+                                                const isMatch = !!(ssidEntry && ssidEntry.foundInSiteIds.includes(siteId));
+                                                
+                                                return (
+                                                    <tr key={siteId} className={`transition-all duration-300 ${isMatch ? 'bg-emerald-500/5 hover:bg-emerald-500/10' : 'bg-rose-500/5 hover:bg-rose-500/10 opacity-70'}`}>
+                                                        <td className="p-4 border-l-4 border-transparent transition-all" style={{ borderLeftColor: isMatch ? '#10b981' : '#f43f5e' }}>
+                                                            <div className="font-bold text-sm text-slate-700 dark:text-slate-200">{site?.siteName || siteId}</div>
+                                                            <div className="text-[9px] font-mono text-slate-400">{siteId}</div>
+                                                        </td>
+                                                        <td className="p-4 text-center">
+                                                            {selectedSSIDName ? (
+                                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${isMatch ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400'}`}>
+                                                                    {isMatch ? <CheckCircle size={10} /> : <XCircle size={10} />} {isMatch ? 'Match' : 'Skip'}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-slate-400 text-[10px] font-bold">Awaiting Selection</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="p-4 italic">
+                                                            <span className={`text-[11px] font-medium ${isMatch ? 'text-slate-500 dark:text-slate-400' : 'text-rose-500/80'}`}>
+                                                                {selectedSSIDName 
+                                                                    ? (isMatch ? `SSID found. Operation will be executed.` : `SSID not found. Action will be skipped.`)
+                                                                    : 'Please select an SSID on the left panel.'}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </section>
+                    )}
+
+                    {/* Step 3: Deployment Execution Log */}
+                    {currentStep === 3 && (
+                        <section className="animate-fade-in flex flex-col gap-10 pb-20">
+                            <div className="backdrop-blur-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-3xl p-10 shadow-xl flex flex-col items-center gap-10">
+                                <div className="flex flex-col items-center gap-4">
+                                    <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500">
+                                        <Activity size={32} className={executionLoading ? "animate-spin" : ""} />
+                                    </div>
+                                    <div className="text-center">
+                                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Sync Execution Progress</h3>
+                                        <p className="text-sm text-slate-500">Processing changes across your site inventory.</p>
+                                    </div>
+                                </div>
+
+                                <div className="w-full max-w-2xl space-y-4">
+                                    <div className="flex justify-between items-end mb-1">
+                                        <span className="text-xs font-black uppercase text-slate-400">Transmission Progress</span>
+                                        <span className="text-lg font-mono font-black text-emerald-500">{progress}%</span>
+                                    </div>
+                                    <div className="w-full h-4 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden border border-slate-200 dark:border-white/5">
+                                        <div 
+                                            className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]"
+                                            style={{ width: `${progress}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-4">
+                                    {(!executionLoading && executionResult) ? (
+                                        <button 
+                                            onClick={() => window.location.reload()}
+                                            className="px-10 h-14 bg-gradient-to-r from-slate-700 to-slate-900 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl flex items-center gap-2"
+                                        >
+                                            Done / Reload <RotateCcw size={18} />
+                                        </button>
+                                    ) : (
+                                        <>
+                                            <button 
+                                                onClick={handleExecuteSync}
+                                                disabled={executionLoading}
+                                                className="px-12 h-14 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl hover:scale-[1.05] transition-all disabled:opacity-30 flex items-center gap-3"
+                                            >
+                                                {executionLoading ? <Activity size={20} className="animate-spin" /> : <Rocket size={20} />}
+                                                Start Deployment
+                                            </button>
+                                            {executionLoading && (
+                                                <button 
+                                                    onClick={handleStop}
+                                                    disabled={isStopping}
+                                                    className="px-8 h-14 bg-rose-500/10 border border-rose-500/20 text-rose-500 font-black uppercase tracking-widest rounded-2xl hover:bg-rose-500 hover:text-white transition-all disabled:opacity-30"
+                                                >
+                                                    {isStopping ? "Stopping..." : "Emergency Stop"}
+                                                </button>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Execution Terminal */}
+                            <div className="backdrop-blur-2xl bg-[#0f172a] border border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[400px]">
+                                <div className="px-6 py-4 bg-white/5 border-b border-white/5 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex gap-1.5">
+                                            <div className="w-2.5 h-2.5 rounded-full bg-rose-500"></div>
+                                            <div className="w-2.5 h-2.5 rounded-full bg-amber-500"></div>
+                                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
+                                        </div>
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                                            <Database size={12} /> Execution Logs
+                                        </span>
+                                    </div>
+                                    <div className="text-[9px] font-mono text-slate-500 tracking-wider">
+                                        {new Date().toLocaleTimeString()}
+                                    </div>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-6 font-mono text-[11px] space-y-3 custom-scrollbar">
+                                    {executionLogs.length === 0 && (
+                                        <div className="text-slate-600 animate-pulse italic">Awaiting deployment signal...</div>
+                                    )}
+                                    {executionLogs.map((log, idx) => (
+                                        <div key={idx} className="flex gap-4 animate-slide-up border-b border-white/5 pb-2 last:border-0">
+                                            <span className="text-slate-500 shrink-0">[{new Date().toLocaleTimeString([], { hour12: false })}]</span>
+                                            <span className={`font-black tracking-widest shrink-0 w-24 ${
+                                                log.status === 'SUCCESS' ? 'text-emerald-500' :
+                                                log.status === 'ERROR' ? 'text-rose-500' :
+                                                log.status === 'SKIPPED' ? 'text-slate-400' :
+                                                'text-amber-500'
+                                            }`}>
+                                                {log.status}
+                                            </span>
+                                            <span className="text-slate-300 font-bold shrink-0">{log.siteName}:</span>
+                                            <span className="text-slate-400 italic">{log.detail}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </section>
                     )}
                 </div>
-            </div >
-        </div >
+            </div>
+            
+            <style sx={{}}>{`
+                @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+                @keyframes slide-up { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+                .animate-fade-in { animation: fade-in 0.6s ease-out forwards; }
+                .animate-slide-up { animation: slide-up 0.3s ease-out forwards; }
+                .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+                .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.05); }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(16,185,129,0.3); }
+            `}</style>
+        </div>
     );
 };
 
