@@ -122,15 +122,20 @@ const ZoneSites = () => {
             });
           }
 
-          setSiteMetrics(prev => ({
-            ...prev,
-            [id]: {
-              loading: false,
-              health: hRes.data?.score ?? site.healthScore ?? null,
-              alerts: (alertsList.length > 0 ? alertsList.length : (site.alertsCount || 0)),
-              alertsDetail: alertsList.length > 0 ? detail : (site.alertsDetail || {})
-            }
-          }));
+          setSiteMetrics(prev => {
+            const fetchedScore = hRes.data?.currentHealth?.healthScore?.score ?? hRes.data?.healthScore?.score ?? hRes.data?.score;
+            const finalScore = fetchedScore !== undefined && fetchedScore !== null ? Math.round(fetchedScore) : (site.healthScore !== null ? Math.round(site.healthScore) : null);
+            
+            return {
+              ...prev,
+              [id]: {
+                loading: false,
+                health: finalScore,
+                alerts: (alertsList.length > 0 ? alertsList.length : (site.alertsCount || 0)),
+                alertsDetail: alertsList.length > 0 ? detail : (site.alertsDetail || {})
+              }
+            };
+          });
         });
       }
     });
@@ -249,7 +254,7 @@ const ZoneSites = () => {
             const metrics = siteMetrics[id] || { loading: true, health: site.healthScore ?? null, alerts: site.alertsCount || 0, alertsDetail: site.alertsDetail || {} };
             const healthScore = metrics.health;
             const alertsCount = metrics.alerts;
-            const healthColor = healthScore === null ? 'text-slate-500' : (healthScore >= 67 ? 'text-emerald-500' : healthScore >= 34 ? 'text-yellow-500' : 'text-rose-500');
+            const healthColor = healthScore === null ? 'text-slate-500' : (healthScore >= 67 ? 'text-emerald-500' : healthScore >= 34 ? 'text-amber-500' : 'text-rose-500');
             const healthLabel = healthScore === null ? 'None' : (healthScore >= 67 ? t('zones.sites.card_health_good') : healthScore >= 34 ? t('zones.sites.card_health_fair') : t('zones.sites.card_health_poor'));
             const isUp = site.status === 'up';
 
@@ -344,10 +349,10 @@ const ZoneSites = () => {
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex flex-col items-center">
-                        <span className={`text-base font-black ${healthColor}`}>{healthScore !== null ? `${healthScore}%` : 'None'}</span>
+                        <span className={`text-base font-black ${healthColor}`}>{healthScore !== null ? `${Math.round(healthScore)}%` : 'None'}</span>
                         {healthScore !== null && (
                           <div className="w-12 h-1 bg-slate-800 rounded-full mt-1 overflow-hidden">
-                            <div className={`h-full ${healthScore >= 67 ? 'bg-emerald-500' : healthScore >= 34 ? 'bg-yellow-500' : 'bg-rose-500'}`} style={{ width: `${healthScore}%` }} />
+                            <div className={`h-full ${healthScore >= 67 ? 'bg-emerald-500' : healthScore >= 34 ? 'bg-amber-500' : 'bg-rose-500'}`} style={{ width: `${healthScore}%` }} />
                           </div>
                         )}
                       </div>

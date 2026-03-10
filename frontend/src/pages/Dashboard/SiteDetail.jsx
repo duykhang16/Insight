@@ -138,6 +138,7 @@ const SiteDetail = () => {
             value: healthScore,
             sub: data ? `Conditions: ${healthConditions}` : '',
             route: `/site/${siteId}/health`,
+            displayValue: (loading && !data) ? '...' : (typeof healthScore === 'number' ? `${Math.round(healthScore)}%` : healthScore)
         },
         {
             key: 'alerts',
@@ -180,11 +181,13 @@ const SiteDetail = () => {
         up: t('site.dashboard.health_badge_up'),
         down: t('site.dashboard.health_badge_down'),
     };
-    // Derived health status from numeric score for consistency (Ref: HPENetworking Instant On User Guide)
+    // Derived health status from numeric score for consistency
     let healthKey = siteInfo?.health || siteInfo?.status;
-    if (typeof healthScore === 'number') {
-        if (healthScore >= 67) healthKey = 'good';
-        else if (healthScore >= 34) healthKey = 'warning';
+    const numericScore = typeof healthScore === 'number' ? healthScore : (site?.healthScore ? site.healthScore : null);
+    
+    if (numericScore !== null) {
+        if (numericScore >= 67) healthKey = 'good';
+        else if (numericScore >= 34) healthKey = 'warning';
         else healthKey = 'poor';
     }
 
@@ -248,7 +251,7 @@ const SiteDetail = () => {
                         </div>
                         <div className="mt-2 flex items-baseline gap-2">
                             <span className="text-4xl font-black text-slate-800 dark:text-white tracking-tighter transition-all">
-                                {loading && !data ? '...' : card.value}
+                                {card.displayValue || (loading && !data ? '...' : card.value)}
                             </span>
                         </div>
                         {card.sub && (

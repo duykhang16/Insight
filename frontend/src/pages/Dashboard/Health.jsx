@@ -247,9 +247,11 @@ const Health = () => {
     // ── UI helpers ────────────────────────────────────────────────────────────
 
     const activeHealth = selectedEntry?.health || data?.currentHealth;
-    const currentScore = activeHealth?.healthScore?.score ?? 0;
+    const currentScore = activeHealth?.healthScore?.score !== undefined && activeHealth?.healthScore?.score !== null 
+        ? Math.round(activeHealth.healthScore.score) 
+        : 0;
     const scoreColor = currentScore >= 67 ? 'text-emerald-500'
-        : currentScore >= 34 ? 'text-yellow-500'
+        : currentScore >= 34 ? 'text-amber-500'
             : 'text-rose-500';
 
     const maxCount = useMemo(() =>
@@ -265,7 +267,7 @@ const Health = () => {
                 <div className="text-2xl font-black text-slate-800 dark:text-white">{total}</div>
                 <div className="flex flex-wrap justify-center gap-3 mt-3 text-xs font-bold">
                     {poorCount > 0 && <span className="flex items-center gap-1 text-rose-500"><span className="w-2 h-2 rounded-full bg-rose-500 inline-block" />{poorCount} {t('health.severity_poor')}</span>}
-                    {fairCount > 0 && <span className="flex items-center gap-1 text-yellow-500"><span className="w-2 h-2 rounded-full bg-yellow-500 inline-block" />{fairCount} {t('health.severity_fair')}</span>}
+                    {fairCount > 0 && <span className="flex items-center gap-1 text-amber-500"><span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />{fairCount} {t('health.severity_fair')}</span>}
                     {goodCount > 0 && <span className="flex items-center gap-1 text-emerald-500"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />{goodCount} {t('health.severity_good')}</span>}
                     {noneCount > 0 && <span className="flex items-center gap-1 text-slate-400"><span className="w-2 h-2 rounded-full bg-slate-400 inline-block" />{noneCount} {t('health.severity_none')}</span>}
                 </div>
