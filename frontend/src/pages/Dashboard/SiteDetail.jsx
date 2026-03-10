@@ -21,7 +21,7 @@ const SiteDetail = () => {
     const navigate = useNavigate();
     const { t } = useLanguage();
     const { isAutoRefreshEnabled } = useSettings();
-    const { sites, setSelectedSiteId, fetchSites } = useSite();
+    const { sites, setSelectedSiteId, fetchSites, siteCache, updateSiteCache } = useSite();
 
     const [data, setData] = useState(null);
     const [siteInfo, setSiteInfo] = useState(null);
@@ -42,6 +42,16 @@ const SiteDetail = () => {
 
     // Parallel fetch: site info (header) + dashboard metrics (cards)
     const fetchAll = async (silent = false) => {
+        // Use preloaded data if available and fresh (< 60s)
+        const cached = siteCache[siteId];
+        if (cached && !silent && Date.now() - cached.timestamp < 60000) {
+            if (cached.info) setSiteInfo(cached.info);
+            if (cached.dashboard) setData(cached.dashboard);
+            setLoading(false);
+            setLastUpdated(new Date(cached.timestamp));
+            return;
+        }
+
         if (!silent) setLoading(true);
         else setIsRefreshing(true);
         setError('');
@@ -53,6 +63,12 @@ const SiteDetail = () => {
             setSiteInfo(infoRes.data);
             setData(dashRes.data);
             setLastUpdated(new Date());
+
+            // Update cache with fresh data
+            updateSiteCache(siteId, {
+                info: infoRes.data,
+                dashboard: dashRes.data
+            });
         } catch (err) {
             console.error('Fetch error:', err);
             if (!silent) setError(t('dashboard.error_fetch'));
@@ -164,7 +180,14 @@ const SiteDetail = () => {
         up: t('site.dashboard.health_badge_up'),
         down: t('site.dashboard.health_badge_down'),
     };
-    const healthKey = siteInfo?.health || siteInfo?.status;
+    // Derived health status from numeric score for consistency (Ref: HPENetworking Instant On User Guide)
+    let healthKey = siteInfo?.health || siteInfo?.status;
+    if (typeof healthScore === 'number') {
+        if (healthScore >= 67) healthKey = 'good';
+        else if (healthScore >= 34) healthKey = 'warning';
+        else healthKey = 'poor';
+    }
+
     const badge = healthKey && HEALTH_BADGE_CLS[healthKey]
         ? { label: HEALTH_BADGE_LABEL[healthKey], cls: HEALTH_BADGE_CLS[healthKey] }
         : null;

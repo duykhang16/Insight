@@ -3,7 +3,7 @@ import '../../assets/recharts-custom.css';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { AlertCircle, ArrowRight, Users, Wifi, Monitor, X } from 'lucide-react';
 import {
-    LineChart, BarChart, Line, Bar, Cell, ReferenceLine,
+    LineChart, BarChart, ComposedChart, Line, Bar, Cell, ReferenceLine,
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import apiClient from '../../api/apiClient';
@@ -25,7 +25,7 @@ const SEVERITY_COLORS = {
 // Shared chart margins — both zones must use identical left/right margins
 // so their X-axis tick positions align perfectly into one continuous frame.
 const CHART_MARGIN_LEFT = 0;
-const CHART_MARGIN_RIGHT = 48;
+const CHART_MARGIN_RIGHT = 32;
 
 // ─── Pure helpers ─────────────────────────────────────────────────────────────
 
@@ -246,9 +246,10 @@ const Health = () => {
 
     // ── UI helpers ────────────────────────────────────────────────────────────
 
-    const currentScore = data?.currentHealth?.healthScore?.score ?? 0;
-    const scoreColor = currentScore >= 80 ? 'text-emerald-500'
-        : currentScore >= 60 ? 'text-yellow-500'
+    const activeHealth = selectedEntry?.health || data?.currentHealth;
+    const currentScore = activeHealth?.healthScore?.score ?? 0;
+    const scoreColor = currentScore >= 67 ? 'text-emerald-500'
+        : currentScore >= 34 ? 'text-yellow-500'
             : 'text-rose-500';
 
     const maxCount = useMemo(() =>
@@ -347,9 +348,9 @@ const Health = () => {
                     <div className="flex flex-col cursor-crosshair select-none" style={{ gap: 0 }}>
 
                         {/* ── Zone A: Health Score Line Chart (70%) ── */}
-                        <div style={{ height: '224px' }}>
+                        <div style={{ height: '224px', marginBottom: '-30px', position: 'relative', zIndex: 10 }}>
                             <ResponsiveContainer width="100%" height="100%">
-                                <LineChart
+                                <ComposedChart
                                     data={unifiedData}
                                     syncId="healthSync"
                                     onClick={handleChartClick}
@@ -359,13 +360,16 @@ const Health = () => {
                                 >
                                     <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
 
-                                    {/* Hidden X-axis — keeps the axis space so bars align,
-                                        but no labels (labels only shown in Zone B) */}
+                                    {/* X-axis: Categorical scale='band' is crucial for Bar-Line alignment */}
                                     <XAxis
                                         dataKey="label"
-                                        hide={true}
+                                        height={30}
                                         axisLine={false}
                                         tickLine={false}
+                                        tick={false}
+                                        interval="preserveStartEnd"
+                                        padding={{ left: 0, right: 0 }}
+                                        scale="band"
                                     />
 
                                     <YAxis
@@ -375,12 +379,12 @@ const Health = () => {
                                         axisLine={false}
                                         tickFormatter={v => `${v}%`}
                                         domain={[0, 100]}
-                                        width={36}
+                                        width={60}
                                     />
 
                                     <Tooltip
                                         content={<ChartTooltip />}
-                                        cursor={{ stroke: '#334155', strokeWidth: 1, strokeDasharray: '4 3' }}
+                                        cursor={{ stroke: '#334155', strokeWidth: 1 }}
                                     />
 
                                     {/* Cyan vertical marker at selected time slice */}
@@ -402,7 +406,10 @@ const Health = () => {
                                         activeDot={{ r: 5, fill: '#10b981', stroke: '#ecfdf5', strokeWidth: 2 }}
                                         isAnimationActive={false}
                                     />
-                                </LineChart>
+
+                                    {/* Dummy Bar to force identical band-offset as bottom chart */}
+                                    <Bar dataKey="count" hide isAnimationActive={false} />
+                                </ComposedChart>
                             </ResponsiveContainer>
                         </div>
 
@@ -410,20 +417,21 @@ const Health = () => {
                         <div className="h-px bg-white/5" />
 
                         {/* ── Zone B: Alert Density Bar Chart (30%) ── */}
-                        <div style={{ height: '96px' }}>
+                        <div style={{ height: '96px', position: 'relative', zIndex: 5 }}>
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart
+                                <ComposedChart
                                     data={unifiedData}
                                     syncId="healthSync"
                                     onClick={handleChartClick}
-                                    margin={{ top: 0, right: CHART_MARGIN_RIGHT, left: CHART_MARGIN_LEFT, bottom: 4 }}
+                                    margin={{ top: 0, right: CHART_MARGIN_RIGHT, left: CHART_MARGIN_LEFT, bottom: 0 }}
                                     barCategoryGap="20%"
                                     style={{ outline: 'none' }}
                                     tabIndex={-1}
                                 >
-                                    {/* X-axis with labels — only rendered here in Zone B */}
+                                    {/* X-axis with labels — Identical padding & scale as top chart */}
                                     <XAxis
                                         dataKey="label"
+                                        height={30}
                                         stroke="#475569"
                                         fontSize={11}
                                         tickLine={false}
@@ -431,6 +439,8 @@ const Health = () => {
                                         tickMargin={8}
                                         interval="preserveStartEnd"
                                         tick={DayBoundaryTick}
+                                        padding={{ left: 0, right: 0 }}
+                                        scale="band"
                                     />
 
                                     <YAxis
@@ -440,7 +450,7 @@ const Health = () => {
                                         axisLine={false}
                                         allowDecimals={false}
                                         domain={[0, maxCount + 1]}
-                                        width={36}
+                                        width={60}
                                         tickFormatter={v => v === 0 ? '' : v}
                                     />
 
@@ -459,6 +469,9 @@ const Health = () => {
                                         />
                                     )}
 
+                                    {/* Dummy Line to force identical coordinate calc as top chart */}
+                                    <Line dataKey="score" hide isAnimationActive={false} />
+
                                     <Bar
                                         dataKey="count"
                                         radius={[3, 3, 0, 0]}
@@ -470,7 +483,7 @@ const Health = () => {
                                             selectedIndex={selectedIndex}
                                         />
                                     </Bar>
-                                </BarChart>
+                                </ComposedChart>
                             </ResponsiveContainer>
                         </div>
 
@@ -482,9 +495,9 @@ const Health = () => {
 
             {/* Counter Boxes */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                {getCounterBox(t('sidebar.clients'), data?.currentHealth?.clients?.counters)}
-                {getCounterBox(t('sidebar.networks'), data?.currentHealth?.networks?.counters)}
-                {getCounterBox(t('sidebar.devices'), data?.currentHealth?.devices?.counters)}
+                {getCounterBox(t('sidebar.clients'), activeHealth?.clients?.counters)}
+                {getCounterBox(t('sidebar.networks'), activeHealth?.networks?.counters)}
+                {getCounterBox(t('sidebar.devices'), activeHealth?.devices?.counters)}
             </div>
 
             {/* Conditions Table */}

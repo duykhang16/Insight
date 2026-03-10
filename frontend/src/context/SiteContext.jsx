@@ -8,11 +8,45 @@ export const SiteProvider = ({ children }) => {
     const [lastUpdated, setLastUpdated] = useState(null);
     const [loadingSites, setLoadingSites] = useState(false);
 
+    const [siteCache, setSiteCache] = useState({});
+
     useEffect(() => {
         if (selectedSiteId) {
             sessionStorage.setItem('selectedSiteId', selectedSiteId);
         }
     }, [selectedSiteId]);
+
+    const updateSiteCache = (siteId, data) => {
+        setSiteCache(prev => ({
+            ...prev,
+            [siteId]: {
+                ...prev[siteId],
+                ...data,
+                timestamp: Date.now()
+            }
+        }));
+    };
+
+    const prefetchSite = async (siteId) => {
+        if (!siteId || siteCache[siteId]?.timestamp > Date.now() - 60000) return;
+        
+        try {
+            const { default: apiClient } = await import('../api/apiClient');
+            const [infoRes, dashRes] = await Promise.all([
+                apiClient.get(`/overview/sites/${siteId}`).catch(() => null),
+                apiClient.get(`/overview/sites/${siteId}/dashboard`).catch(() => null)
+            ]);
+            
+            if (infoRes || dashRes) {
+                updateSiteCache(siteId, {
+                    info: infoRes?.data,
+                    dashboard: dashRes?.data
+                });
+            }
+        } catch (err) {
+            console.warn(`Prefetch failed for site ${siteId}`, err);
+        }
+    };
 
     const fetchSites = async (silent = false) => {
         if (!silent) setLoadingSites(true);
@@ -41,7 +75,10 @@ export const SiteProvider = ({ children }) => {
             sites,
             loadingSites,
             fetchSites,
-            lastUpdated
+            lastUpdated,
+            siteCache,
+            updateSiteCache,
+            prefetchSite
         }}>
             {children}
         </SiteContext.Provider>

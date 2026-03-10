@@ -12,7 +12,8 @@ const STATUS_BADGE = {
 };
 
 const GlobalDashboard = () => {
-    const { sites, loadingSites, fetchSites } = useSite();
+    const { sites, loadingSites, fetchSites, prefetchSite } = useSite();
+    const prefetchTimerRef = React.useRef(null);
     const navigate = useNavigate();
     const { t } = useLanguage();
     const { isAutoRefreshEnabled } = useSettings();
@@ -49,7 +50,16 @@ const GlobalDashboard = () => {
                     return (
                         <div
                             key={id}
-                            onClick={() => navigate(`/site/${id}`)}
+                            onClick={() => {
+                                if (prefetchTimerRef.current) clearTimeout(prefetchTimerRef.current);
+                                navigate(`/site/${id}`);
+                            }}
+                            onMouseEnter={() => {
+                                prefetchTimerRef.current = setTimeout(() => prefetchSite(id), 150);
+                            }}
+                            onMouseLeave={() => {
+                                if (prefetchTimerRef.current) clearTimeout(prefetchTimerRef.current);
+                            }}
                             className="bg-[#0F172A] border border-slate-800 rounded-lg p-5 cursor-pointer hover:border-blue-500/50 hover:bg-slate-800/50 transition-all group"
                         >
                             <div className="flex items-start justify-between mb-3">

@@ -89,6 +89,16 @@ class OverviewService:
                 elif raw_role.startswith("view"): mapped_role = "view"
                 elif raw_role.startswith("guest"): mapped_role = "guest"
 
+                # Enriched fields for Sites Grid UI
+                health_score_node = node.get("currentHealthScore") or {}
+                health_score = health_score_node.get("score") if isinstance(health_score_node, dict) else None
+                
+                alerts_node = node.get("activeAlertsCounters") or {}
+                alerts_count = 0
+                if isinstance(alerts_node, dict):
+                    # Sum all alert severities
+                    alerts_count = sum(v for v in alerts_node.values() if isinstance(v, (int, float)))
+
                 sites.append({
                     "id":                    node.get("id") or node.get("siteId") or node.get("site_id"),
                     "siteId":                node.get("id") or node.get("siteId") or node.get("site_id"),
@@ -96,11 +106,11 @@ class OverviewService:
                     "role":                  mapped_role,
                     "aruba_role_raw":        aruba_role_raw if aruba_role_raw else "unknown",
                     "insight_app_role":      insight_app_role,
-                    # Enriched fields for Sites Grid UI
                     "status":                node.get("status", "up"),
-                    "healthScore":           node.get("currentHealthScore", {}),
+                    "healthScore":           health_score,
+                    "alertsCount":           alerts_count,
+                    "alertsDetail":          alerts_node,
                     "healthScoreTrend":      node.get("healthScoreTrend", "stable"),
-                    "activeAlertsCounters":  node.get("activeAlertsCounters", {}),
                     "historyDurationSeconds": node.get("historyDurationSeconds", 86400),
                 })
 
