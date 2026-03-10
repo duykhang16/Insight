@@ -63,7 +63,8 @@ const getClientCount = (device) => {
         if (!device.radios?.length) return device.connectedClients ?? 0;
         return device.radios.reduce((sum, r) => sum + (r.wirelessClientsCount ?? 0), 0);
     }
-    return device.wiredClientsCount ?? device.connectedClients ?? 0;
+    // Switches: Prefer groupedWiredClientsCount for accurate real-user count (Site Test fix)
+    return device.groupedWiredClientsCount ?? device.wiredClientsCount ?? device.connectedClients ?? 0;
 };
 
 const Devices = () => {

@@ -68,6 +68,12 @@ const Clients = () => {
         'Q9H62A': 'AP-515',
         'R4H16A': 'AP-565',
         'Q9H59A': 'AP-514',
+        'JL807A': '1930 8G',
+        'JL681A': '1930 8G PoE',
+        'JL682A': '1930 24G PoE',
+        'S0G14A': 'AP-22',
+        'R2X01A': 'AP-11',
+        'R2X06A': 'AP-15',
     };
 
     // Default 11-column sequence (Task 1)
@@ -200,21 +206,34 @@ const Clients = () => {
     const formatDuration = (item) => {
         const rawSeconds = item?.stateDurationInSeconds ?? item?.connectionDurationInSeconds ?? 0;
         if (rawSeconds <= 0) return '';
-        const m = Math.floor(rawSeconds / 60);
-        return `${m} min`;
+        
+        const days = Math.floor(rawSeconds / 86400);
+        const hours = Math.floor((rawSeconds % 86400) / 3600);
+        const minutes = Math.floor((rawSeconds % 3600) / 60);
+        
+        let parts = [];
+        if (days > 0) parts.push(`${days}d`);
+        if (hours > 0) parts.push(`${hours}h`);
+        if (minutes > 0 || parts.length === 0) parts.push(`${minutes}m`);
+        
+        return parts.join(' ');
     };
 
     const formatInterface = (item) => {
         if (!item) return '';
         const isWired = item.clientType?.toLowerCase() === 'wired';
         if (isWired) {
-            // Extract port string if array exists
-            const port = item.connectedToPorts?.[0]?.portNumber || item.portId;
+            // Priority: root portNumber -> root portId -> nested connectedToPorts
+            const port = item.portNumber ||
+                item.portId ||
+                item.connectedToPorts?.[0]?.portNumber ||
+                '';
             return port ? `Port ${port}` : '';
         }
         // Wireless: Map from item.wirelessBand
-        if (item.wirelessBand) {
-            return item.wirelessBand.toLowerCase().replace('ghz', ' GHz');
+        const band = item.wirelessBand || item.radioBand || '';
+        if (band) {
+            return band.toLowerCase().replace('ghz', ' GHz');
         }
         return '';
     };
@@ -420,11 +439,20 @@ const Clients = () => {
                                         item.connectedToPorts?.[0]?.accessedWiredNetworks?.[0]?.networkName ||
                                         (item.vlanId ? `VLAN ${item.vlanId}` : '');
 
-                                    // Rule: Device (AP/Switch Name): Map directly from item.deviceName
-                                    const deviceDisplayName = item.deviceName || '';
+                                    // Rule: Device (AP/Switch Name): Prioritize infrastructure names
+                                    const candidateDeviceName = item.apName ||
+                                                                item.switchName ||
+                                                                item.associatedToDeviceName ||
+                                                                item.associatedDeviceName ||
+                                                                item.connectedToPorts?.[0]?.deviceName ||
+                                                                item.deviceName || '';
 
-                                    // Device Model Mapping (Task 1 Context)
-                                    const devicePartNumber = item.associatedDevicePartNumber || item.partNumber || '';
+                                    // Defensive: If the device name is same as client name, it's likely just showing the client's own metadata
+                                    const deviceDisplayName = (candidateDeviceName && candidateDeviceName !== clientName)
+                                        ? candidateDeviceName
+                                        : (item.apName || item.switchName || item.associatedDeviceName || '');
+                                    // Device Model Mapping: Use only the associated device's part number
+                                    const devicePartNumber = item.associatedDevicePartNumber || '';
                                     const modelName = PART_NUMBER_MAP[devicePartNumber] || '';
 
                                     const renderCell = (colId) => {
