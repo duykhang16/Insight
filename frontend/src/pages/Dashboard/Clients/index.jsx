@@ -155,27 +155,11 @@ const Clients = () => {
         if (!silent) setLoading(true);
         setError('');
         try {
-            let res;
-            const endpoints = [
-                `/overview/sites/${siteId}/clients`,
-                `/overview/sites/${siteId}/clientSummary`,
-                `/overview/sites/${siteId}/clientsSummary`,
-                `/overview/sites/${siteId}/dashboard`
-            ];
+            // Updated: Call the centralized backend 'clients' endpoint which handles discovery trials.
+            // This prevents console 404 spam.
+            const res = await apiClient.get(`/overview/sites/${siteId}/clients`);
 
-            for (const url of endpoints) {
-                try {
-                    const tempRes = await apiClient.get(url);
-                    if (tempRes.data && (Array.isArray(tempRes.data) || tempRes.data.elements || tempRes.data.clients || (tempRes.data.clientsOverview && tempRes.data.clientsOverview.clients))) {
-                        res = tempRes;
-                        break;
-                    }
-                } catch (e) {
-                    if (e.response?.status !== 401) console.warn(`Failed endpoint: ${url}`);
-                }
-            }
-
-            if (!res) throw new Error("Could not find clients endpoint or no data available.");
+            if (!res.data) throw new Error("No data available.");
 
             const data = res.data;
             let extracted = [];
