@@ -7,7 +7,6 @@ import NetworkTable from './NetworkTable';
 import WirelessTable from './WirelessTable';
 import useIntervalFetch from '../../../hooks/useIntervalFetch';
 import { useSettings } from '../../../context/SettingsContext';
-import SyncIndicator from '../../../components/SyncIndicator';
 import { useLanguage } from '../../../context/LanguageContext';
 
 const Networks = () => {
@@ -106,7 +105,6 @@ const Networks = () => {
                         {t('site.networks.subtitle')} {sites.find(s => s.siteId === selectedSiteId)?.siteName || 'current site'}
                     </p>
                 </div>
-                <SyncIndicator isSyncing={loading || isRefreshing} lastUpdated={lastUpdated} />
             </div>
 
             {/* Stats Row */}

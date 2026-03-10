@@ -2,15 +2,52 @@ import React, { useState, useRef, useEffect } from 'react';
 import { User, LogOut, RefreshCw, ChevronUp, Power } from 'lucide-react';
 import { useSite } from '../../context/SiteContext';
 import { useSettings } from '../../context/SettingsContext';
+import { useLanguage } from '../../context/LanguageContext'; // Assuming LanguageContext is available for t()
+
+// New SyncIndicator component
+const SyncIndicator = ({ isSyncing, lastUpdated }) => {
+    const { t } = useLanguage(); // Assuming useLanguage hook is available
+
+    // Format date string to HH:mm:ss
+    const formattedTime = lastUpdated instanceof Date
+        ? lastUpdated.toLocaleTimeString()
+        : (lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : '--:--:--');
+
+    return (
+        <div className="flex items-center gap-2 mt-1 px-1">
+            {/* Status Dot */}
+            <div className="relative flex items-center justify-center">
+                {isSyncing ? (
+                    <RefreshCw size={8} className="text-blue-400 animate-spin" />
+                ) : (
+                    <>
+                        <span className="absolute inline-flex h-2 w-2 rounded-full bg-emerald-500/20 animate-ping"></span>
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.5)]"></span>
+                    </>
+                )}
+            </div>
+
+            {/* Info Text */}
+            <div className="flex items-center gap-1.5 overflow-hidden">
+                <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 whitespace-nowrap">
+                    {isSyncing ? t('common.syncing') : 'Live'}
+                </span>
+                <span className="text-[9px] font-mono text-slate-600/80 mb-[0.5px]">
+                    {formattedTime}
+                </span>
+            </div>
+        </div>
+    );
+};
 
 const UserWidget = ({ onLogout }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const { selectedSiteId, sites } = useSite();
-    const { isAutoRefreshEnabled, toggleAutoRefresh } = useSettings();
+    const { selectedSiteId, sites, lastUpdated, loadingSites } = useSite();
+    // isAutoRefreshEnabled is now always true and toggleAutoRefresh is a no-op from SettingsContext
+    const { isAutoRefreshEnabled } = useSettings();
     const dropdownRef = useRef(null);
 
     const userEmail = sessionStorage.getItem('insight_user_email') || 'it.admin@insight.local';
-    const currentSite = sites.find(s => s.siteId === selectedSiteId)?.siteName || 'No Site Selected';
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -33,7 +70,8 @@ const UserWidget = ({ onLogout }) => {
                             <p className="text-xs font-bold text-white truncate" title={userEmail}>{userEmail}</p>
                         </div>
 
-                        <div className="p-2">
+                        {/* Auto-refresh toggle removed as per instructions */}
+                        {/* <div className="p-2">
                             <button
                                 onClick={toggleAutoRefresh}
                                 className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-slate-700/50 transition-colors group"
@@ -46,7 +84,7 @@ const UserWidget = ({ onLogout }) => {
                                     <div className={`absolute top-0.5 w-3 h-3 rounded-full transition-all ${isAutoRefreshEnabled ? 'left-4 bg-emerald-400' : 'left-0.5 bg-slate-500'}`}></div>
                                 </div>
                             </button>
-                        </div>
+                        </div> */}
 
                         <div className="p-2 border-t border-slate-700/50">
                             <button
@@ -74,9 +112,7 @@ const UserWidget = ({ onLogout }) => {
                 </div>
                 <div className="flex-1 min-w-0 text-left">
                     <div className="text-sm font-bold text-white truncate">{userEmail.split('@')[0]}</div>
-                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 truncate mt-0.5">
-                        {currentSite}
-                    </div>
+                    <SyncIndicator isSyncing={loadingSites} lastUpdated={lastUpdated} />
                 </div>
                 <ChevronUp
                     size={16}

@@ -4,7 +4,6 @@ import apiClient, { formatBytes } from '../../../api/apiClient';
 import { useSite } from '../../../context/SiteContext';
 import { useSettings } from '../../../context/SettingsContext';
 import useIntervalFetch from '../../../hooks/useIntervalFetch';
-import SyncIndicator from '../../../components/SyncIndicator';
 import { useLanguage } from '../../../context/LanguageContext';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
@@ -341,7 +340,6 @@ const Clients = () => {
                 </div>
 
                 <div className="flex items-center gap-4 w-full md:w-auto">
-                    <SyncIndicator isSyncing={loading} lastUpdated={lastUpdated} />
                     <button
                         onClick={resetColumns}
                         className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg border border-white/10 transition-colors"

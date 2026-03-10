@@ -1,7 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSite } from '../../context/SiteContext';
 import { MapPin, Wifi, ChevronRight } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
+import { useSettings } from '../../context/SettingsContext';
+import useIntervalFetch from '../../hooks/useIntervalFetch';
 
 const STATUS_BADGE = {
     up:   { label: 'Online',  cls: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' },
@@ -11,8 +14,20 @@ const STATUS_BADGE = {
 const GlobalDashboard = () => {
     const { sites, loadingSites, fetchSites } = useSite();
     const navigate = useNavigate();
+    const { t } = useLanguage();
+    const { isAutoRefreshEnabled } = useSettings();
+    const [lastUpdated, setLastUpdated] = useState(null);
 
-    useEffect(() => { fetchSites(); }, []);
+    const loadData = async (silent = false) => {
+        await fetchSites(silent);
+        setLastUpdated(new Date());
+    };
+
+    useEffect(() => { loadData(); }, []);
+
+    useIntervalFetch(() => {
+        if (!loadingSites) loadData(true);
+    }, isAutoRefreshEnabled ? 60000 : null, [loadingSites, isAutoRefreshEnabled]);
 
     if (loadingSites) return (
         <div className="p-8 flex items-center justify-center h-64">

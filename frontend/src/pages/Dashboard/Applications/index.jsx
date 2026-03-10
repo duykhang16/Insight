@@ -6,7 +6,6 @@ import { processApplicationData } from './applicationProcessor';
 import ApplicationTable from './ApplicationTable';
 import useIntervalFetch from '../../../hooks/useIntervalFetch';
 import { useSettings } from '../../../context/SettingsContext';
-import SyncIndicator from '../../../components/SyncIndicator';
 import { useLanguage } from '../../../context/LanguageContext';
 
 const Applications = () => {
@@ -111,10 +110,6 @@ const Applications = () => {
                     <p className="text-sm text-slate-400 mt-1">
                         {t('site.applications.subtitle')} {sites.find(s => s.siteId === selectedSiteId)?.siteName || 'current site'}
                     </p>
-                </div>
-
-                <div className="flex items-center gap-4">
-                    <SyncIndicator isSyncing={loading || isRefreshing} lastUpdated={lastUpdated} />
                 </div>
             </div>
 

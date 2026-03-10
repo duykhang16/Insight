@@ -6,7 +6,6 @@ import { useSite } from '../../context/SiteContext';
 import useIntervalFetch from '../../hooks/useIntervalFetch';
 import { useSettings } from '../../context/SettingsContext';
 import { useLanguage } from '../../context/LanguageContext';
-import SyncIndicator from '../../components/SyncIndicator';
 import ApplicationSummaryCard from './Applications/ApplicationSummaryCard';
 
 const HEALTH_BADGE_CLS = {
@@ -196,8 +195,6 @@ const SiteDetail = () => {
                         {t('site.dashboard.subtitle')}
                     </p>
                 </div>
-
-                <SyncIndicator isSyncing={loading || isRefreshing} lastUpdated={lastUpdated} />
             </div>
 
             {error && (

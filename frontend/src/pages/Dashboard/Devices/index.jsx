@@ -75,6 +75,7 @@ const Devices = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [typeFilter, setTypeFilter] = useState('all');
     const [healthFilter, setHealthFilter] = useState('all');
+    const [lastUpdated, setLastUpdated] = useState(null);
     const [sortConfig, setSortConfig] = useState({ key: 'clients', direction: 'desc' });
 
     const { selectedSiteId, sites, fetchSites } = useSite();
@@ -107,6 +108,7 @@ const Devices = () => {
         try {
             const res = await apiClient.get(`/overview/sites/${siteId}/inventory`);
             setDevices(extractDevices(res.data) || []);
+            setLastUpdated(new Date());
         } catch (err) {
             console.error('Inventory fetch error:', err);
             if (err.response?.status !== 401) setError(t('site.devices.error_fetch'));
@@ -119,7 +121,10 @@ const Devices = () => {
         try {
             const res = await apiClient.get(`/overview/sites/${siteId}/inventory`);
             const extracted = extractDevices(res.data);
-            if (extracted.length > 0) setDevices(extracted);
+            if (extracted.length > 0) {
+                setDevices(extracted);
+                setLastUpdated(new Date());
+            }
         } catch { /* silent */ }
     };
 

@@ -4,7 +4,6 @@ import apiClient from '../../../api/apiClient';
 import { useSite } from '../../../context/SiteContext';
 import { useSettings } from '../../../context/SettingsContext';
 import useIntervalFetch from '../../../hooks/useIntervalFetch';
-import SyncIndicator from '../../../components/SyncIndicator';
 import { useLanguage } from '../../../context/LanguageContext';
 
 // --- Helpers ---
@@ -186,9 +185,6 @@ const Alerts = () => {
                     <p className="text-sm text-slate-400 mt-1">
                         {t('site.alerts.subtitle')} {selectedSite?.siteName || 'current site'}
                     </p>
-                </div>
-                <div className="flex items-center gap-4">
-                    <SyncIndicator isSyncing={loading || isRefreshing} lastUpdated={lastUpdated} />
                 </div>
             </div>
 

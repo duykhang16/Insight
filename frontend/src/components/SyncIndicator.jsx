@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw, CheckCircle2, Search, Power } from 'lucide-react';
+import { RefreshCw, Clock } from 'lucide-react';
 import { useSettings } from '../context/SettingsContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -7,51 +7,54 @@ const SyncIndicator = ({ isSyncing, lastUpdated }) => {
     const { isAutoRefreshEnabled, toggleAutoRefresh } = useSettings();
     const { t } = useLanguage();
 
-    // Format date string gracefully
+    // Format date string to HH:mm:ss
     const formattedTime = lastUpdated instanceof Date
         ? lastUpdated.toLocaleTimeString()
-        : (lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : t('common.awaiting_data'));
+        : (lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : '--:--:--');
+
+    if (!lastUpdated && !isSyncing) return null;
 
     return (
-        <div className="flex items-center space-x-4 bg-white dark:bg-[#0F172A] p-2 pr-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl transition-all h-12">
-            {/* Auto Refresh Toggle */}
-            <button
-                onClick={toggleAutoRefresh}
-                className={`flex items-center justify-center p-2 rounded-lg transition-all ${isAutoRefreshEnabled
-                    ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
-                    }`}
-                title={isAutoRefreshEnabled ? t('common.auto_refresh_on') : t('common.auto_refresh_off')}
-            >
-                <RefreshCw size={16} className={isAutoRefreshEnabled ? "animate-spin-slow" : ""} />
-            </button>
-
-            {/* Status Section */}
-            <div className="flex flex-col justify-center border-l border-slate-200 dark:border-slate-700 pl-4">
-                {isSyncing ? (
-                    <div className="flex items-center gap-2">
-                        <RefreshCw size={12} className="text-indigo-500 dark:text-indigo-400 animate-spin" />
-                        <span className="text-xs font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-widest">
-                            {t('common.syncing')}
-                        </span>
-                    </div>
-                ) : (
-                    <div className="flex items-center gap-2">
-                        <div className="relative flex items-center justify-center h-2 w-2">
+        <div className="fixed bottom-6 right-6 z-50 pointer-events-none">
+            <div className="flex items-center gap-3 px-4 py-2 rounded-2xl bg-slate-900/40 backdrop-blur-md border border-white/5 shadow-2xl transition-all duration-500 hover:bg-slate-900/60 pointer-events-auto group">
+                {/* Status Dot */}
+                <div className="relative flex items-center justify-center">
+                    {isSyncing ? (
+                        <RefreshCw size={12} className="text-blue-400 animate-spin" />
+                    ) : (
+                        <>
                             {isAutoRefreshEnabled && (
-                                <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50 animate-ping"></span>
+                                <span className="absolute inline-flex h-2 w-2 rounded-full bg-emerald-500/40 animate-ping"></span>
                             )}
-                            <span className={`relative inline-flex rounded-full h-2 w-2 ${isAutoRefreshEnabled ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-500'}`}></span>
-                        </div>
-                        <span className={`text-xs font-bold uppercase tracking-widest ${isAutoRefreshEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>
-                            {t('common.live_data')}
+                            <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${isAutoRefreshEnabled ? 'bg-emerald-500' : 'bg-slate-500'}`}></span>
+                        </>
+                    )}
+                </div>
+
+                {/* Info Text */}
+                <div className="flex flex-col">
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400/80 group-hover:text-slate-300 transition-colors">
+                            {isSyncing ? t('common.syncing') : t('common.live_data')}
                         </span>
                     </div>
-                )}
+                    <div className="flex items-center gap-1 text-[9px] font-mono text-slate-500/60">
+                        <Clock size={8} />
+                        <span>{formattedTime}</span>
+                    </div>
+                </div>
 
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-0.5">
-                    {t('common.updated')} {formattedTime}
-                </span>
+                {/* Subtle Toggle Button */}
+                <button
+                    onClick={toggleAutoRefresh}
+                    className={`ml-1 p-1.5 rounded-lg transition-all ${isAutoRefreshEnabled
+                        ? 'text-emerald-500/40 hover:text-emerald-500 hover:bg-emerald-500/10'
+                        : 'text-slate-600 hover:text-slate-400 hover:bg-white/5'
+                        }`}
+                    title={isAutoRefreshEnabled ? t('common.auto_refresh_on') : t('common.auto_refresh_off')}
+                >
+                    <RefreshCw size={12} className={isAutoRefreshEnabled ? "animate-spin-slow" : ""} />
+                </button>
             </div>
         </div>
     );
