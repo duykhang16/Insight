@@ -14,7 +14,7 @@ jobs:
       - name: Deploy Code
         run: |
           # Di chuyển vào thư mục dự án
-          cd /home/cuong-deploy/API-Testing
+          cd /home/cuong-deploy/Insight
           
           # 2. Xóa bỏ mọi thay đổi phát sinh trên server để tránh lỗi khi cập nhật code
           # Điều này giúp lệnh pull luôn mượt mà

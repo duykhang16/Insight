@@ -124,7 +124,22 @@ class OverviewService:
                 allowed_set = set(allowed_ids)
                 sites = [s for s in sites if s.get("siteId") in allowed_set]
 
+            # --- Bước 5: Template Enrichment ---
+            if caller_email:
+                try:
+                    from app.features.templates.service import get_site_template_map
+                    template_map = await get_site_template_map(caller_email)
+                    for site in sites:
+                        sid = site.get("siteId")
+                        if sid in template_map:
+                            site["template"] = template_map[sid]
+                        else:
+                            site["template"] = None
+                except Exception as e:
+                    print(f"[OVERVIEW] Template enrichment failed: {e}")
+
             return sites
+
 
         except Exception as exc:
             print(f"[OVERVIEW] Lỗi parse response: {exc}")

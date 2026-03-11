@@ -31,9 +31,7 @@ async def _do_refresh():
     
     try:
         token = await get_master_token_auto()
-        if token:
-            print("[MASTER TOKEN MANAGER] Token check/refresh completed successfully.")
-        else:
+        if not token:
             print("[MASTER TOKEN MANAGER] No active master account or refresh failed.")
     except Exception as e:
         print(f"[MASTER TOKEN MANAGER] ERROR during refresh loop: {e}")

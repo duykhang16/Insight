@@ -20,6 +20,8 @@ from app.features.capture.routes import router as capture_router
 from app.features.zones.routes import router as zones_router
 from app.features.master.routes import router as master_router
 from app.features.super.routes import router as super_router
+from app.features.templates.routes import router as templates_router
+
 
 
 @asynccontextmanager
@@ -97,7 +99,9 @@ app.include_router(config_router)                                            # /
 app.include_router(capture_router)                                           # /api/v1/capture* (hidden)
 app.include_router(zones_router, prefix="/api/v1", tags=["zones"])          # /api/v1/zones
 app.include_router(master_router, prefix="/api/v1", tags=["master"])        # /api/v1/master
-app.include_router(super_router, prefix="/api/v1/super", tags=["super"])   # /api/v1/super
+app.include_router(super_router, prefix="/api/v1/super", tags=["super"])
+app.include_router(templates_router, prefix="/api/v1", tags=["templates"])
+   # /api/v1/super
 
 
 @app.get("/health", tags=["System"])

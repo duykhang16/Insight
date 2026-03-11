@@ -26,6 +26,10 @@ const ZoneSites = () => {
   const [editNameValue, setEditNameValue] = useState('');
   const [savingName, setSavingName] = useState(false);
 
+  // Template state
+  const [templates, setTemplates] = useState([]);
+  const [templateFilter, setTemplateFilter] = useState('all');
+
   const fetchZone = useCallback(async () => {
     setLoadingZone(true);
     try {
@@ -42,6 +46,9 @@ const ZoneSites = () => {
   useEffect(() => {
     fetchZone();
     if (sites.length === 0) fetchSites();
+    
+    // Load templates for filtering
+    apiClient.get('/templates').then(res => setTemplates(res.data || [])).catch(() => {});
   }, [fetchZone]);
 
   const handleRefresh = () => {
@@ -73,7 +80,20 @@ const ZoneSites = () => {
   const zoneSites = sites.filter(s => {
     const id = String(s.siteId || s.id || s._id);
     if (!zoneSiteIds.has(id)) return false;
+    
+    // Status Filter
     if (statusFilter !== 'all' && s.status !== statusFilter) return false;
+    
+    // Template Filter
+    if (templateFilter !== 'all') {
+        const siteTplId = s.template?.id;
+        if (templateFilter === 'other') {
+            if (siteTplId) return false;
+        } else {
+            if (siteTplId !== templateFilter) return false;
+        }
+    }
+
     if (!siteSearch) return true;
     const name = String(s.siteName || s.name || id);
     return name.toLowerCase().includes(siteSearch.toLowerCase());
@@ -89,6 +109,7 @@ const ZoneSites = () => {
     }
     return 0;
   });
+
 
   // Fetch individual site metrics dynamically
   useEffect(() => {
@@ -225,6 +246,17 @@ const ZoneSites = () => {
               <option value="down" className="bg-slate-800">{t('zones.sites.filter_status_offline')}</option>
             </select>
           </div>
+          <div className="flex items-center gap-2 bg-[#0F172A] border border-slate-700 rounded-lg px-3 py-2">
+            <LayoutGrid className="w-4 h-4 text-emerald-500" />
+            <select value={templateFilter} onChange={(e) => setTemplateFilter(e.target.value)} className="bg-transparent text-sm text-slate-200 focus:outline-none appearance-none pr-4 cursor-pointer">
+              <option value="all" className="bg-slate-800">All Templates</option>
+              {templates.map(t => (
+                  <option key={t.id} value={t.id} className="bg-slate-800">{t.name}</option>
+              ))}
+              <option value="other" className="bg-slate-800">No Template (Other)</option>
+            </select>
+          </div>
+
           <div className="flex items-center gap-2 bg-[#0F172A] border border-slate-700 rounded-lg px-2 py-1">
             <select value={sortConfig.key} onChange={(e) => setSortConfig({ ...sortConfig, key: e.target.value })} className="bg-transparent text-sm text-slate-200 focus:outline-none appearance-none pl-2 pr-4 py-1 cursor-pointer">
               <option value="name" className="bg-slate-800">{t('zones.sites.sort_by_name')}</option>
@@ -266,12 +298,25 @@ const ZoneSites = () => {
                 onMouseLeave={() => { if (prefetchTimerRef.current) clearTimeout(prefetchTimerRef.current); }}
                 className={`bg-[#2D333B] rounded-xl p-4 cursor-pointer hover:bg-slate-700 hover:shadow-lg transition-all border-l-4 ${isUp ? 'border-emerald-500' : 'border-rose-500'} flex flex-col justify-between min-h-[160px] group`}
               >
-                <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-lg font-bold text-white truncate pr-2">{site.siteName || site.name || id}</h3>
-                  <div className="p-1.5 bg-slate-800/50 rounded-md">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex flex-col truncate pr-2">
+                    <h3 className="text-lg font-bold text-white truncate">{site.siteName || site.name || id}</h3>
+                    {site.template ? (
+                      <span 
+                        className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border w-fit mt-0.5"
+                        style={{ borderColor: `${site.template.color}40`, backgroundColor: `${site.template.color}10`, color: site.template.color }}
+                      >
+                        {site.template.name}
+                      </span>
+                    ) : (
+                      <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 mt-1 opacity-50">GENERAL</span>
+                    )}
+                  </div>
+                  <div className="p-1.5 bg-slate-800/50 rounded-md shrink-0">
                     {isUp ? <Wifi size={14} className="text-emerald-400" /> : <WifiOff size={14} className="text-rose-400" />}
                   </div>
                 </div>
+
                 <div className="grid grid-cols-2 gap-4 mb-4 flex-1">
                   <div>
                     <p className="text-xs text-slate-400 mb-1">{t('zones.sites.card_health_label')}</p>
@@ -341,9 +386,22 @@ const ZoneSites = () => {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className={`w-2 h-2 rounded-full ${isUp ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-rose-500'}`} />
-                        <span className="font-bold text-white text-base">{site.siteName || site.name || id}</span>
+                        <div className="flex flex-col">
+                            <span className="font-bold text-white text-base leading-tight">{site.siteName || site.name || id}</span>
+                            {site.template ? (
+                                <span 
+                                    className="px-1 py-0.5 rounded text-[7px] font-black uppercase tracking-widest border w-fit mt-1"
+                                    style={{ borderColor: `${site.template.color}40`, backgroundColor: `${site.template.color}10`, color: site.template.color }}
+                                >
+                                    {site.template.name}
+                                </span>
+                            ) : (
+                                <span className="text-[7px] font-black uppercase tracking-widest text-slate-500 mt-1 opacity-50">GENERAL</span>
+                            )}
+                        </div>
                       </div>
                     </td>
+
                     <td className="px-6 py-4 text-center">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${isUp ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>{isUp ? 'Online' : 'Offline'}</span>
                     </td>

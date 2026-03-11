@@ -212,7 +212,6 @@ async def refresh_token_locked() -> bool:
         elif failed_at.tzinfo is None:
             failed_at = failed_at.replace(tzinfo=timezone.utc)
         if (datetime.now(timezone.utc) - failed_at).total_seconds() < 120:
-            print("[MASTER SERVICE] Refresh blocked by cool-down.")
             return False
 
     async with _refresh_lock:
@@ -228,7 +227,6 @@ async def refresh_token_locked() -> bool:
             if (exp - datetime.now(timezone.utc)).total_seconds() >= 300:
                 return True
 
-        print("[MASTER SERVICE] Triggering locked silent refresh...")
         ok, _ = await _refresh_token_silent()
         return ok
 
@@ -283,8 +281,7 @@ async def get_master_token_auto() -> Optional[str]:
         
         # If we failed in the last 120 seconds, don't try again (Avoids drowning in 429s)
         if (datetime.now(timezone.utc) - failed_at).total_seconds() < 120:
-            print(f"[MASTER SERVICE] Refresh cooled down. Last failure was {int((datetime.now(timezone.utc)-failed_at).total_seconds())}s ago.")
-            return config.get("access_token") # Return old (maybe expired) token instead of retrying
+            return config.get("access_token")  # Return old token during cool-down
 
     token_cache = config.get("token_cache") or {}
     token = config.get("access_token") # Use top-level field if possible

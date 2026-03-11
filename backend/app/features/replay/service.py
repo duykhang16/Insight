@@ -51,12 +51,6 @@ async def replay_login(username: str, password: str, client_id: Optional[str] = 
                     if not discovered_resource.startswith("http"):
                         discovered_resource = f"https://{discovered_resource}"
                     target_resource = discovered_resource
-                print(f"[REPLAY] Discovery (settings.json) Success.")
-            else:
-                # If settings.json fails, don't fallback to portal scraping (too many requests)
-                # Just use the robust defaults.
-                print(f"[REPLAY] Discovery (settings.json) status {settings_resp.status_code}. Using fallback defaults.")
-
         except Exception as e:
             print(f"[REPLAY WARNING] Discovery failed: {e}. Using defaults.")
 
@@ -112,10 +106,8 @@ async def replay_login(username: str, password: str, client_id: Optional[str] = 
                     if response.status_code == 200:
                         break
                     elif response.status_code == 429:
-                        print(f"[REPLAY ERROR] 429 detected on first attempt. This IP is likely banned.")
+                        print(f"[REPLAY ERROR] 429 rate limit. IP may be temporarily banned.")
                         return {"status": "error", "message": "Aruba SSO rate limit (429). Please wait 2-5 minutes."}
-                    else:
-                        print(f"[REPLAY] Variant failed ({response.status_code})")
                 except Exception as e:
                     print(f"[REPLAY] Variant error: {e}")
 
@@ -147,8 +139,6 @@ async def replay_login(username: str, password: str, client_id: Optional[str] = 
                 challenge = base64.urlsafe_b64encode(sha256_hash).decode().replace('=', '')
                 state = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
 
-                print(f"[REPLAY] Requesting Authorize Code...")
-                print(f"  Params: client_id={target_client_id_authz}, redirect={target_resource}")
                 authz_url = ARUBA_SSO_AUTHORIZE_URL
                 authz_params = {
                     "client_id": target_client_id_authz,
@@ -190,10 +180,7 @@ async def replay_login(username: str, password: str, client_id: Optional[str] = 
                         "location": location
                     }
 
-                print(f"[REPLAY] Authorize Success. Code obtained.")
-
                 # --- STEP 3: Token Exchange (Code Grant) ---
-                print(f"[REPLAY] Exchanging Code for Portal Token...")
                 exchange_url = ARUBA_SSO_TOKEN_URL
                 exchange_data = {
                     "client_id": target_client_id_authz,
@@ -232,7 +219,6 @@ async def replay_login(username: str, password: str, client_id: Optional[str] = 
                     customer_id = None
                     site_id = None
                     try:
-                        print(f"[REPLAY] Discovering Customer Context...")
                         ctx_headers = {
                             "Authorization": f"Bearer {final_token}",
                             "Accept": "application/json",
@@ -240,33 +226,21 @@ async def replay_login(username: str, password: str, client_id: Optional[str] = 
                             "X-Ion-Client-Type": "InstantOn",
                             "X-Ion-Client-Platform": "web"
                         }
-                        # 1. Get Customer ID
                         me_url = f"{target_resource}/api/v1/customers/me"
                         me_resp = await client.get(me_url, headers=ctx_headers, timeout=10.0)
-                        print(f"[REPLAY] Context Me: {me_resp.status_code}")
                         if me_resp.status_code == 200:
-                            me_data = me_resp.json()
-                            customer_id = me_data.get("customerId")
-                            print(f"[REPLAY] Customer ID: {customer_id}")
-                        else:
-                            print(f"[REPLAY] Me Failed: {me_resp.text[:200]}")
+                            customer_id = me_resp.json().get("customerId")
 
-                        # 2. Get Site ID
                         sites_url = f"{target_resource}/api/v1/sites"
                         sites_resp = await client.get(sites_url, headers=ctx_headers, timeout=10.0)
-                        print(f"[REPLAY] Context Sites: {sites_resp.status_code}")
                         if sites_resp.status_code == 200:
                             sites_data = sites_resp.json()
                             if isinstance(sites_data, dict) and sites_data.get("elements"):
                                 site_id = sites_data["elements"][0].get("siteId")
-                                print(f"[REPLAY] Site ID (Primary): {site_id}")
                             elif isinstance(sites_data, list) and len(sites_data) > 0:
                                 site_id = sites_data[0].get("siteId") or sites_data[0].get("id")
-                                print(f"[REPLAY] Site ID (Primary List): {site_id}")
-                        else:
-                            print(f"[REPLAY] Sites Failed: {sites_resp.text[:200]}")
                     except Exception as e:
-                        print(f"[REPLAY WARNING] Context Discovery failed: {e}")
+                        print(f"[REPLAY WARNING] Context discovery failed: {e}")
 
                     return {
                         "status": "success",

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Copy, Wifi, Layers, Users, Trash2 } from 'lucide-react';
+import { Copy, Wifi, Layers, Users, Trash2, Layout } from 'lucide-react';
 import FullClone from './FullClone';
 import SmartSync from './SmartSync';
+import Templates from './Templates';
 import BatchProvision from './BatchProvision';
+
 import BatchAccountAccess from './BatchAccountAccess';
 import BatchDelete from './BatchDelete';
 import ErrorBoundary from '../../components/ErrorBoundary';
@@ -92,8 +94,9 @@ const Configuration = ({ rolePermissions: propRolePermissions }) => {
     const canSeeBatchProvision = rolePermissions.batch_provision === true;
     const canSeeBatchAccess = rolePermissions.batch_access === true;
     const canSeeBatchDelete = rolePermissions.batch_delete === true;
+    const canSeeTemplates = true; // Always allow for now if user has config access
 
-    const canSeeAnyTab = canSeeCloneSync || canSeeBatchProvision || canSeeBatchAccess || canSeeBatchDelete;
+    const canSeeAnyTab = canSeeCloneSync || canSeeBatchProvision || canSeeBatchAccess || canSeeBatchDelete || canSeeTemplates;
 
     // Determine initial tab from URL param or first available
     const getInitialTab = () => {
@@ -102,11 +105,13 @@ const Configuration = ({ rolePermissions: propRolePermissions }) => {
         if (urlTab === 'batch_provision' && canSeeBatchProvision) return 'batch_provision';
         if (urlTab === 'batch_access' && canSeeBatchAccess) return 'batch_access';
         if (urlTab === 'batch_delete' && canSeeBatchDelete) return 'batch_delete';
+        if (urlTab === 'templates' && canSeeTemplates) return 'templates';
         // fallback to first available
         if (canSeeCloneSync) return 'clone';
         if (canSeeBatchProvision) return 'batch_provision';
         if (canSeeBatchAccess) return 'batch_access';
         if (canSeeBatchDelete) return 'batch_delete';
+        if (canSeeTemplates) return 'templates';
         return 'clone';
     };
 
@@ -121,6 +126,7 @@ const Configuration = ({ rolePermissions: propRolePermissions }) => {
                 batch_provision: canSeeBatchProvision,
                 batch_access: canSeeBatchAccess,
                 batch_delete: canSeeBatchDelete,
+                templates: canSeeTemplates,
             };
             if (map[urlTab]) setActiveTab(urlTab);
         }
@@ -146,6 +152,7 @@ const Configuration = ({ rolePermissions: propRolePermissions }) => {
     }
 
     const tabs = [
+        canSeeTemplates && { key: 'templates', label: t('config.tabs.templates') || 'Template Library', icon: <Layout size={16} />, color: 'emerald' },
         canSeeCloneSync && { key: 'clone', label: t('config.tabs.clone_sync'), icon: <Copy size={16} />, color: 'blue' },
         canSeeBatchProvision && { key: 'batch_provision', label: t('config.tabs.batch_provision'), icon: <Layers size={16} />, color: 'violet' },
         canSeeBatchAccess && { key: 'batch_access', label: t('config.tabs.batch_access'), icon: <Users size={16} />, color: 'amber' },
@@ -153,11 +160,13 @@ const Configuration = ({ rolePermissions: propRolePermissions }) => {
     ].filter(Boolean);
 
     const colorMap = {
+        emerald: 'border-emerald-500 text-emerald-600 dark:text-emerald-400',
         blue: 'border-blue-500 text-blue-600 dark:text-blue-400',
         violet: 'border-violet-500 text-violet-600 dark:text-violet-400',
         amber: 'border-amber-500 text-amber-600 dark:text-amber-400',
         rose: 'border-rose-500 text-rose-600 dark:text-rose-400',
     };
+
 
     const helpSteps = HELP_STEPS[activeTab]?.[language] || HELP_STEPS[activeTab]?.en || [];
 
@@ -238,6 +247,8 @@ const Configuration = ({ rolePermissions: propRolePermissions }) => {
                     {activeTab === 'batch_provision' && canSeeBatchProvision && <BatchProvision />}
                     {activeTab === 'batch_access' && canSeeBatchAccess && <BatchAccountAccess />}
                     {activeTab === 'batch_delete' && canSeeBatchDelete && <BatchDelete />}
+                    {activeTab === 'templates' && canSeeTemplates && <Templates />}
+
                 </ErrorBoundary>
             </div>
         </div>
