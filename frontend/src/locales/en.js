@@ -85,6 +85,8 @@ export const en = {
         deploying: "Processing...",
         completed: "Migration Completed",
         payload_inspector: "Payload Inspector",
+        source_live: "Live Site",
+        source_template: "Template Library",
         steps: {
             source: "Source",
             review: "Review",
@@ -97,10 +99,11 @@ export const en = {
         tabs: {
             full_clone: "Site Clone",
             smart_sync: "Smart Sync",
-            batch_provision: "Batch Setup", // Dễ hiểu hơn Provision
+            batch_provision: "Batch Setup",
             batch_access: "User Access",
             batch_delete: "Batch Delete",
             clone_sync: "Clone & Sync",
+            templates: "Template Library",
         },
         help: {
             clone_sync: "Copy configuration from a template site to new sites",

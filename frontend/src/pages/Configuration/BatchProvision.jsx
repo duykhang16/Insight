@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import apiClient from '../../api/apiClient';
 import { useLanguage } from '../../context/LanguageContext';
+import { toast } from 'sonner';
 import {
     Layers, Play, Square, AlertTriangle, CheckCircle,
-    XCircle, ChevronRight, Globe, Clock, Hash, Tag, Map, RefreshCw, CheckSquare, Square as SquareIcon
+    XCircle, ChevronRight, Globe, Clock, Hash, Tag, Map, RefreshCw, CheckSquare, Square as SquareIcon, Rocket
 } from 'lucide-react';
 
 const TIMEZONES = [
@@ -59,7 +60,10 @@ const BatchProvision = () => {
 
     const [isRunning, setIsRunning] = useState(false);
     const [logs, setLogs] = useState([]);
+    const [progress, setProgress] = useState(0);
+    const [confirmShown, setConfirmShown] = useState(false);
     const mountedRef = useRef(true);
+    const progressRef = useRef(null);
 
     const scanZones = async () => {
         setIsLoadingZones(true);
@@ -120,6 +124,13 @@ const BatchProvision = () => {
     const handleStart = async () => {
         setIsRunning(true);
         setLogs([]);
+        setProgress(0);
+        setConfirmShown(false);
+
+        // Simulated progress animation
+        progressRef.current = setInterval(() => {
+            setProgress(p => p < 80 ? p + 3 : p);
+        }, 150);
 
         const finalZones = Array.from(selectedZones);
         const initialLogs = [
@@ -145,8 +156,12 @@ const BatchProvision = () => {
             const res = await apiClient.post('/cloner/batch-site-provision', payload);
             if (!mountedRef.current) return;
 
+            clearInterval(progressRef.current);
+            setProgress(100);
+
             if (res.data?.status === 'success') {
                 const results = res.data.results || [];
+                const successCount = results.filter(r => r.status === 'SUCCESS').length;
                 const formattedLogs = results.map((r, idx) => ({
                     id: `res-${idx}`,
                     status: r.status === 'SUCCESS' ? 'ok' : 'error',
@@ -157,12 +172,21 @@ const BatchProvision = () => {
                     { id: 'done', status: 'ok', msg: `Batch provision completed. Processed ${results.length} sites.` },
                     ...formattedLogs
                 ]);
+                toast.success(`${successCount} sites provisioned successfully!`, {
+                    description: `Batch provision hoàn tất. Đã tạo ${successCount}/${results.length} sites.`,
+                    duration: 6000,
+                });
             } else {
                 setLogs([{ id: 'err', status: 'error', msg: `API returned unexpected status: ${res.data?.status}` }]);
+                toast.error('Batch provision gặp lỗi bất ngờ.');
             }
         } catch (err) {
             if (!mountedRef.current) return;
-            setLogs([{ id: 'err-catch', status: 'error', msg: `Critical Error: ${err.response?.data?.detail || err.message}` }]);
+            clearInterval(progressRef.current);
+            setProgress(0);
+            const errMsg = err.response?.data?.detail || err.message;
+            setLogs([{ id: 'err-catch', status: 'error', msg: `Critical Error: ${errMsg}` }]);
+            toast.error(`Batch provision thất bại: ${errMsg}`);
         } finally {
             if (mountedRef.current) {
                 setIsRunning(false);
@@ -320,8 +344,61 @@ const BatchProvision = () => {
                             <Play size={14} className="text-violet-500" /> {t('batch_provision.execution_log')}
                         </h3>
 
-                        {/* Preview Summary */}
-                        {prefix && selectedSourceId && !isRunning && (
+                        {/* Progress Bar */}
+                        {(isRunning || progress > 0) && (
+                            <div className="space-y-2 py-1">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                        {isRunning ? 'Provisioning...' : 'Completed'}
+                                    </span>
+                                    <span className="text-sm font-mono font-black text-violet-500">{progress}%</span>
+                                </div>
+                                <div className="w-full h-3 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-violet-500 to-indigo-400 transition-all duration-300 shadow-[0_0_10px_rgba(139,92,246,0.5)]"
+                                        style={{ width: `${progress}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Inline Confirm Panel */}
+                        {!isRunning && logs.length === 0 && prefix && selectedSourceId && !confirmShown && (
+                            <div className="p-4 rounded-2xl border-l-4 border-violet-500 bg-violet-50/50 dark:bg-violet-500/5 border border-violet-200 dark:border-violet-500/20 flex flex-col gap-4 animate-fade-in">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-violet-500/10 rounded-xl flex items-center justify-center text-violet-500">
+                                        <Rocket size={20} />
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-violet-500">XÁC NHẪN THỰC THI</p>
+                                        <p className="text-sm font-bold text-slate-800 dark:text-white">Ready to Provision</p>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 gap-2 text-xs">
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-400 font-bold uppercase tracking-wider">Template</span>
+                                        <span className="font-bold text-slate-700 dark:text-white">{selectedSite?.siteName || '—'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-400 font-bold uppercase tracking-wider">Prefix</span>
+                                        <span className="font-bold text-violet-600 dark:text-violet-400">{prefix}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-400 font-bold uppercase tracking-wider">Sites to create</span>
+                                        <span className="font-bold text-slate-700 dark:text-white">{cloneCount}</span>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setConfirmShown(true)}
+                                    className="w-full h-10 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-black uppercase tracking-widest text-[10px] rounded-xl flex items-center justify-center gap-2 hover:scale-[1.02] transition-all shadow-lg shadow-violet-500/20"
+                                >
+                                    <Rocket size={14} /> Xác nhận & Khởi chạy
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Preview Summary (khi đã confirm) */}
+                        {prefix && selectedSourceId && !isRunning && logs.length === 0 && confirmShown && (
                             <div className="p-3 bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-500/30 rounded-xl mb-2 animate-fade-in">
                                 <h4 className="text-xs font-bold text-violet-800 dark:text-violet-300">{t('batch_provision.preview_summary')}</h4>
                                 <p className="text-[10px] text-violet-600 dark:text-violet-400 mt-1 leading-relaxed">
@@ -359,7 +436,7 @@ const BatchProvision = () => {
 
                         <button
                             onClick={handleStart}
-                            disabled={!canStart}
+                            disabled={!canStart || (prefix && selectedSourceId && !confirmShown && logs.length === 0)}
                             className="w-full h-12 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-black uppercase tracking-[0.2em] text-[10px] rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             {isRunning ? (

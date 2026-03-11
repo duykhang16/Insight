@@ -85,6 +85,8 @@ export const vi = {
         deploying: "Đang triển khai...",
         completed: "SAO CHÉP HOÀN TẤT THÀNH CÔNG",
         payload_inspector: "Xem chi tiết Payload",
+        source_live: "Site Trực tiếp",
+        source_template: "Thư viện Template",
         steps: {
             source: "Nguồn",
             review: "Xem lại",
@@ -101,6 +103,7 @@ export const vi = {
             batch_access: "Quản lý Tài khoản Hàng loạt",
             batch_delete: "Xóa Hàng loạt",
             clone_sync: "Clone & Sync",
+            templates: "Thư viện Template",
         },
         help: {
             clone_sync: "Sao chép cấu hình từ site mẫu sang các site mới",

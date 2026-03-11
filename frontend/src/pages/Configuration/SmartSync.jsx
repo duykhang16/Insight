@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import apiClient from '../../api/apiClient';
 import styles from './Cloner.module.css';
 import { useLanguage } from '../../context/LanguageContext';
+import { toast } from 'sonner';
 import {
-    Activity, Shield, Rocket, Server, Sliders, CheckCircle, Wifi, Search, XCircle, Lock, Network, RotateCcw, Layers, Database, ChevronRight, AlertCircle
+    Activity, Shield, Rocket, Server, Sliders, CheckCircle, Wifi, Search, XCircle, Lock, Network, RotateCcw, Layers, Database, ChevronRight, AlertCircle, ArrowLeft
 } from 'lucide-react';
 
 const SmartSync = () => {
@@ -33,6 +34,7 @@ const SmartSync = () => {
     const [isLoadingSourceSSIDs, setIsLoadingSourceSSIDs] = useState(false);
 
     // Step 3: Execution
+    const [confirmReady, setConfirmReady] = useState(false);
     const [executionLoading, setExecutionLoading] = useState(false);
     const [executionResult, setExecutionResult] = useState(null);
     const [executionLogs, setExecutionLogs] = useState([]);
@@ -124,7 +126,10 @@ const SmartSync = () => {
 
     // --- 3. Logic xử lý API ---
     const handleAnalyzeSites = async () => {
-        if (selectedTargetIds.size === 0) return alert("Vui lòng chọn ít nhất 1 Site.");
+        if (selectedTargetIds.size === 0) {
+            toast.error('Vui lòng chọn ít nhất 1 Site.');
+            return;
+        }
 
         setIsAnalyzing(true);
         setCompiledSSIDs([]);
@@ -181,7 +186,7 @@ const SmartSync = () => {
             setCurrentStep(2);
         } catch (e) {
             console.error("Error analyzing sites", e);
-            alert("Đã xảy ra lỗi khi phân tích các Sites");
+            toast.error('Đã xảy ra lỗi khi phân tích các Sites.');
         } finally {
             setIsAnalyzing(false);
         }
@@ -194,34 +199,32 @@ const SmartSync = () => {
         
         if (unauthorizedTargets.length > 0) {
             const names = unauthorizedTargets.map(s => s.siteName).join(', ');
-            return alert(`Unauthorized: Bạn không có quyền Administrator để ghi dữ liệu vào các site: ${names}`);
+            toast.error(`Không có quyền Administrator trên: ${names}`);
+            return;
         }
 
         if (selectedAction === 'update_ssid_password') {
-            if (!selectedSSIDName) return alert("Vui lòng chọn một SSID.");
+            if (!selectedSSIDName) { toast.error('Vui lòng chọn một SSID.'); return; }
             const selectedSSID = compiledSSIDs.find(s => s.networkName === selectedSSIDName);
             if (selectedSSID && selectedSSID.isGuestPortalEnabled) {
-                return alert("Không thể đổi mật khẩu cho Guest Portal SSID.");
+                toast.error('Không thể đổi mật khẩu cho Guest Portal SSID.');
+                return;
             }
-            if (!newPassword || newPassword.length < 8) return alert("Mật khẩu phải từ 8 ký tự trở lên.");
+            if (!newPassword || newPassword.length < 8) { toast.error('Mật khẩu phải từ 8 ký tự trở lên.'); return; }
         } else if (selectedAction === 'update_ssid_config') {
-            if (!selectedSSIDName) return alert("Vui lòng chọn một SSID.");
-            if (!selectedSourceSiteId) return alert("Vui lòng chọn Origin Site.");
+            if (!selectedSSIDName) { toast.error('Vui lòng chọn một SSID.'); return; }
+            if (!selectedSourceSiteId) { toast.error('Vui lòng chọn Origin Site.'); return; }
         } else if (selectedAction === 'delete_ssid') {
-            if (!selectedSSIDName) return alert("Vui lòng chọn một SSID.");
+            if (!selectedSSIDName) { toast.error('Vui lòng chọn một SSID.'); return; }
         }
 
+        setConfirmReady(false);
         setCurrentStep(3);
     };
 
     const handleExecuteSync = async () => {
         if (selectedTargetIds.size === 0) return;
-        
-        let confirmMsg = `Xác nhận thực thi tác vụ trên ${selectedTargetIds.size} sites?`;
-        if (selectedAction === 'delete_ssid') {
-            confirmMsg = `⚠️ CẢNH BÁO NGUY HIỂM ⚠️\nBạn có chắc chắn muốn XÓA SSID "${selectedSSIDName}" trên ${selectedTargetIds.size} sites không?\nHành động này không thể hoàn tác!`;
-        }
-        if (!confirm(confirmMsg)) return;
+        setConfirmReady(false);
 
         setExecutionLoading(true);
         setExecutionResult(null);
@@ -316,6 +319,24 @@ const SmartSync = () => {
         setExecutionResult(results);
         setExecutionLoading(false);
 
+        // Toast notification khi hoàn tất
+        if (!stopRef.current) {
+            const successCount = results.filter(r => r.status === 'SUCCESS').length;
+            const skippedCount = results.filter(r => r.status === 'SKIPPED').length;
+            const errorCount = results.filter(r => r.status === 'ERROR').length;
+            if (errorCount === 0) {
+                toast.success(`Sync hoàn tất · ${successCount} ✅ · ${skippedCount} bỏ qua`, {
+                    description: `Tác vụ đã được áp dụng thành công trên ${successCount} sites.`,
+                    duration: 6000,
+                });
+            } else {
+                toast.warning(`Sync xong với lỗi · ${successCount} ✅ · ${errorCount} ❌ · ${skippedCount} bỏ qua`, {
+                    description: 'Kiểm tra execution log để biết chi tiết.',
+                    duration: 8000,
+                });
+            }
+        }
+
         // Auto refresh after 7s to reflect changes
         if (!stopRef.current) {
             setExecutionLogs(prev => [{ 
@@ -342,6 +363,19 @@ const SmartSync = () => {
         }
         setNewPassword(retVal);
     };
+
+    // Computed: target sites filtered by current search + zone (used for list render & Select All)
+    const filteredTargetSites = liveSites.filter(site => {
+        const matchesSearch = site.siteName.toLowerCase().includes(searchTargetTerm.toLowerCase());
+        let matchesZone = true;
+        if (selectedZone !== 'all') {
+            const zoneObj = zones.find(z => String(z.id || z._id) === selectedZone);
+            matchesZone = zoneObj ? (zoneObj.site_ids || []).includes(site.siteId) : false;
+        }
+        return matchesSearch && matchesZone;
+    });
+    const validFilteredSiteIds = filteredTargetSites.filter(s => getRoleBadgeInfo(s.role).canClone).map(s => s.siteId);
+    const allFilteredValid = validFilteredSiteIds.length > 0 && validFilteredSiteIds.every(id => selectedTargetIds.has(id));
 
     // --- 4. Giao diện ---
     return (
@@ -461,15 +495,7 @@ const SmartSync = () => {
                                         </div>
 
                                         <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar border border-slate-200 dark:border-white/5 rounded-2xl p-4 bg-slate-50/50 dark:bg-black/20">
-                                            {liveSites.filter(site => {
-                                                const matchesSearch = site.siteName.toLowerCase().includes(searchTargetTerm.toLowerCase());
-                                                let matchesZone = true;
-                                                if (selectedZone !== 'all') {
-                                                    const zoneObj = zones.find(z => String(z.id || z._id) === selectedZone);
-                                                    matchesZone = zoneObj ? (zoneObj.site_ids || []).includes(site.siteId) : false;
-                                                }
-                                                return matchesSearch && matchesZone;
-                                            }).map((site) => {
+                                            {filteredTargetSites.map((site) => {
                                                 const roleInfo = getRoleBadgeInfo(site.role);
                                                 const isSelected = selectedTargetIds.has(site.siteId);
                                                 const canSelect = roleInfo.canClone;
@@ -512,12 +538,19 @@ const SmartSync = () => {
                                         <div className="mt-6 flex gap-4">
                                             <button
                                                 onClick={() => {
-                                                    const validSites = liveSites.filter(s => getRoleBadgeInfo(s.role).canClone).map(s => s.siteId);
-                                                    setSelectedTargetIds(selectedTargetIds.size === validSites.length ? new Set() : new Set(validSites));
+                                                    if (allFilteredValid) {
+                                                        // Deselect only the filtered valid sites
+                                                        const newSet = new Set(selectedTargetIds);
+                                                        validFilteredSiteIds.forEach(id => newSet.delete(id));
+                                                        setSelectedTargetIds(newSet);
+                                                    } else {
+                                                        // Add filtered valid sites (merge)
+                                                        setSelectedTargetIds(prev => new Set([...prev, ...validFilteredSiteIds]));
+                                                    }
                                                 }}
                                                 className="px-6 h-12 rounded-2xl font-bold text-xs bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 transition-colors"
                                             >
-                                                {selectedTargetIds.size > 0 ? "Deselect All" : "Select All Valid"}
+                                                {allFilteredValid ? "Deselect Filtered" : "Select All Valid"}
                                             </button>
                                             <button
                                                 onClick={handleAnalyzeSites}
@@ -704,59 +737,124 @@ const SmartSync = () => {
                     {currentStep === 3 && (
                         <section className="animate-fade-in flex flex-col gap-10 pb-20">
                             <div className="backdrop-blur-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-3xl p-10 shadow-xl flex flex-col items-center gap-10">
-                                <div className="flex flex-col items-center gap-4">
-                                    <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500">
-                                        <Activity size={32} className={executionLoading ? "animate-spin" : ""} />
-                                    </div>
-                                    <div className="text-center">
-                                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Sync Execution Progress</h3>
-                                        <p className="text-sm text-slate-500">Processing changes across your site inventory.</p>
-                                    </div>
-                                </div>
 
-                                <div className="w-full max-w-2xl space-y-4">
-                                    <div className="flex justify-between items-end mb-1">
-                                        <span className="text-xs font-black uppercase text-slate-400">Transmission Progress</span>
-                                        <span className="text-lg font-mono font-black text-emerald-500">{progress}%</span>
-                                    </div>
-                                    <div className="w-full h-4 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden border border-slate-200 dark:border-white/5">
-                                        <div 
-                                            className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]"
-                                            style={{ width: `${progress}%` }}
-                                        ></div>
-                                    </div>
-                                </div>
-
-                                <div className="flex gap-4">
-                                    {(!executionLoading && executionResult) ? (
-                                        <button 
-                                            onClick={() => window.location.reload()}
-                                            className="px-10 h-14 bg-gradient-to-r from-slate-700 to-slate-900 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl flex items-center gap-2"
-                                        >
-                                            Done / Reload <RotateCcw size={18} />
-                                        </button>
-                                    ) : (
-                                        <>
-                                            <button 
-                                                onClick={handleExecuteSync}
-                                                disabled={executionLoading}
-                                                className="px-12 h-14 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl hover:scale-[1.05] transition-all disabled:opacity-30 flex items-center gap-3"
-                                            >
-                                                {executionLoading ? <Activity size={20} className="animate-spin" /> : <Rocket size={20} />}
-                                                Start Deployment
-                                            </button>
-                                            {executionLoading && (
-                                                <button 
-                                                    onClick={handleStop}
-                                                    disabled={isStopping}
-                                                    className="px-8 h-14 bg-rose-500/10 border border-rose-500/20 text-rose-500 font-black uppercase tracking-widest rounded-2xl hover:bg-rose-500 hover:text-white transition-all disabled:opacity-30"
-                                                >
-                                                    {isStopping ? "Stopping..." : "Emergency Stop"}
-                                                </button>
+                                {/* ── Inline Confirm Card (trước khi bấm Start) ── */}
+                                {!executionLoading && !executionResult && !confirmReady && (
+                                    <div className="w-full max-w-2xl animate-fade-in">
+                                        <div className="rounded-2xl border-l-4 border-emerald-500 bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 p-8 flex flex-col gap-6 shadow-lg">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-500">
+                                                    <Rocket size={24} />
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-0.5">STEP 3 · DEPLOYMENT REVIEW</p>
+                                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Sync Execution Summary</h3>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-1 gap-3">
+                                                {[
+                                                    { label: 'Action', value: selectedAction === 'update_ssid_password' ? 'Update Wireless PSK' : selectedAction === 'update_ssid_config' ? 'Clone Deep Config' : 'Bulk Delete SSID' },
+                                                    { label: 'Target SSID', value: selectedSSIDName || '—' },
+                                                    { label: 'Sites affected', value: `${selectedTargetIds.size} sites` },
+                                                ].map(row => (
+                                                    <div key={row.label} className="flex items-center justify-between py-2 border-b border-slate-100 dark:border-white/5 last:border-0">
+                                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{row.label}</span>
+                                                        <span className={`text-sm font-bold ${row.label === 'Target SSID' ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20' : 'text-slate-800 dark:text-white'}`}>{row.value}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {selectedAction === 'delete_ssid' && (
+                                                <div className="flex items-start gap-3 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20">
+                                                    <AlertCircle size={18} className="text-rose-500 shrink-0 mt-0.5" />
+                                                    <p className="text-[11px] text-rose-600 dark:text-rose-400 leading-relaxed font-medium">⚠️ CẢNH BÁO: Xóa SSID sẽ gỡ bỏ hoàn toàn mạng này và ngắt kết nối người dùng ngay lập tức. Hành động không thể hoàn tác.</p>
+                                                </div>
                                             )}
-                                        </>
-                                    )}
-                                </div>
+                                            {selectedAction !== 'delete_ssid' && (
+                                                <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                                                    <AlertCircle size={16} className="text-amber-500 shrink-0 mt-0.5" />
+                                                    <p className="text-[11px] text-amber-600 dark:text-amber-400 leading-relaxed">Sites không có SSID này sẽ tự động bỏ qua (SKIPPED).</p>
+                                                </div>
+                                            )}
+                                            <div className="flex gap-4 pt-2">
+                                                <button
+                                                    onClick={() => setCurrentStep(2)}
+                                                    className="flex items-center gap-2 px-6 h-12 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 font-bold text-sm hover:bg-slate-100 dark:hover:bg-white/5 transition-all"
+                                                >
+                                                    <ArrowLeft size={16} /> Quay lại
+                                                </button>
+                                                <button
+                                                    onClick={() => setConfirmReady(true)}
+                                                    className={`flex-1 h-12 rounded-2xl font-black uppercase tracking-widest text-sm text-white transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 shadow-lg ${
+                                                        selectedAction === 'delete_ssid'
+                                                            ? 'bg-gradient-to-r from-rose-600 to-red-600 shadow-rose-500/20'
+                                                            : 'bg-gradient-to-r from-emerald-600 to-teal-600 shadow-emerald-500/20'
+                                                    }`}
+                                                >
+                                                    <Rocket size={16} /> Xác nhận thực thi
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ── Progress UI (sau khi confirm) ── */}
+                                {(confirmReady || executionLoading || executionResult) && (
+                                    <>
+                                        <div className="flex flex-col items-center gap-4">
+                                            <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500">
+                                                <Activity size={32} className={executionLoading ? "animate-spin" : ""} />
+                                            </div>
+                                            <div className="text-center">
+                                                <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Sync Execution Progress</h3>
+                                                <p className="text-sm text-slate-500">Processing changes across your site inventory.</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="w-full max-w-2xl space-y-4">
+                                            <div className="flex justify-between items-end mb-1">
+                                                <span className="text-xs font-black uppercase text-slate-400">Transmission Progress</span>
+                                                <span className="text-lg font-mono font-black text-emerald-500">{progress}%</span>
+                                            </div>
+                                            <div className="w-full h-4 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden border border-slate-200 dark:border-white/5">
+                                                <div 
+                                                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]"
+                                                    style={{ width: `${progress}%` }}
+                                                ></div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-4">
+                                            {(!executionLoading && executionResult) ? (
+                                                <button 
+                                                    onClick={() => window.location.reload()}
+                                                    className="px-10 h-14 bg-gradient-to-r from-slate-700 to-slate-900 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl flex items-center gap-2"
+                                                >
+                                                    Done / Reload <RotateCcw size={18} />
+                                                </button>
+                                            ) : (
+                                                <>
+                                                    <button 
+                                                        onClick={handleExecuteSync}
+                                                        disabled={executionLoading}
+                                                        className="px-12 h-14 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl hover:scale-[1.05] transition-all disabled:opacity-30 flex items-center gap-3"
+                                                    >
+                                                        {executionLoading ? <Activity size={20} className="animate-spin" /> : <Rocket size={20} />}
+                                                        Start Deployment
+                                                    </button>
+                                                    {executionLoading && (
+                                                        <button 
+                                                            onClick={handleStop}
+                                                            disabled={isStopping}
+                                                            className="px-8 h-14 bg-rose-500/10 border border-rose-500/20 text-rose-500 font-black uppercase tracking-widest rounded-2xl hover:bg-rose-500 hover:text-white transition-all disabled:opacity-30"
+                                                        >
+                                                            {isStopping ? "Stopping..." : "Emergency Stop"}
+                                                        </button>
+                                                    )}
+                                                </>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
                             </div>
 
                             {/* Execution Terminal */}

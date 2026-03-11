@@ -23,7 +23,9 @@ import SuperLogs from './pages/Super/SuperLogs';
 import SuperUserManagement from './pages/Super/SuperUserManagement';
 import SuperPermissions from './pages/Super/SuperPermissions';
 import { SiteProvider } from './context/SiteContext';
+import { ZoneProvider } from './context/ZoneContext';
 import { SettingsProvider } from './context/SettingsContext';
+import { Toaster } from 'sonner';
 import './App.css';
 
 // Guard for admin-only routes (super_admin or tenant_admin).
@@ -52,6 +54,7 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [isReady, setIsReady] = useState(false);
+  const [prefetchedData, setPrefetchedData] = useState(null);
   // userRole lives in React state so Sidebar and AdminRoute re-render reactively.
   // Initialized from sessionStorage so the very first render already has the correct
   // role — prevents the Admin tab from flashing hidden before verifySession completes.
@@ -147,19 +150,25 @@ function App() {
     };
   }, [isLoggedIn]);
 
-  const handleLoginSuccess = () => {
+  const handleLoginSuccess = (prefetchData) => {
+    // Guard: ignore if already logged in (Login's useEffect may re-trigger this)
+    if (isLoggedIn) return;
+
     // Login component already wrote userRole + isZoneAdmin to sessionStorage before calling this.
-    // Read synchronously so React state is set in the same tick as isLoggedIn.
     const role = sessionStorage.getItem('userRole') || 'viewer';
     const zoneAdmin = sessionStorage.getItem('isZoneAdmin') === 'true';
     let perms = {};
     try { perms = JSON.parse(sessionStorage.getItem('rolePermissions')) || {}; } catch (e) { }
-    setTimeout(() => {
-      setUserRole(role);
-      setIsZoneAdmin(zoneAdmin);
-      setRolePermissions(perms);
-      setIsLoggedIn(true);
-    }, 500);
+    setUserRole(role);
+    setIsZoneAdmin(zoneAdmin);
+    setRolePermissions(perms);
+
+    // Store prefetched data if available (comes from splash screen completion)
+    if (prefetchData) {
+      setPrefetchedData(prefetchData);
+    }
+
+    setIsLoggedIn(true);
   };
 
   const handleLogout = async () => {
@@ -186,11 +195,24 @@ function App() {
     return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
+
   return (
+    <>
+    <Toaster
+      position="bottom-right"
+      richColors
+      closeButton
+      theme="dark"
+      toastOptions={{
+        style: { fontFamily: 'inherit' },
+        duration: 5000,
+      }}
+    />
     <Router>
       <SettingsProvider>
-        <SiteProvider>
-          <Routes>
+        <ZoneProvider initialZones={prefetchedData?.zones}>
+          <SiteProvider initialSites={prefetchedData?.sites}>
+            <Routes>
             {/* Global routes — use GlobalLayout */}
             <Route element={<GlobalLayout onLogout={handleLogout} userRole={userRole} isZoneAdmin={isZoneAdmin} rolePermissions={rolePermissions} />}>
               <Route path="/" element={<Navigate to="/zones" replace />} />
@@ -263,10 +285,12 @@ function App() {
               <Route path="applications" element={<SiteApplications />} />
               <Route path="cloner" element={<Configuration />} />
             </Route>
-          </Routes>
-        </SiteProvider>
+            </Routes>
+          </SiteProvider>
+        </ZoneProvider>
       </SettingsProvider>
     </Router>
+    </>
   );
 }
 

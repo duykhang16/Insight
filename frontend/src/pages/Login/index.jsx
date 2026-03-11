@@ -1,7 +1,36 @@
 import React, { useState, useEffect } from 'react';
-import apiClient from '../../api/apiClient'; // still needed for POST /auth/login
+import apiClient from '../../api/apiClient';
 import { ShieldCheck, KeyRound } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import SplashScreen from '../../components/SplashScreen';
+
+// Prefetch zones + sites in parallel — runs immediately after auth
+const prefetchAllData = async () => {
+    try {
+        const [zonesResult, sitesResult] = await Promise.allSettled([
+            // Zones: get list then fetch details for each
+            apiClient.get('/zones/my').then(async (res) => {
+                const zoneList = res.data || [];
+                const details = await Promise.all(
+                    zoneList.map(z => apiClient.get(`/zones/${z.id}`).then(r => r.data).catch(() => null))
+                );
+                return details.filter(Boolean);
+            }),
+            // Sites: simple list fetch
+            apiClient.get('/overview/sites').then(res => {
+                return Array.isArray(res.data) ? res.data : (res.data.sites || []);
+            }),
+        ]);
+
+        return {
+            zones: zonesResult.status === 'fulfilled' ? zonesResult.value : null,
+            sites: sitesResult.status === 'fulfilled' ? sitesResult.value : null,
+        };
+    } catch (err) {
+        console.warn('Prefetch failed:', err);
+        return { zones: null, sites: null };
+    }
+};
 
 const Login = ({ onLoginSuccess }) => {
     const { t } = useLanguage();
@@ -10,6 +39,12 @@ const Login = ({ onLoginSuccess }) => {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [checkingAuth, setCheckingAuth] = useState(true);
+
+    // Splash screen phase — renders SplashScreen INSIDE Login
+    const [splashPhase, setSplashPhase] = useState(false);
+    const [splashPrefetchPromise, setSplashPrefetchPromise] = useState(null);
+    const [splashEmail, setSplashEmail] = useState('');
+    const [splashPrefetchData, setSplashPrefetchData] = useState(null);
 
     // First-login password setup state
     const [setupMode, setSetupMode] = useState(false);
@@ -26,6 +61,14 @@ const Login = ({ onLoginSuccess }) => {
             setCheckingAuth(false);
         }
     }, [onLoginSuccess]);
+
+    // Helper: enter splash phase after auth
+    const enterSplashPhase = (userEmail) => {
+        const prefetchPromise = prefetchAllData();
+        setSplashEmail(userEmail);
+        setSplashPrefetchPromise(prefetchPromise);
+        setSplashPhase(true);
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -52,8 +95,8 @@ const Login = ({ onLoginSuccess }) => {
                 sessionStorage.setItem('rolePermissions', JSON.stringify(data.permissions));
             }
 
-            // Do not setLoading(false) here, let it spin until unmount
-            onLoginSuccess();
+            // Enter splash phase — SplashScreen renders INSIDE Login
+            enterSplashPhase(data.email || email);
         } catch (err) {
             setLoading(false); // Only stop loading on error
             // Always show the backend detail message when available (covers 401, 403, 422+)
@@ -86,12 +129,25 @@ const Login = ({ onLoginSuccess }) => {
             if (data.permissions) {
                 sessionStorage.setItem('rolePermissions', JSON.stringify(data.permissions));
             }
-            onLoginSuccess();
+            enterSplashPhase(data.email || email);
         } catch (err) {
             setLoading(false);
             setError(err.response?.data?.detail || 'Đặt mật khẩu thất bại.');
         }
     };
+
+    // ── Splash Phase: show branded transition after auth ──────────────────────
+    if (splashPhase) {
+        return (
+            <SplashScreen
+                prefetchPromise={splashPrefetchPromise}
+                email={splashEmail}
+                onComplete={(data) => {
+                    onLoginSuccess(data);
+                }}
+            />
+        );
+    }
 
     if (checkingAuth) {
         return (

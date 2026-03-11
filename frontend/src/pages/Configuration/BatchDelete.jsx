@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import apiClient from '../../api/apiClient';
 import { useLanguage } from '../../context/LanguageContext';
+import { toast } from 'sonner';
 import {
     Trash2, Play, Square, AlertTriangle, CheckCircle,
     XCircle, ShieldAlert, List, RefreshCw, KeyRound, AlertOctagon, CheckSquare, Square as SquareIcon, Map, Search
@@ -34,7 +35,9 @@ const BatchDelete = () => {
 
     const [isRunning, setIsRunning] = useState(false);
     const [logs, setLogs] = useState([]);
+    const [progress, setProgress] = useState(0);
     const mountedRef = useRef(true);
+    const progressRef = useRef(null);
 
     const scanZones = async () => {
         setIsLoadingZones(true);
@@ -103,11 +106,15 @@ const BatchDelete = () => {
         setSelectedZones(newSet);
     };
 
-    const handleSelectAllSites = () => {
-        if (selectedSites.length === sites.length && sites.length > 0) {
-            setSelectedSites([]);
+    const handleSelectAllSites = (filteredSites) => {
+        const filteredIds = filteredSites.map(s => s.id);
+        const allFilteredSelected = filteredIds.every(id => selectedSites.includes(id)) && filteredIds.length > 0;
+        if (allFilteredSelected) {
+            // Deselect only the filtered ones (keep others)
+            setSelectedSites(prev => prev.filter(id => !filteredIds.includes(id)));
         } else {
-            setSelectedSites(sites.map(s => s.id));
+            // Add filtered ones (merge, no duplicates)
+            setSelectedSites(prev => Array.from(new Set([...prev, ...filteredIds])));
         }
     };
 
@@ -135,9 +142,28 @@ const BatchDelete = () => {
     const totalSitesSelected = targetZones.reduce((sum, z) => sum + (z.site_count || 0), 0);
     const totalExecutionSites = totalSitesSelected + selectedSites.length;
 
+    // Computed filtered sites for Select All + list render
+    const filteredSites = sites.filter(site => {
+        const matchesSearch = (site.siteName || '').toLowerCase().includes(searchTargetTerm.toLowerCase());
+        let matchesZone = true;
+        if (selectedZoneFilter !== 'all') {
+            const zoneObj = zones.find(z => String(z.id || z._id) === selectedZoneFilter);
+            matchesZone = zoneObj ? (zoneObj.site_ids || []).includes(site.id) : false;
+        }
+        return matchesSearch && matchesZone;
+    });
+    const filteredSiteIds = filteredSites.map(s => s.id);
+    const allFilteredSitesSelected = filteredSiteIds.length > 0 && filteredSiteIds.every(id => selectedSites.includes(id));
+
     const handleStart = async () => {
         setShowModal(false); // Close modal on start
         setIsRunning(true);
+        setProgress(0);
+
+        // Simulated progress
+        progressRef.current = setInterval(() => {
+            setProgress(p => p < 80 ? p + 4 : p);
+        }, 150);
 
         // --- Security Validation Phase ---
         const adminSiteIds = new Set(sites.map(s => s.id));
@@ -182,6 +208,9 @@ const BatchDelete = () => {
 
             if (res.data?.status === 'success') {
                 const results = res.data.results || [];
+                const successCount = results.filter(r => r.status === 'SUCCESS').length;
+                clearInterval(progressRef.current);
+                setProgress(100);
                 const formattedLogs = results.map((r, idx) => ({
                     id: `res-${idx}`,
                     status: r.status === 'SUCCESS' ? 'ok' : 'error',
@@ -192,17 +221,28 @@ const BatchDelete = () => {
                     { id: 'done', status: 'ok', msg: `Batch deletion completed. Processed ${results.length} sites.` },
                     ...formattedLogs
                 ]);
+                toast.error(`💥 ${successCount} sites đã bị xóa`, {
+                    description: 'Hành động này không thể hoàn tác. Kiểm tra log để biết chi tiết.',
+                    duration: 8000,
+                });
             } else {
+                clearInterval(progressRef.current);
+                setProgress(0);
                 setLogs([{ id: 'err', status: 'error', msg: `API returned unexpected status: ${res.data?.status}` }]);
+                toast.error('Batch deletion gặp lỗi.');
             }
         } catch (err) {
             if (!mountedRef.current) return;
-            setLogs([{ id: 'err-catch', status: 'error', msg: `Critical Error: ${err.response?.data?.detail || err.message}` }]);
+            clearInterval(progressRef.current);
+            setProgress(0);
+            const errMsg = err.response?.data?.detail || err.message;
+            setLogs([{ id: 'err-catch', status: 'error', msg: `Critical Error: ${errMsg}` }]);
+            toast.error(`Batch deletion thất bại: ${errMsg}`);
         } finally {
             if (mountedRef.current) {
                 setIsRunning(false);
-                scanZones(); // refresh list
-                scanSites(); // refresh list
+                scanZones();
+                scanSites();
             }
         }
     };
@@ -441,50 +481,43 @@ const BatchDelete = () => {
                                     </div>
                                     <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-3">
                                         <button
-                                            onClick={handleSelectAllSites}
+                                            onClick={() => handleSelectAllSites(filteredSites)}
                                             disabled={isRunning}
                                             className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 transition-colors disabled:opacity-50"
                                         >
-                                            {selectedSites.length === sites.length && sites.length > 0 ? (
+                                            {allFilteredSitesSelected ? (
                                                 <><CheckSquare size={16} className="text-rose-500" /> {t('batch_delete.deselect_all')}</>
                                             ) : (
                                                 <><SquareIcon size={16} className="text-slate-400" /> {t('batch_delete.select_all')}</>
                                             )}
                                         </button>
                                         <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded font-mono text-[10px] font-bold">
-                                            <span className="text-rose-500">{selectedSites.length}</span> / {sites.length}
+                                            <span className="text-rose-500">{filteredSiteIds.filter(id => selectedSites.includes(id)).length}</span> / {filteredSites.length}
+                                            {filteredSites.length < sites.length && <span className="text-slate-400 ml-1">(filtered)</span>}
                                         </span>
                                     </div>
                                     <div className="flex-1 overflow-y-auto max-h-[360px] pr-2 space-y-2 custom-scrollbar">
-                                        {sites.filter(site => {
-                                            const matchesSearch = (site.siteName || '').toLowerCase().includes(searchTargetTerm.toLowerCase());
-                                            let matchesZone = true;
-                                            if (selectedZoneFilter !== 'all') {
-                                                const zoneObj = zones.find(z => String(z.id || z._id) === selectedZoneFilter);
-                                                matchesZone = zoneObj ? (zoneObj.site_ids || []).includes(site.id) : false;
-                                            }
-                                            return matchesSearch && matchesZone;
-                                        }).map(site => (
-                                            <div
-                                                key={site.id}
-                                                onClick={() => !isRunning && toggleSite(site.id)}
-                                                className={`p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-all ${selectedSites.includes(site.id)
-                                                    ? 'bg-rose-50/50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/30'
-                                                    : 'bg-white dark:bg-black/20 border-slate-100 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20'
-                                                    } ${isRunning ? 'opacity-50 pointer-events-none' : ''}`}
-                                            >
-                                                <div className="shrink-0 flex items-center justify-center">
-                                                    {selectedSites.includes(site.id) ? (
-                                                        <CheckSquare size={18} className="text-rose-600 dark:text-rose-400" />
-                                                    ) : (
-                                                        <SquareIcon size={18} className="text-slate-300 dark:text-slate-600" />
-                                                    )}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">{site.siteName}</p>
-                                                    <p className="text-[10px] font-mono text-slate-500 truncate">{site.id}</p>
-                                                </div>
+                                        {filteredSites.map(site => (
+                                        <div
+                                            key={site.id}
+                                            onClick={() => !isRunning && toggleSite(site.id)}
+                                            className={`p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-all ${selectedSites.includes(site.id)
+                                                ? 'bg-rose-50/50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/30'
+                                                : 'bg-white dark:bg-black/20 border-slate-100 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20'
+                                                } ${isRunning ? 'opacity-50 pointer-events-none' : ''}`}
+                                        >
+                                            <div className="shrink-0 flex items-center justify-center">
+                                                {selectedSites.includes(site.id) ? (
+                                                    <CheckSquare size={18} className="text-rose-600 dark:text-rose-400" />
+                                                ) : (
+                                                    <SquareIcon size={18} className="text-slate-300 dark:text-slate-600" />
+                                                )}
                                             </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">{site.siteName}</p>
+                                                <p className="text-[10px] font-mono text-slate-500 truncate">{site.id}</p>
+                                            </div>
+                                        </div>
                                         ))}
                                     </div>
                                 </>
@@ -507,6 +540,23 @@ const BatchDelete = () => {
                             <Play size={14} className="text-rose-500" /> {t('batch_delete.execution_log')}
                         </h3>
 
+                        {/* Progress Bar */}
+                        {(isRunning || progress > 0) && (
+                            <div className="space-y-2 py-1">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                        {isRunning ? 'Deleting...' : 'Completed'}
+                                    </span>
+                                    <span className="text-sm font-mono font-black text-rose-500">{progress}%</span>
+                                </div>
+                                <div className="w-full h-3 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-rose-500 to-red-400 transition-all duration-300 shadow-[0_0_10px_rgba(244,63,94,0.5)]"
+                                        style={{ width: `${progress}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
                         <div className="flex-1 overflow-y-auto max-h-[380px] space-y-1.5 font-mono pr-1 custom-scrollbar">
                             {logs.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-400 dark:text-slate-600 py-12">

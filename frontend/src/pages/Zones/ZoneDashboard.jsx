@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layers, Server, Users, ChevronRight, RefreshCw, LayoutGrid, List, ArrowUpDown } from 'lucide-react';
-import apiClient from '../../api/apiClient';
 import ZoneRoleBadge from '../../components/Zones/ZoneRoleBadge';
 import { useLanguage } from '../../context/LanguageContext';
+import { useZone } from '../../context/ZoneContext';
 
 function sortZones(zones, sortKey) {
   const copy = [...zones];
@@ -19,8 +19,7 @@ function sortZones(zones, sortKey) {
 
 const ZoneDashboard = () => {
   const { t } = useLanguage();
-  const [zones, setZones] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { zones, loadingZones, fetchZones } = useZone();
   const [viewMode, setViewMode] = useState('card'); // 'card' | 'list'
   const [sortKey, setSortKey] = useState('name_asc');
   const navigate = useNavigate();
@@ -34,22 +33,10 @@ const ZoneDashboard = () => {
     { value: 'members_desc', label: t('zones.dashboard.sort_members_desc') },
   ];
 
-  const fetchZones = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await apiClient.get('/zones/my');
-      const details = await Promise.all(
-        (res.data || []).map((z) => apiClient.get(`/zones/${z.id}`).then((r) => r.data))
-      );
-      setZones(details);
-    } catch (err) {
-      console.error('Failed to fetch zones:', err);
-    } finally {
-      setLoading(false);
-    }
+  // Fetch on mount ONLY if no prefetched data
+  useEffect(() => {
+    if (zones.length === 0) fetchZones();
   }, []);
-
-  useEffect(() => { fetchZones(); }, [fetchZones]);
 
   const getMyZoneRole = (zone) => {
     const me = (zone.members || []).find((m) => m.email === myEmail);
@@ -58,7 +45,7 @@ const ZoneDashboard = () => {
 
   const sorted = sortZones(zones, sortKey);
 
-  if (loading) {
+  if (loadingZones && zones.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500" />

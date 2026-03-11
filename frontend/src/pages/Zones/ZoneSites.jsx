@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Layers, Server, MapPin, ChevronRight, ChevronLeft, RefreshCw, Wifi, Search, Filter, ArrowUp, ArrowDown, Activity, WifiOff, CloudOff, AlertTriangle, CheckCircle2, Edit3, Check, X, LayoutGrid, List } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 import { useSite } from '../../context/SiteContext';
+import { useZone } from '../../context/ZoneContext';
 import { useLanguage } from '../../context/LanguageContext';
 
 const ZoneSites = () => {
@@ -10,10 +11,11 @@ const ZoneSites = () => {
   const { zoneId } = useParams();
   const navigate = useNavigate();
   const { sites, fetchSites, loadingSites, prefetchSite } = useSite();
+  const { getZone, fetchZones } = useZone();
   const prefetchTimerRef = useRef(null);
 
-  const [zone, setZone] = useState(null);
-  const [loadingZone, setLoadingZone] = useState(true);
+  const [zone, setZone] = useState(() => getZone(zoneId) || null);
+  const [loadingZone, setLoadingZone] = useState(!zone);
   const [siteSearch, setSiteSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'asc' });
@@ -23,7 +25,7 @@ const ZoneSites = () => {
 
   // Editing state
   const [isEditingName, setIsEditingName] = useState(false);
-  const [editNameValue, setEditNameValue] = useState('');
+  const [editNameValue, setEditNameValue] = useState(zone?.name || '');
   const [savingName, setSavingName] = useState(false);
 
   // Template state
@@ -31,6 +33,14 @@ const ZoneSites = () => {
   const [templateFilter, setTemplateFilter] = useState('all');
 
   const fetchZone = useCallback(async () => {
+    // Try from ZoneContext cache first
+    const cached = getZone(zoneId);
+    if (cached) {
+      setZone(cached);
+      setEditNameValue(cached.name || '');
+      setLoadingZone(false);
+      return;
+    }
     setLoadingZone(true);
     try {
       const res = await apiClient.get(`/zones/${zoneId}`);
@@ -41,7 +51,15 @@ const ZoneSites = () => {
     } finally {
       setLoadingZone(false);
     }
-  }, [zoneId]);
+  }, [zoneId, getZone]);
+
+  // Keep zone in sync with ZoneContext updates (from polling)
+  useEffect(() => {
+    const cached = getZone(zoneId);
+    if (cached && JSON.stringify(cached) !== JSON.stringify(zone)) {
+      setZone(cached);
+    }
+  }, [getZone, zoneId]);
 
   useEffect(() => {
     fetchZone();
@@ -53,6 +71,7 @@ const ZoneSites = () => {
 
   const handleRefresh = () => {
     fetchedSiteIds.current.clear();
+    fetchZones(); // refresh centralized zone data
     fetchZone();
     fetchSites();
   };

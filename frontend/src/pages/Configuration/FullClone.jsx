@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../../api/apiClient';
 import styles from './Cloner.module.css';
 import { useLanguage } from '../../context/LanguageContext';
+import { toast } from 'sonner';
 import {
     Download, LayoutDashboard, CheckSquare, FileJson,
     ArrowRight, Server, Rocket, Activity, Code, Network, Search, CheckCircle, Wifi, Cable, Users, Layout
@@ -33,6 +34,8 @@ const Cloner = () => {
     const [selectedZone, setSelectedZone] = useState('all');
     const [executionLoading, setExecutionLoading] = useState(false);
     const [executionResult, setExecutionResult] = useState(null);
+    const [executionProgress, setExecutionProgress] = useState(0);
+    const progressRef = useRef(null);
 
     const [modalData, setModalData] = useState(null);
     const [currentStep, setCurrentStep] = useState(1);
@@ -125,19 +128,31 @@ const Cloner = () => {
     };
 
     const handleExecuteClone = async () => {
-        if (selectedTargetIds.size === 0) return alert('Vui lòng chọn ít nhất 1 Site đích.');
+        if (selectedTargetIds.size === 0) {
+            toast.error('Vui lòng chọn ít nhất 1 Site đích.');
+            return;
+        }
 
         const hasReadOnlyTarget = Array.from(selectedTargetIds).some(id => {
             const site = targetSites.find(s => s.siteId === id);
             const role = (site?.role || '').toLowerCase();
             return role !== 'administrator' && role !== 'admin';
         });
-        if (hasReadOnlyTarget) return alert('Bạn không có quyền Administrator trên Site đích đã chọn.');
+        if (hasReadOnlyTarget) {
+            toast.error('Bạn không có quyền Administrator trên Site đích đã chọn.');
+            return;
+        }
 
         const opsToRun = previewOps.filter((_, i) => selectedOpsIndices.has(i));
-        if (!confirm(`Xác nhận áp dụng ${opsToRun.length} lệnh?`)) return;
 
         setExecutionLoading(true);
+        setExecutionProgress(0);
+
+        // Simulated progress
+        progressRef.current = setInterval(() => {
+            setExecutionProgress(p => p < 80 ? p + 4 : p);
+        }, 150);
+
         try {
             const res = await apiClient.post('/cloner/apply', {
                 target_site_ids: Array.from(selectedTargetIds),
@@ -145,9 +160,19 @@ const Cloner = () => {
                 // Gán nhãn template nếu đang ở template mode
                 template_id: (sourceMode === 'template' && selectedTemplateId) ? selectedTemplateId : null
             });
+            clearInterval(progressRef.current);
+            setExecutionProgress(100);
             setExecutionResult(res.data);
+            const applied = selectedTargetIds.size;
+            toast.success(`Clone hoàn tất · ${opsToRun.length} ops áp dụng trên ${applied} sites`, {
+                description: 'Kiểm tra từng site để xác nhận thành công.',
+                duration: 6000,
+            });
         } catch (error) {
-            alert('Lỗi thực thi: ' + (error.response?.data?.detail || error.message));
+            clearInterval(progressRef.current);
+            setExecutionProgress(0);
+            const errMsg = error.response?.data?.detail || error.message;
+            toast.error(`Lỗi thực thi clone: ${errMsg}`);
         } finally {
             setExecutionLoading(false);
         }
@@ -489,6 +514,21 @@ const Cloner = () => {
                                         {executionLoading ? t('cloner.deploying') : t('cloner.initiate')}
                                     </button>
                                 </div>
+                                {/* Clone Progress Bar */}
+                                {(executionLoading || executionProgress > 0) && (
+                                    <div className="mt-4 space-y-2">
+                                        <div className="flex justify-between">
+                                            <span className="text-[10px] font-black uppercase text-slate-400">{executionLoading ? 'Cloning...' : 'Done'}</span>
+                                            <span className="text-xs font-mono font-black text-emerald-500">{executionProgress}%</span>
+                                        </div>
+                                        <div className="w-full h-2.5 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-300 shadow-[0_0_10px_rgba(16,185,129,0.4)]"
+                                                style={{ width: `${executionProgress}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                                 {executionResult && (
                                     <div className="mt-4 p-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl">
                                         <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-2"><CheckCircle size={14} /> {t('cloner.completed')}</span>

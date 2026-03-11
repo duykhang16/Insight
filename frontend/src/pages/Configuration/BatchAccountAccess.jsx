@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import apiClient from '../../api/apiClient';
 import { useLanguage } from '../../context/LanguageContext';
+import { toast } from 'sonner';
 import {
     Users, AlertTriangle, Mail, Tag, Shield, Map, RefreshCw, Play, Square, CheckSquare, Square as SquareIcon, CheckCircle, XCircle, Search
 } from 'lucide-react';
@@ -104,11 +105,13 @@ const BatchAccountAccess = () => {
         setSelectedZones(newSet);
     };
 
-    const handleSelectAllSites = () => {
-        if (selectedSites.length === sites.length && sites.length > 0) {
-            setSelectedSites([]);
+    const handleSelectAllSites = (currentFilteredSites) => {
+        const filteredIds = currentFilteredSites.map(s => s.id);
+        const allSelected = filteredIds.every(id => selectedSites.includes(id)) && filteredIds.length > 0;
+        if (allSelected) {
+            setSelectedSites(prev => prev.filter(id => !filteredIds.includes(id)));
         } else {
-            setSelectedSites(sites.map(s => s.id));
+            setSelectedSites(prev => Array.from(new Set([...prev, ...filteredIds])));
         }
     };
 
@@ -123,6 +126,19 @@ const BatchAccountAccess = () => {
     const targetZones = zones.filter(z => selectedZones.has(z.id));
     const totalSitesSelected = targetZones.reduce((sum, z) => sum + (z.site_count || 0), 0);
     const totalExecutionSites = totalSitesSelected + selectedSites.length;
+
+    // Computed filtered sites (used for list render + Select All)
+    const filteredSites = sites.filter(site => {
+        const matchesSearch = (site.siteName || '').toLowerCase().includes(searchTargetTerm.toLowerCase());
+        let matchesZone = true;
+        if (selectedZoneFilter !== 'all') {
+            const zoneObj = zones.find(z => String(z.id || z._id) === selectedZoneFilter);
+            matchesZone = zoneObj ? (zoneObj.site_ids || []).includes(site.id) : false;
+        }
+        return matchesSearch && matchesZone;
+    });
+    const filteredSiteIds = filteredSites.map(s => s.id);
+    const allFilteredSelected = filteredSiteIds.length > 0 && filteredSiteIds.every(id => selectedSites.includes(id));
 
     const runPrecheck = async () => {
         setIsPrechecking(true);
@@ -204,6 +220,7 @@ const BatchAccountAccess = () => {
 
             if (res.data?.status === 'success') {
                 const results = res.data.results || [];
+                const successCount = results.filter(r => r.status === 'SUCCESS').length;
                 const formattedLogs = results.map((r, idx) => ({
                     id: `res-${idx}`,
                     status: r.status === 'SUCCESS' ? 'ok' : 'error',
@@ -214,12 +231,21 @@ const BatchAccountAccess = () => {
                     { id: 'done', status: 'ok', msg: `Batch sequence completed. Processed ${results.length} sites.` },
                     ...formattedLogs
                 ]);
+                toast.success(
+                    mode === 'add'
+                        ? `Đã cấp quyền cho ${successCount} sites`
+                        : `Đã thu hồi quyền trên ${successCount} sites`,
+                    { description: `Batch ${mode === 'add' ? 'grant' : 'revoke'} hoàn tất. Processed ${results.length} sites.`, duration: 6000 }
+                );
             } else {
                 setLogs([{ id: 'err', status: 'error', msg: `API returned unexpected status: ${res.data?.status}` }]);
+                toast.error('Operation gặp lỗi bất ngờ.');
             }
         } catch (err) {
             if (!mountedRef.current) return;
-            setLogs([{ id: 'err-catch', status: 'error', msg: `Critical Error: ${err.response?.data?.detail || err.message}` }]);
+            const errMsg = err.response?.data?.detail || err.message;
+            setLogs([{ id: 'err-catch', status: 'error', msg: `Critical Error: ${errMsg}` }]);
+            toast.error(`Batch operation thất bại: ${errMsg}`);
         } finally {
             if (mountedRef.current) {
                 setIsRunning(false);
@@ -429,30 +455,23 @@ const BatchAccountAccess = () => {
                                         </div>
                                         <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-2 mb-2">
                                             <button
-                                                onClick={handleSelectAllSites}
+                                                onClick={() => handleSelectAllSites(filteredSites)}
                                                 disabled={isRunning}
                                                 className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors disabled:opacity-50"
                                             >
-                                                {selectedSites.length === sites.length && sites.length > 0 ? (
+                                                {allFilteredSelected ? (
                                                     <><CheckSquare size={16} className="text-blue-500" /> {t('batch_account.deselect_all')}</>
                                                 ) : (
                                                     <><SquareIcon size={16} className="text-slate-400" /> {t('batch_account.select_all')}</>
                                                 )}
                                             </button>
                                             <span className="font-mono text-[10px] font-bold text-slate-400">
-                                                <span className="text-blue-500">{selectedSites.length}</span> / {sites.length}
+                                                <span className="text-blue-500">{filteredSiteIds.filter(id => selectedSites.includes(id)).length}</span> / {filteredSites.length}
+                                                {filteredSites.length < sites.length && <span className="text-slate-400 ml-1">(filtered)</span>}
                                             </span>
                                         </div>
                                         <div className="flex-1 overflow-y-auto space-y-1.5 py-1 pr-1 custom-scrollbar">
-                                            {sites.filter(site => {
-                                                const matchesSearch = (site.siteName || '').toLowerCase().includes(searchTargetTerm.toLowerCase());
-                                                let matchesZone = true;
-                                                if (selectedZoneFilter !== 'all') {
-                                                    const zoneObj = zones.find(z => String(z.id || z._id) === selectedZoneFilter);
-                                                    matchesZone = zoneObj ? (zoneObj.site_ids || []).includes(site.id) : false;
-                                                }
-                                                return matchesSearch && matchesZone;
-                                            }).map(site => (
+                                            {filteredSites.map(site => (
                                                 <div
                                                     key={site.id}
                                                     onClick={() => !isRunning && toggleSite(site.id)}
@@ -487,6 +506,18 @@ const BatchAccountAccess = () => {
                             <Play size={14} className="text-blue-500" /> {t('batch_account.execution_platform')}
                         </h3>
 
+                        {/* Precheck Progress Bar */}
+                        {isPrechecking && (
+                            <div className="space-y-2 py-1 animate-fade-in">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-500">Running Smart Pre-check...</span>
+                                    <RefreshCw size={12} className="animate-spin text-amber-500" />
+                                </div>
+                                <div className="w-full h-2 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                    <div className="h-full bg-gradient-to-r from-amber-400 to-orange-400 rounded-full w-3/5" />
+                                </div>
+                            </div>
+                        )}
                         {/* Preview UI */}
                         {(selectedZones.size > 0 || selectedSites.size > 0) && !isRunning && !isPrechecking && (
                             <div className={`p-4 rounded-xl border flex items-start gap-4 animate-fade-in ${mode === 'add'
