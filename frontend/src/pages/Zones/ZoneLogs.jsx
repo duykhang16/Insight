@@ -43,19 +43,19 @@ const ZoneLogs = () => {
       <div className="flex items-center gap-3 mb-6">
         <button
           onClick={() => navigate('/zones')}
-          className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+          className="p-1.5 text-slate-400 hover:th-text-primary hover:th-bg-elevated rounded-lg transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
         </button>
         <FileText className="w-5 h-5 text-blue-400" />
-        <h1 className="text-lg font-semibold text-white">{t('zones.logs.title')}</h1>
+        <h1 className="text-lg font-semibold th-text-primary">{t('zones.logs.title')}</h1>
         {zoneName && (
-          <span className="text-xs text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">{zoneName}</span>
+          <span className="text-xs text-slate-500 th-bg-elevated px-2 py-0.5 rounded-full">{zoneName}</span>
         )}
         <div className="ml-auto">
           <button
             onClick={fetchLogs}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:th-text-primary border th-border hover:border-slate-500 rounded-lg transition-colors"
           >
             <RefreshCw className="w-3.5 h-3.5" /> {t('zones.logs.button_refresh')}
           </button>
@@ -72,10 +72,10 @@ const ZoneLogs = () => {
           <p className="text-sm">{t('zones.logs.empty_state_message')}</p>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-700">
+        <div className="overflow-x-auto rounded-xl border th-border">
           <table className="w-full text-xs text-left">
             <thead>
-              <tr className="border-b border-slate-700 bg-slate-800/50">
+              <tr className="border-b th-border th-bg-surface-alt">
                 <th className="px-4 py-3 text-slate-400 font-medium">Thời gian</th>
                 <th className="px-4 py-3 text-slate-400 font-medium">Actor</th>
                 <th className="px-4 py-3 text-slate-400 font-medium">Action</th>
@@ -88,13 +88,13 @@ const ZoneLogs = () => {
               {logs.map((log, i) => (
                 <tr
                   key={log.id || i}
-                  className="border-b border-slate-800 hover:bg-slate-800/30 transition-colors"
+                  className="border-b th-border hover:bg-slate-800/30 transition-colors"
                 >
                   <td className="px-4 py-3 text-slate-400 whitespace-nowrap">{log.timestamp}</td>
-                  <td className="px-4 py-3 text-slate-300 max-w-[180px] truncate">{log.actor_email || '—'}</td>
-                  <td className="px-4 py-3 text-slate-200 font-medium whitespace-nowrap" title={formatAction(log.method, log.endpoint, log.action, log.payload)}>{formatAction(log.method, log.endpoint, log.action, log.payload)}</td>
+                  <td className="px-4 py-3 th-text-secondary max-w-[180px] truncate">{log.actor_email || '—'}</td>
+                  <td className="px-4 py-3 th-text-primary font-medium whitespace-nowrap" title={formatAction(log.method, log.endpoint, log.action, log.payload)}>{formatAction(log.method, log.endpoint, log.action, log.payload)}</td>
                   <td className="px-4 py-3">
-                    <span className="font-mono bg-slate-800 px-1.5 py-0.5 rounded text-slate-300">{log.method}</span>
+                    <span className="font-mono th-bg-elevated px-1.5 py-0.5 rounded th-text-secondary">{log.method}</span>
                   </td>
                   <td className="px-4 py-3 text-slate-400 font-mono max-w-[200px] truncate">{log.endpoint}</td>
                   <td className="px-4 py-3 text-center">

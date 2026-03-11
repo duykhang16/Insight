@@ -101,7 +101,7 @@ const SuperPermissions = () => {
 
             {message.text && (
                 <div className="fixed top-24 left-1/2 transform -translate-x-1/2 z-50">
-                    <div className={`px-6 py-4 rounded-xl shadow-2xl text-sm font-semibold flex items-center gap-3 backdrop-blur-md ${message.type === 'success' ? 'bg-emerald-500/90 text-white border border-emerald-400/50' : 'bg-rose-500/90 text-white border border-rose-400/50'}`}>
+                    <div className={`px-6 py-4 rounded-xl shadow-2xl text-sm font-semibold flex items-center gap-3 backdrop-blur-md ${message.type === 'success' ? 'bg-emerald-500/90 th-text-primary border border-emerald-400/50' : 'bg-rose-500/90 th-text-primary border border-rose-400/50'}`}>
                         {message.type === 'success' ? <Check size={20} /> : <X size={20} />}
                         {message.text}
                     </div>
@@ -110,8 +110,8 @@ const SuperPermissions = () => {
 
             <div className="space-y-6">
                 {ROLES.map(role => (
-                    <div key={role} className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
-                        <div className="flex items-center justify-between mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
+                    <div key={role} className="bg-white dark:th-bg-surface border border-slate-200 dark:th-border rounded-2xl p-6 shadow-sm">
+                        <div className="flex items-center justify-between mb-6 border-b border-slate-100 dark:th-border pb-4">
                             <div className="flex items-center gap-3">
                                 <ShieldCheck size={20} className={role === 'super_admin' ? 'text-rose-500' : role === 'tenant_admin' ? 'text-violet-500' : role === 'manager' ? 'text-amber-500' : 'text-blue-500'} />
                                 <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-wider">{t(`super.permissions.role_header_label`)}: {role.replace('_', ' ')}</h3>
@@ -123,7 +123,7 @@ const SuperPermissions = () => {
                                 <button
                                     onClick={() => handleSave(role)}
                                     disabled={saving}
-                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm transition disabled:opacity-50"
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 th-text-primary font-semibold rounded-lg text-sm transition disabled:opacity-50"
                                 >
                                     <Save size={16} /> {t('super.permissions.button_save')}
                                 </button>
@@ -136,7 +136,7 @@ const SuperPermissions = () => {
                                     <div
                                         key={feat.key}
                                         onClick={() => handleToggle(role, feat.key)}
-                                        className={`flex flex-col gap-2 p-4 rounded-xl border-2 cursor-pointer transition select-none ${isEnabled ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'}`}
+                                        className={`flex flex-col gap-2 p-4 rounded-xl border-2 cursor-pointer transition select-none ${isEnabled ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:th-border hover:border-slate-300 dark:hover:th-border'}`}
                                     >
                                         <div className="flex items-center justify-between">
                                             <span className={`text-sm font-bold ${isEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400'}`}>

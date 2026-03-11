@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useTheme } from './context/ThemeContext';
 import GlobalLayout from './layouts/GlobalLayout';
 import SiteLayout from './layouts/SiteLayout';
 import Login from './pages/Login';
@@ -48,6 +49,23 @@ const SuperRoute = ({ userRole, children }) => {
 const ViewerRoute = ({ userRole, isZoneAdmin, children }) => {
   if (userRole === 'viewer' && !isZoneAdmin) return <Navigate to="/zones" replace />;
   return children;
+};
+
+// Toaster that reads from ThemeContext to auto-switch light/dark
+const ThemeAwareToaster = () => {
+  const { theme } = useTheme();
+  return (
+    <Toaster
+      position="bottom-right"
+      richColors
+      closeButton
+      theme={theme}
+      toastOptions={{
+        style: { fontFamily: 'inherit' },
+        duration: 5000,
+      }}
+    />
+  );
 };
 
 function App() {
@@ -185,7 +203,7 @@ function App() {
 
   if (checkingAuth || !isReady) {
     return (
-      <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+      <div className="min-h-screen th-bg-base flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     );
@@ -198,16 +216,7 @@ function App() {
 
   return (
     <>
-    <Toaster
-      position="bottom-right"
-      richColors
-      closeButton
-      theme="dark"
-      toastOptions={{
-        style: { fontFamily: 'inherit' },
-        duration: 5000,
-      }}
-    />
+    <ThemeAwareToaster />
     <Router>
       <SettingsProvider>
         <ZoneProvider initialZones={prefetchedData?.zones}>

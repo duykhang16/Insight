@@ -87,7 +87,7 @@ const Templates = () => {
     const filtered = templates.filter(t => t.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
     return (
-        <div className="w-full h-full p-8 space-y-8 animate-fade-in overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-[#020617] rounded-3xl">
+        <div className="w-full h-full p-8 space-y-8 animate-fade-in overflow-y-auto custom-scrollbar bg-slate-50 dark:th-bg-base rounded-3xl">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
@@ -103,7 +103,7 @@ const Templates = () => {
                 </div>
                 <button
                     onClick={openCreate}
-                    className="flex items-center gap-2 px-8 py-3.5 bg-emerald-600 hover:bg-emerald-500 transition-all text-white font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-emerald-500/20 active:scale-95"
+                    className="flex items-center gap-2 px-8 py-3.5 bg-emerald-600 hover:bg-emerald-500 transition-all th-text-primary font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-emerald-500/20 active:scale-95"
                 >
                     <Plus size={18} /> Tạo Template
                 </button>
@@ -137,14 +137,14 @@ const Templates = () => {
                 </div>
             ) : filtered.length === 0 ? (
                 <div className="w-full py-32 flex flex-col items-center justify-center text-center">
-                    <div className="w-28 h-28 bg-slate-100 dark:bg-white/5 rounded-[3rem] flex items-center justify-center text-slate-300 dark:text-slate-700 mb-6 border border-slate-200 dark:border-white/5">
+                    <div className="w-28 h-28 bg-slate-100 dark:bg-white/5 rounded-[3rem] flex items-center justify-center th-text-secondary dark:text-slate-700 mb-6 border border-slate-200 dark:border-white/5">
                         <Layout size={56} />
                     </div>
                     <p className="text-xl font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-600">
                         {searchTerm ? 'Không tìm thấy' : 'Chưa có template'}
                     </p>
                     {!searchTerm && (
-                        <button onClick={openCreate} className="mt-8 px-8 py-3.5 bg-emerald-600 text-white font-black uppercase tracking-widest text-xs rounded-2xl flex items-center gap-3 active:scale-95 transition-all shadow-xl shadow-emerald-500/20">
+                        <button onClick={openCreate} className="mt-8 px-8 py-3.5 bg-emerald-600 th-text-primary font-black uppercase tracking-widest text-xs rounded-2xl flex items-center gap-3 active:scale-95 transition-all shadow-xl shadow-emerald-500/20">
                             <Plus size={18} /> Tạo template đầu tiên
                         </button>
                     )}
@@ -163,7 +163,7 @@ const Templates = () => {
                             {/* Header row */}
                             <div className="flex justify-between items-start mt-2 mb-5">
                                 <div
-                                    className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg transition-transform duration-300 group-hover:rotate-6"
+                                    className="w-12 h-12 rounded-2xl flex items-center justify-center th-text-primary shadow-lg transition-transform duration-300 group-hover:rotate-6"
                                     style={{ backgroundColor: tpl.color }}
                                 >
                                     <Layout size={22} />
@@ -213,7 +213,7 @@ const Templates = () => {
             {/* Create / Edit Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md">
-                    <div className="bg-white dark:bg-[#0f172a] w-full max-w-md rounded-[2.5rem] shadow-2xl border border-white/10 overflow-hidden">
+                    <div className="bg-white dark:th-bg-surface w-full max-w-md rounded-[2.5rem] shadow-2xl border border-white/10 overflow-hidden">
                         {/* Modal Header */}
                         <div className="px-8 py-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
                             <div>
@@ -295,7 +295,7 @@ const Templates = () => {
                             <button
                                 type="submit"
                                 disabled={saving}
-                                className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-98 transition-all disabled:opacity-50"
+                                className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 th-text-primary font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-98 transition-all disabled:opacity-50"
                             >
                                 {saving ? <Activity size={18} className="animate-spin" /> : <Save size={18} />}
                                 {saving ? 'Đang lưu...' : (editingTemplate ? 'Cập nhật' : 'Tạo Template')}

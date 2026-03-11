@@ -34,7 +34,7 @@ const SyncIndicator = ({ isSyncing, lastUpdated }) => {
                 {/* Info Text */}
                 <div className="flex flex-col">
                     <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400/80 group-hover:text-slate-300 transition-colors">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400/80 group-hover:th-text-secondary transition-colors">
                             {isSyncing ? t('common.syncing') : t('common.live_data')}
                         </span>
                     </div>

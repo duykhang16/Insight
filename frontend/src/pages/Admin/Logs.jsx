@@ -36,20 +36,20 @@ const AdminPage = () => {
     useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
     return (
-        <div className="p-8 pb-32 min-h-screen bg-slate-950">
+        <div className="p-8 pb-32 min-h-screen th-bg-base">
             {/* Header */}
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">
                     <Shield className="w-5 h-5 text-blue-400" />
                     <div>
-                        <h1 className="text-2xl font-black text-white tracking-tight italic uppercase">{t('admin.logs.title')}</h1>
+                        <h1 className="text-2xl font-black th-text-primary tracking-tight italic uppercase">{t('admin.logs.title')}</h1>
                         <p className="text-sm text-slate-400 mt-0.5">{t('admin.logs.subtitle')}</p>
                     </div>
                 </div>
                 <button
                     onClick={fetchLogs}
                     disabled={loading}
-                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
+                    className="px-3 py-2 th-bg-elevated hover:bg-slate-700 th-text-secondary text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
                 >
                     {loading ? t('admin.logs.loading') : t('admin.logs.refresh')}
                 </button>
@@ -67,17 +67,17 @@ const AdminPage = () => {
                     <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500" />
                 </div>
             ) : (
-                <div className="bg-slate-900 rounded-2xl border border-white/5 overflow-hidden">
+                <div className="th-bg-surface rounded-2xl border border-white/5 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full min-w-[900px] text-left text-xs whitespace-nowrap">
-                            <thead className="bg-slate-800/60 border-b border-white/5 sticky top-0 z-10">
+                            <thead className="th-bg-surface-alt border-b border-white/5 sticky top-0 z-10">
                                 <tr>
                                     {[t('admin.logs.table_timestamp'), t('admin.logs.table_actor'), t('admin.logs.table_action'), t('admin.logs.table_method'), t('admin.logs.table_endpoint'), t('admin.logs.table_status')].map(h => (
                                         <th key={h} className="px-5 py-4 font-black uppercase tracking-widest text-[9px] text-slate-400">{h}</th>
                                     ))}
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-white/[0.04] text-slate-300">
+                            <tbody className="divide-y divide-white/[0.04] th-text-secondary">
                                 {logs.length > 0 ? logs.map(log => (
                                     <tr key={log.id} className="hover:bg-white/[0.02] transition-colors">
                                         <td className="px-5 py-3.5 font-mono text-slate-400 text-[10px]">
@@ -86,7 +86,7 @@ const AdminPage = () => {
                                                 {log.timestamp}
                                             </div>
                                         </td>
-                                        <td className="px-5 py-3.5 font-bold text-white text-[11px]">{log.actor_email || '—'}</td>
+                                        <td className="px-5 py-3.5 font-bold th-text-primary text-[11px]">{log.actor_email || '—'}</td>
                                         <td className="px-5 py-3.5">
                                             <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded text-[9px] font-black uppercase tracking-widest text-wrap max-w-[150px] inline-block" title={formatAction(log.method, log.endpoint, log.action, log.payload)}>
                                                 {formatAction(log.method, log.endpoint, log.action, log.payload)}

@@ -81,13 +81,13 @@ const ChartTooltip = ({ active, payload }) => {
     const isScore = payload[0]?.dataKey === 'score';
 
     return (
-        <div className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs shadow-xl min-w-[140px]">
+        <div className="th-bg-base border th-border rounded-lg px-3 py-2 text-xs shadow-xl min-w-[140px]">
             <p className="text-slate-400 mb-2 font-mono text-[10px]">{formatVN(d.sampleTime)}</p>
             {isScore ? (
                 <p className="text-emerald-400 font-bold">Score: {d.score}%</p>
             ) : (
                 <>
-                    <p className="text-slate-300">
+                    <p className="th-text-secondary">
                         {d.count} {d.count === 1 ? 'condition' : 'conditions'}
                     </p>
                     {d.majorCount > 0 && <p className="text-rose-400">↑ Major: {d.majorCount}</p>}
@@ -291,7 +291,7 @@ const Health = () => {
                     <button
                         onClick={handleRefresh}
                         disabled={loading}
-                        className="h-12 px-6 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition-all active:scale-95 disabled:opacity-50 whitespace-nowrap"
+                        className="h-12 px-6 bg-emerald-600 hover:bg-emerald-500 th-text-primary rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition-all active:scale-95 disabled:opacity-50 whitespace-nowrap"
                     >
                         {loading ? t('common.syncing') : t('common.refresh')}
                     </button>
@@ -513,7 +513,7 @@ const Health = () => {
                             {t('health.filter_active')}: {formatVN(selectedEntry.sampleTime)}
                             <button
                                 onClick={() => setSelectedIndex(null)}
-                                className="hover:text-white transition-colors ml-1"
+                                className="hover:th-text-primary transition-colors ml-1"
                                 title={t('health.clear_filter')}
                             >
                                 <X size={12} />
@@ -538,7 +538,7 @@ const Health = () => {
                                 const isMajor = sev === 'major' || sev === 'poor';
                                 const severityLabel = item.conditionSeverity || item.severity || 'Unknown';
                                 return (
-                                    <tr key={`cond-${idx}`} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                    <tr key={`cond-${idx}`} className="hover:bg-slate-50 dark:hover:th-bg-surface-alt transition-colors">
                                         <td className="px-6 py-4 text-slate-800 dark:text-white font-bold tracking-tight">
                                             {fmtConditionName(item.condition || '')}
                                         </td>

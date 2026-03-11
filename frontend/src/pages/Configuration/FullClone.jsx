@@ -214,7 +214,7 @@ const Cloner = () => {
 
     // --- 4. Giao diện ---
     return (
-        <div className={`relative w-full min-h-[800px] h-full bg-slate-50 dark:bg-[#020617] text-slate-800 dark:text-slate-200 font-sans overflow-x-hidden rounded-xl border border-slate-200 dark:border-gray-800 shadow-xl dark:shadow-2xl ${styles.clonerWrapper}`}>
+        <div className={`relative w-full min-h-[800px] h-full bg-slate-50 dark:th-bg-base text-slate-800 dark:text-slate-200 font-sans overflow-x-hidden rounded-xl border border-slate-200 dark:border-gray-800 shadow-xl dark:shadow-2xl ${styles.clonerWrapper}`}>
             {/* Background Orbs */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none rounded-xl">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/5 dark:bg-blue-600/10 blur-[120px] rounded-full"></div>
@@ -223,7 +223,7 @@ const Cloner = () => {
 
             <div className="relative z-10 w-full h-full p-8 space-y-12">
                 {/* Horizontal Progress Stepper */}
-                <div className="bg-white/80 dark:bg-[#020617]/80 backdrop-blur-xl py-6 border-b border-slate-200 dark:border-white/5 -mx-8 px-12 mb-10 transition-all duration-300">
+                <div className="bg-white/80 dark:th-bg-base/80 backdrop-blur-xl py-6 border-b border-slate-200 dark:border-white/5 -mx-8 px-12 mb-10 transition-all duration-300">
                     <div className="max-w-4xl mx-auto relative px-4">
                         <div className="flex justify-between items-center relative z-10">
                             {[t('cloner.steps.source'), t('cloner.steps.review'), t('cloner.steps.execute')].map((step, idx) => {
@@ -232,8 +232,8 @@ const Cloner = () => {
                                 const isCurrent = currentStep === stepNum;
                                 return (
                                     <div key={idx} className="flex flex-col items-center">
-                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 border ${isCurrent ? 'bg-blue-600 border-blue-400 shadow-[0_0_20px_rgba(37,99,235,0.4)] scale-110 text-white' :
-                                            isActive ? 'bg-white dark:bg-slate-900 border-blue-200 dark:border-blue-500/50 text-blue-500 dark:text-blue-400' : 'bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-white/5 text-slate-400 dark:text-slate-700'
+                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 border ${isCurrent ? 'bg-blue-600 border-blue-400 shadow-[0_0_20px_rgba(37,99,235,0.4)] scale-110 th-text-primary' :
+                                            isActive ? 'bg-white dark:bg-slate-900 border-blue-200 dark:border-blue-500/50 text-blue-500 dark:text-blue-400' : 'bg-slate-100 dark:th-bg-base border-slate-200 dark:border-white/5 text-slate-400 dark:text-slate-700'
                                             }`}>
                                             {isActive && !isCurrent ? <CheckCircle size={20} /> :
                                                 idx === 0 ? <Server size={20} /> :
@@ -341,7 +341,7 @@ const Cloner = () => {
                                 <button
                                     onClick={handleFetchConfig}
                                     disabled={!selectedSourceId || fetchLoading || (sourceMode === 'template' && !selectedTemplateId)}
-                                    className={`h-14 bg-gradient-to-r text-white font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl hover:scale-[1.02] transition-all active:scale-95 disabled:opacity-30 ${sourceMode === 'live' ? 'from-blue-600 to-indigo-600' : 'from-emerald-600 to-teal-600'}`}
+                                    className={`h-14 bg-gradient-to-r th-text-primary font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl hover:scale-[1.02] transition-all active:scale-95 disabled:opacity-30 ${sourceMode === 'live' ? 'from-blue-600 to-indigo-600' : 'from-emerald-600 to-teal-600'}`}
                                 >
                                     {fetchLoading ? t('cloner.decoding') : t('cloner.decode')}
                                 </button>
@@ -509,7 +509,7 @@ const Cloner = () => {
                                     <button
                                         onClick={handleExecuteClone}
                                         disabled={executionLoading || selectedTargetIds.size === 0}
-                                        className="flex-1 h-14 bg-gradient-to-r from-emerald-500 to-teal-500 dark:from-emerald-600 dark:to-teal-600 text-white font-black uppercase tracking-[0.3em] rounded-2xl shadow-[0_10px_30px_rgba(16,185,129,0.2)] dark:shadow-[0_10px_40px_rgba(16,185,129,0.3)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-20"
+                                        className="flex-1 h-14 bg-gradient-to-r from-emerald-500 to-teal-500 dark:from-emerald-600 dark:to-teal-600 th-text-primary font-black uppercase tracking-[0.3em] rounded-2xl shadow-[0_10px_30px_rgba(16,185,129,0.2)] dark:shadow-[0_10px_40px_rgba(16,185,129,0.3)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-20"
                                     >
                                         {executionLoading ? t('cloner.deploying') : t('cloner.initiate')}
                                     </button>
@@ -547,13 +547,13 @@ const Cloner = () => {
                         <div className="w-full max-w-4xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col scale-in-center">
                             <div className="p-6 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/5 flex justify-between items-center">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 flex items-center gap-2"><Code size={16} /> {t('cloner.payload_inspector')}</span>
-                                <button onClick={() => setModalData(null)} className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors">{t('common.close')}</button>
+                                <button onClick={() => setModalData(null)} className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:th-text-primary transition-colors">{t('common.close')}</button>
                             </div>
                             <div className="flex-1 p-8 bg-slate-50 dark:bg-black/40 overflow-auto font-mono text-[11px] text-blue-600 dark:text-blue-300 leading-relaxed custom-scrollbar max-h-[65vh]">
                                 <pre>{JSON.stringify(modalData.payload, null, 2)}</pre>
                             </div>
                             <div className="p-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-white/5 flex justify-end">
-                                <button onClick={() => setModalData(null)} className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold uppercase rounded-lg transition-all">{t('common.done')}</button>
+                                <button onClick={() => setModalData(null)} className="px-6 py-2 bg-blue-600 hover:bg-blue-500 th-text-primary text-xs font-bold uppercase rounded-lg transition-all">{t('common.done')}</button>
                             </div>
                         </div>
                     </div>

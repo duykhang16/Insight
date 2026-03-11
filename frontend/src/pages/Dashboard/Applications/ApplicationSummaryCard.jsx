@@ -131,7 +131,7 @@ const ApplicationSummaryCard = ({ dashboardData, loading }) => {
                     onClick={() => navigate(`/site/${dashboardData?.siteId || Object.values(dashboardData || {})[0]?.siteId || 'current'}/applications`)}
                     className="flex items-center justify-between w-full h-12 px-6 bg-slate-50 dark:bg-slate-800/50 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-2xl border border-slate-200 dark:border-white/5 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all group/btn"
                 >
-                    <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 group-hover/btn:text-indigo-600 dark:group-hover/btn:text-white uppercase tracking-widest">Explore Applications</span>
+                    <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 group-hover/btn:text-indigo-600 dark:group-hover/btn:th-text-primary uppercase tracking-widest">Explore Applications</span>
                     <ArrowRight size={14} className="text-slate-400 dark:text-slate-600 group-hover/btn:translate-x-1 group-hover/btn:text-indigo-500 dark:group-hover/btn:text-indigo-400 transition-all" />
                 </button>
             </div>

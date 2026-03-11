@@ -20,8 +20,8 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
 
     const getNavLinkClass = ({ isActive }) =>
         `flex items-center px-4 py-3 text-sm font-medium transition-colors ${isActive
-            ? 'bg-blue-600 text-white'
-            : 'text-gray-300 hover:bg-slate-800 hover:text-white'
+            ? 'bg-blue-600 th-text-primary'
+            : 'th-text-secondary hover:th-bg-surface-alt hover:th-text-primary'
         }`;
 
     // Navigate to /config and set tab via search param
@@ -70,11 +70,11 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
     const isConfigSubActive = (key) => isOnConfig && currentTab === key;
 
     return (
-        <div className="flex flex-col w-64 bg-[#0F172A] border-r border-slate-800 h-full">
+        <div className="flex flex-col w-64 th-bg-sidebar border-r th-border h-full transition-colors duration-200">
             {/* Brand header */}
-            <div className="flex items-center justify-between px-4 h-16 border-b border-slate-800 gap-3">
+            <div className="flex items-center justify-between px-4 h-16 border-b th-border gap-3">
                 <div className="flex items-center gap-3">
-                    <span className="text-xl font-black italic text-white tracking-widest uppercase">INSIGHT</span>
+                    <span className="text-xl font-black italic th-text-primary tracking-widest uppercase">INSIGHT</span>
                     <div className="relative flex items-center justify-center h-2 w-2" title="Live Sync">
                         <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50 animate-ping"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -98,8 +98,8 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                             onClick={() => setConfigOpen(v => !v)}
                             className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium transition-colors ${
                                 isOnConfig
-                                    ? 'text-blue-400 bg-blue-600/10'
-                                    : 'text-gray-300 hover:bg-slate-800 hover:text-white'
+                                    ? 'text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-600/10'
+                                    : 'th-text-secondary hover:th-bg-surface-alt hover:th-text-primary'
                             }`}
                         >
                             <span className="flex items-center gap-3">
@@ -121,12 +121,12 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                                         onClick={() => goToConfigTab(item.key)}
                                         className={`w-full flex items-center justify-between pl-5 pr-3 py-2.5 text-xs font-medium rounded-lg transition-colors group ${
                                             isConfigSubActive(item.key)
-                                                ? 'bg-blue-600 text-white'
-                                                : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                                                ? 'bg-blue-600 th-text-primary'
+                                                : 'th-text-muted hover:th-bg-surface-alt hover:th-text-primary'
                                         }`}
                                     >
                                         <span className="flex items-center gap-2">
-                                            <span className={`w-1 h-1 rounded-full ${isConfigSubActive(item.key) ? 'bg-white' : 'bg-slate-600'}`} />
+                                            <span className={`w-1 h-1 rounded-full ${isConfigSubActive(item.key) ? 'bg-white' : 'th-text-muted'}`} style={{ backgroundColor: isConfigSubActive(item.key) ? undefined : 'var(--color-text-muted)' }} />
                                             {item.icon}
                                             {item.label}
                                         </span>
@@ -148,7 +148,7 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                 {userRole === 'tenant_admin' && (
                     <>
                         <div className="px-4 pt-4 pb-1">
-                            <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest">Admin</span>
+                            <span className="text-[10px] font-semibold th-text-muted uppercase tracking-widest">Admin</span>
                         </div>
                         <NavLink to="/admin/logs" className={getNavLinkClass}>
                             <Shield className="w-5 h-5 mr-3" />
@@ -173,7 +173,7 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                 {userRole === 'super_admin' && (
                     <>
                         <div className="px-4 pt-4 pb-1">
-                            <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest">Super Admin</span>
+                            <span className="text-[10px] font-semibold th-text-muted uppercase tracking-widest">Super Admin</span>
                         </div>
                         <NavLink to="/super/tenants" className={getNavLinkClass}>
                             <Building2 className="w-5 h-5 mr-3" />

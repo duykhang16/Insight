@@ -96,11 +96,11 @@ const Networks = () => {
     const wirelessInactiveCount = wirelessCount - wirelessActiveCount;
 
     return (
-        <div className="p-8 pb-32 font-sans overflow-hidden bg-slate-950 min-h-screen">
+        <div className="p-8 pb-32 font-sans overflow-hidden th-bg-base min-h-screen">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
-                    <h1 className="text-2xl font-black text-white tracking-tight italic uppercase">{t('site.networks.title')}</h1>
+                    <h1 className="text-2xl font-black th-text-primary tracking-tight italic uppercase">{t('site.networks.title')}</h1>
                     <p className="text-sm text-slate-400 mt-1">
                         {t('site.networks.subtitle')} {sites.find(s => s.siteId === selectedSiteId)?.siteName || 'current site'}
                     </p>
@@ -110,11 +110,11 @@ const Networks = () => {
             {/* Stats Row */}
             <div className="flex flex-wrap gap-3 mb-6">
                 {/* Wired pill */}
-                <div className="bg-slate-900 border border-white/5 rounded-2xl h-14 px-5 flex items-center gap-3 shadow-xl">
+                <div className="th-bg-surface border border-white/5 rounded-2xl h-14 px-5 flex items-center gap-3 shadow-xl">
                     <Network size={15} className="text-amber-400 shrink-0" />
                     <div className="flex flex-col leading-none gap-0.5">
                         <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">{t('site.networks.stats_wired_label')}</span>
-                        <span className="text-[10px] font-black text-slate-300">
+                        <span className="text-[10px] font-black th-text-secondary">
                             <span className="text-emerald-400">{wiredActiveCount} {t('site.networks.stats_wired_on')}</span>
                             <span className="text-slate-600 mx-1">/</span>
                             <span className="text-slate-500">{wiredInactiveCount} {t('site.networks.stats_wired_off')}</span>
@@ -123,11 +123,11 @@ const Networks = () => {
                     </div>
                 </div>
                 {/* Wireless pill */}
-                <div className="bg-slate-900 border border-white/5 rounded-2xl h-14 px-5 flex items-center gap-3 shadow-xl">
+                <div className="th-bg-surface border border-white/5 rounded-2xl h-14 px-5 flex items-center gap-3 shadow-xl">
                     <Wifi size={15} className="text-blue-400 shrink-0" />
                     <div className="flex flex-col leading-none gap-0.5">
                         <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">{t('site.networks.stats_wireless_label')}</span>
-                        <span className="text-[10px] font-black text-slate-300">
+                        <span className="text-[10px] font-black th-text-secondary">
                             <span className="text-emerald-400">{wirelessActiveCount} {t('site.networks.stats_wireless_on')}</span>
                             <span className="text-slate-600 mx-1">/</span>
                             <span className="text-slate-500">{wirelessInactiveCount} {t('site.networks.stats_wireless_off')}</span>
@@ -136,11 +136,11 @@ const Networks = () => {
                     </div>
                 </div>
                 {/* Clients pill */}
-                <div className="bg-slate-900 border border-white/5 rounded-2xl h-14 px-5 flex items-center gap-3 shadow-xl">
+                <div className="th-bg-surface border border-white/5 rounded-2xl h-14 px-5 flex items-center gap-3 shadow-xl">
                     <Users size={15} className="text-slate-500 shrink-0" />
                     <div className="flex flex-col leading-none gap-0.5">
                         <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{t('site.networks.stats_clients_label')}</span>
-                        <span className="text-[10px] font-black text-slate-300">{totalClients} {t('site.networks.stats_clients_connected')}</span>
+                        <span className="text-[10px] font-black th-text-secondary">{totalClients} {t('site.networks.stats_clients_connected')}</span>
                     </div>
                 </div>
             </div>
@@ -154,12 +154,12 @@ const Networks = () => {
                         placeholder={t('site.networks.search_placeholder')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full h-14 pl-12 pr-4 bg-slate-900 border border-white/5 rounded-2xl text-white text-sm focus:outline-none focus:border-indigo-500/50 shadow-inner transition-all hover:bg-slate-800/50"
+                        className="w-full h-14 pl-12 pr-4 th-bg-surface border border-white/5 rounded-2xl th-text-primary text-sm focus:outline-none focus:border-indigo-500/50 shadow-inner transition-all hover:th-bg-surface-alt"
                     />
                 </div>
 
                 {/* Tabs */}
-                <div className="flex items-center gap-1 bg-slate-900 border border-white/5 rounded-2xl p-1 shadow-xl">
+                <div className="flex items-center gap-1 th-bg-surface border border-white/5 rounded-2xl p-1 shadow-xl">
                     {[
                         { value: 'all',      label: t('site.networks.tab_all') },
                         { value: 'wireless', label: t('site.networks.tab_wireless') },
@@ -171,7 +171,7 @@ const Networks = () => {
                             className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
                                 activeTab === tab.value
                                     ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
-                                    : 'text-slate-500 hover:text-slate-300 border border-transparent'
+                                    : 'text-slate-500 hover:th-text-secondary border border-transparent'
                             }`}
                         >
                             {tab.label}

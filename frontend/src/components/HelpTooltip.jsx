@@ -42,7 +42,7 @@ const HelpTooltip = ({
             <div className="relative group flex-shrink-0">
                 <Info size={12} className="text-slate-600 group-hover:text-slate-400 transition-colors cursor-help" />
                 <div className={`absolute ${positionClass} z-50 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150`}>
-                    <div className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-[10px] text-slate-300 whitespace-nowrap shadow-xl max-w-[200px] leading-relaxed">
+                    <div className="th-bg-elevated border th-border rounded-lg px-3 py-2 text-[10px] th-text-secondary whitespace-nowrap shadow-xl max-w-[200px] leading-relaxed">
                         {content}
                     </div>
                 </div>
@@ -55,21 +55,21 @@ const HelpTooltip = ({
         <div className="relative" ref={ref}>
             <button
                 onClick={() => setOpen(v => !v)}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg text-slate-500 hover:text-blue-400 hover:bg-slate-800 transition-colors text-[10px] font-bold uppercase tracking-widest"
+                className="flex items-center gap-1 px-2 py-1 rounded-lg text-slate-500 hover:text-blue-400 hover:th-bg-elevated transition-colors text-[10px] font-bold uppercase tracking-widest"
                 title="Hướng dẫn sử dụng"
             >
                 <Info size={13} />
                 <span>Hướng dẫn</span>
             </button>
             {open && (
-                <div className={`absolute ${positionClass} z-50 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-4 min-w-[220px] max-w-[280px]`}>
+                <div className={`absolute ${positionClass} z-50 th-bg-surface border th-border rounded-xl shadow-2xl p-4 min-w-[220px] max-w-[280px]`}>
                     {title && (
                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">{title}</p>
                     )}
                     {steps && (
                         <ol className="space-y-2">
                             {steps.map((step, i) => (
-                                <li key={i} className="flex items-start gap-2 text-[11px] text-slate-300">
+                                <li key={i} className="flex items-start gap-2 text-[11px] th-text-secondary">
                                     <span className="flex-shrink-0 w-4 h-4 rounded-full bg-blue-600/30 text-blue-400 text-[9px] font-black flex items-center justify-center mt-0.5">
                                         {i + 1}
                                     </span>
@@ -79,7 +79,7 @@ const HelpTooltip = ({
                         </ol>
                     )}
                     {content && !steps && (
-                        <p className="text-[11px] text-slate-300 leading-relaxed">{content}</p>
+                        <p className="text-[11px] th-text-secondary leading-relaxed">{content}</p>
                     )}
                 </div>
             )}

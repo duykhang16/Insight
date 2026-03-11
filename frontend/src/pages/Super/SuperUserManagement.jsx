@@ -10,7 +10,7 @@ const ROLE_BADGE_COLOR = {
   super_admin: 'bg-purple-900/40 text-purple-300',
   tenant_admin: 'bg-blue-900/40 text-blue-300',
   manager: 'bg-emerald-900/40 text-emerald-300',
-  viewer: 'bg-slate-700 text-slate-300',
+  viewer: 'bg-slate-700 th-text-secondary',
 };
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -29,7 +29,7 @@ function RoleBadge({ role }) {
     viewer: t('super.users.role_viewer'),
   };
   return (
-    <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold ${ROLE_BADGE_COLOR[role] || 'bg-slate-700 text-slate-300'}`}>
+    <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold ${ROLE_BADGE_COLOR[role] || 'bg-slate-700 th-text-secondary'}`}>
       {ROLE_LABEL[role] || role}
     </span>
   );
@@ -68,7 +68,7 @@ function EmailInput({ value, onChange, existingEmails, placeholder }) {
     <div ref={ref} className="relative">
       <input
         type="email"
-        className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+        className="w-full th-bg-elevated border th-border rounded px-3 py-2 text-sm th-text-primary placeholder-slate-500 focus:outline-none focus:border-blue-500"
         placeholder={placeholder || 'user@domain.com'}
         value={value}
         onChange={handleChange}
@@ -76,11 +76,11 @@ function EmailInput({ value, onChange, existingEmails, placeholder }) {
         autoComplete="off"
       />
       {open && (
-        <ul className="absolute top-full left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded shadow-xl z-50 max-h-40 overflow-y-auto">
+        <ul className="absolute top-full left-0 right-0 mt-1 th-bg-elevated border th-border rounded shadow-xl z-50 max-h-40 overflow-y-auto">
           {suggestions.map((s) => (
             <li
               key={s}
-              className="px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 cursor-pointer"
+              className="px-3 py-2 text-sm th-text-secondary hover:bg-slate-700 cursor-pointer"
               onMouseDown={() => { onChange(s); setOpen(false); }}
             >
               {s}
@@ -97,10 +97,10 @@ function EmailInput({ value, onChange, existingEmails, placeholder }) {
 function Modal({ title, onClose, children }) {
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-[#0F172A] border border-slate-700 rounded-lg w-full max-w-md shadow-xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700">
-          <h2 className="text-sm font-semibold text-white">{title}</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="w-4 h-4" /></button>
+      <div className="th-bg-surface border th-border rounded-lg w-full max-w-md shadow-xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b th-border">
+          <h2 className="text-sm font-semibold th-text-primary">{title}</h2>
+          <button onClick={onClose} className="text-slate-400 hover:th-text-primary"><X className="w-4 h-4" /></button>
         </div>
         <div className="px-5 py-4">{children}</div>
       </div>
@@ -257,12 +257,12 @@ export default function SuperUserManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-white">{t('super.users.title')}</h1>
+          <h1 className="text-lg font-bold th-text-primary">{t('super.users.title')}</h1>
           <p className="text-xs text-slate-500 mt-0.5">{t('super.users.subtitle')}</p>
         </div>
         <button
           onClick={openCreate}
-          className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
+          className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 th-text-primary text-sm rounded transition-colors"
         >
           <Plus className="w-4 h-4" /> {t('super.users.add_button')}
         </button>
@@ -281,14 +281,14 @@ export default function SuperUserManagement() {
       {error && <div className="bg-red-900/20 border border-red-800 text-red-400 text-sm px-4 py-3 rounded">{error}</div>}
 
       {/* Table */}
-      <div className="bg-[#0F172A] border border-slate-800 rounded-lg overflow-hidden">
+      <div className="th-bg-surface border th-border rounded-lg overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-500" />
           </div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-slate-800/60">
+            <thead className="th-bg-surface-alt">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('super.users.table_header_email')}</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('super.users.table_header_role')}</th>
@@ -315,7 +315,7 @@ export default function SuperUserManagement() {
                   if (isSelf) return null;
                   return (
                     <div className="flex items-center gap-2">
-                      <button onClick={() => openEdit(u)} className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-slate-700 transition-colors" title={t('super.users.button_tooltip_edit')}>
+                      <button onClick={() => openEdit(u)} className="p-1.5 rounded text-slate-400 hover:th-text-primary hover:bg-slate-700 transition-colors" title={t('super.users.button_tooltip_edit')}>
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
                       <button onClick={() => setResetTarget(u)} className="p-1.5 rounded text-slate-400 hover:text-amber-400 hover:bg-slate-700 transition-colors" title={t('super.users.button_tooltip_reset_password')}>
@@ -337,13 +337,13 @@ export default function SuperUserManagement() {
 
                   // Parent row
                   rows.push(
-                    <tr key={u.id} className={`border-t border-slate-800 transition-colors ${isSelf ? 'opacity-40' : 'hover:bg-slate-800/40'}`}>
+                    <tr key={u.id} className={`border-t th-border transition-colors ${isSelf ? 'opacity-40' : 'hover:th-bg-surface-alt'}`}>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
                           {children.length > 0 ? (
                             <button
                               onClick={() => toggleCollapse(u.email)}
-                              className="text-slate-500 hover:text-slate-300 transition-colors flex-shrink-0"
+                              className="text-slate-500 hover:th-text-secondary transition-colors flex-shrink-0"
                             >
                               {isCollapsed
                                 ? <ChevronRight className="w-3.5 h-3.5" />
@@ -351,7 +351,7 @@ export default function SuperUserManagement() {
                               }
                             </button>
                           ) : <span className="w-5 inline-block" />}
-                          <span className="text-white font-mono text-xs">{u.email}</span>
+                          <span className="th-text-primary font-mono text-xs">{u.email}</span>
                           {u.must_set_password && (
                             <span className="text-[10px] bg-yellow-900/40 text-yellow-400 px-1.5 py-0.5 rounded">{t('super.users.password_not_set_badge')}</span>
                           )}
@@ -382,7 +382,7 @@ export default function SuperUserManagement() {
                           <td className="py-2.5 pr-4" style={{ paddingLeft: '2.5rem' }}>
                             <div className="flex items-center gap-1.5">
                               <span className="text-slate-600 mr-1">└</span>
-                              <span className="text-slate-300 font-mono text-xs">{c.email}</span>
+                              <span className="th-text-secondary font-mono text-xs">{c.email}</span>
                               {c.must_set_password && (
                                 <span className="text-[10px] bg-yellow-900/40 text-yellow-400 px-1.5 py-0.5 rounded">{t('super.users.password_not_set_badge')}</span>
                               )}
@@ -425,7 +425,7 @@ export default function SuperUserManagement() {
             <div>
               <label className="block text-xs text-slate-400 mb-1">{t('super.users.modal_create_role_label')}</label>
               <select
-                className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full th-bg-elevated border th-border rounded px-3 py-2 text-sm th-text-primary focus:outline-none focus:border-blue-500"
                 value={formRole}
                 onChange={e => setFormRole(e.target.value)}
               >
@@ -436,7 +436,7 @@ export default function SuperUserManagement() {
               <div>
                 <label className="block text-xs text-slate-400 mb-1">{t('super.users.modal_create_parent_label')}</label>
                 <select
-                  className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                  className="w-full th-bg-elevated border th-border rounded px-3 py-2 text-sm th-text-primary focus:outline-none focus:border-blue-500"
                   value={formParent}
                   onChange={e => setFormParent(e.target.value)}
                 >
@@ -450,11 +450,11 @@ export default function SuperUserManagement() {
               </div>
             )}
             <div className="flex justify-end gap-2 pt-1">
-              <button onClick={() => setCreateModal(false)} className="px-3 py-2 text-sm text-slate-400 hover:text-white">{t('super.users.modal_create_cancel')}</button>
+              <button onClick={() => setCreateModal(false)} className="px-3 py-2 text-sm text-slate-400 hover:th-text-primary">{t('super.users.modal_create_cancel')}</button>
               <button
                 onClick={handleCreate}
                 disabled={!formEmail.trim() || submitting}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm rounded"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 th-text-primary text-sm rounded"
               >
                 {submitting ? t('super.users.modal_create_submitting') : t('super.users.modal_create_submit')}
               </button>
@@ -470,7 +470,7 @@ export default function SuperUserManagement() {
             <div>
               <label className="block text-xs text-slate-400 mb-1">{t('super.users.modal_edit_role_label')}</label>
               <select
-                className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full th-bg-elevated border th-border rounded px-3 py-2 text-sm th-text-primary focus:outline-none focus:border-blue-500"
                 value={formRole}
                 onChange={e => setFormRole(e.target.value)}
               >
@@ -481,7 +481,7 @@ export default function SuperUserManagement() {
               <div>
                 <label className="block text-xs text-slate-400 mb-1">{t('super.users.modal_edit_parent_label')}</label>
                 <select
-                  className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                  className="w-full th-bg-elevated border th-border rounded px-3 py-2 text-sm th-text-primary focus:outline-none focus:border-blue-500"
                   value={formParent}
                   onChange={e => setFormParent(e.target.value)}
                 >
@@ -495,11 +495,11 @@ export default function SuperUserManagement() {
               </div>
             )}
             <div className="flex justify-end gap-2 pt-1">
-              <button onClick={() => setEditTarget(null)} className="px-3 py-2 text-sm text-slate-400 hover:text-white">{t('super.users.modal_edit_cancel')}</button>
+              <button onClick={() => setEditTarget(null)} className="px-3 py-2 text-sm text-slate-400 hover:th-text-primary">{t('super.users.modal_edit_cancel')}</button>
               <button
                 onClick={handleEdit}
                 disabled={submitting}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm rounded"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 th-text-primary text-sm rounded"
               >
                 {submitting ? t('super.users.modal_edit_submitting') : t('super.users.modal_edit_submit')}
               </button>
@@ -512,15 +512,15 @@ export default function SuperUserManagement() {
       {deleteTarget && (
         <Modal title={t('super.users.modal_delete_title')} onClose={() => setDeleteTarget(null)}>
           <div className="space-y-4">
-            <p className="text-sm text-slate-300">
-              {t('super.users.modal_delete_confirm_text')} <span className="font-semibold text-white">{deleteTarget.email}</span>?
+            <p className="text-sm th-text-secondary">
+              {t('super.users.modal_delete_confirm_text')} <span className="font-semibold th-text-primary">{deleteTarget.email}</span>?
             </p>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setDeleteTarget(null)} className="px-3 py-2 text-sm text-slate-400 hover:text-white">{t('super.users.modal_delete_cancel')}</button>
+              <button onClick={() => setDeleteTarget(null)} className="px-3 py-2 text-sm text-slate-400 hover:th-text-primary">{t('super.users.modal_delete_cancel')}</button>
               <button
                 onClick={handleDelete}
                 disabled={submitting}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm rounded"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 th-text-primary text-sm rounded"
               >
                 {submitting ? t('super.users.modal_delete_submitting') : t('super.users.modal_delete_submit')}
               </button>
@@ -533,18 +533,18 @@ export default function SuperUserManagement() {
       {resetTarget && (
         <Modal title={t('super.users.modal_reset_title')} onClose={() => setResetTarget(null)}>
           <div className="space-y-4">
-            <p className="text-sm text-slate-300">
-              {t('super.users.modal_reset_confirm_text')} <span className="font-semibold text-white">{resetTarget.email}</span>?
+            <p className="text-sm th-text-secondary">
+              {t('super.users.modal_reset_confirm_text')} <span className="font-semibold th-text-primary">{resetTarget.email}</span>?
             </p>
             <p className="text-xs text-slate-500">
               {t('super.users.modal_reset_hint')}
             </p>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setResetTarget(null)} className="px-3 py-2 text-sm text-slate-400 hover:text-white">{t('super.users.modal_reset_cancel')}</button>
+              <button onClick={() => setResetTarget(null)} className="px-3 py-2 text-sm text-slate-400 hover:th-text-primary">{t('super.users.modal_reset_cancel')}</button>
               <button
                 onClick={handleReset}
                 disabled={submitting}
-                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-sm rounded"
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 th-text-primary text-sm rounded"
               >
                 {submitting ? t('super.users.modal_reset_submitting') : t('super.users.modal_reset_submit')}
               </button>

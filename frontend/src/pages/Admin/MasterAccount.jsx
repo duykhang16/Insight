@@ -30,14 +30,14 @@ const DiscoveryModal = ({ scanData, onConfirm, onCancel, confirming }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-[#0F172A] border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl">
-        <div className="px-6 py-5 border-b border-slate-800">
+      <div className="th-bg-surface border th-border rounded-2xl w-full max-w-lg shadow-2xl">
+        <div className="px-6 py-5 border-b th-border">
           <div className="flex items-center gap-2 mb-1">
             <ShieldCheck className="w-5 h-5 text-amber-400" />
-            <h2 className="text-base font-semibold text-white">{t('admin.master.discovery_results')}</h2>
+            <h2 className="text-base font-semibold th-text-primary">{t('admin.master.discovery_results')}</h2>
           </div>
           <p className="text-xs text-slate-400">
-            {t('admin.master.discovered_total')} <strong className="text-white">{total}</strong> {t('admin.master.sites')}.
+            {t('admin.master.discovered_total')} <strong className="th-text-primary">{total}</strong> {t('admin.master.sites')}.
           </p>
         </div>
 
@@ -82,7 +82,7 @@ const DiscoveryModal = ({ scanData, onConfirm, onCancel, confirming }) => {
             </div>
           )}
 
-          <div className="bg-slate-800/60 border border-slate-700 rounded-lg px-4 py-3 text-xs text-slate-300 leading-relaxed">
+          <div className="th-bg-surface-alt border th-border rounded-lg px-4 py-3 text-xs th-text-secondary leading-relaxed">
             {restrictedSites.length > 0 ? (
               <>
                 {t('admin.master.found_sites')} {total} {t('admin.master.sites')}: {adminSites.length} {t('admin.master.admin_sites_and')} {restrictedSites.length} {t('admin.master.viewer_sites')}.
@@ -101,11 +101,11 @@ const DiscoveryModal = ({ scanData, onConfirm, onCancel, confirming }) => {
           </div>
         </div>
 
-        <div className="px-6 py-4 border-t border-slate-800 flex items-center gap-3 justify-end">
+        <div className="px-6 py-4 border-t th-border flex items-center gap-3 justify-end">
           <button
             onClick={onCancel}
             disabled={confirming}
-            className="px-4 py-2 text-sm text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 rounded-lg transition-colors disabled:opacity-50"
+            className="px-4 py-2 text-sm text-slate-400 hover:th-text-primary border th-border hover:border-slate-500 rounded-lg transition-colors disabled:opacity-50"
           >
             {t('admin.master.cancel')}
           </button>
@@ -113,7 +113,7 @@ const DiscoveryModal = ({ scanData, onConfirm, onCancel, confirming }) => {
             <button
               onClick={() => onConfirm(adminSites.map(s => s.site_id))}
               disabled={confirming}
-              className="flex items-center gap-2 px-5 py-2 text-sm bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-5 py-2 text-sm bg-emerald-600 hover:bg-emerald-700 th-text-primary font-medium rounded-lg transition-colors disabled:opacity-50"
             >
               {confirming
                 ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -246,7 +246,7 @@ const MasterAccount = () => {
       <div className="p-6 max-w-2xl">
         <div className="flex items-center gap-3 mb-6">
           <Link2 className="w-5 h-5 text-blue-400" />
-          <h1 className="text-lg font-semibold text-white">{t('admin.master.title')}</h1>
+          <h1 className="text-lg font-semibold th-text-primary">{t('admin.master.title')}</h1>
         </div>
 
         {error && (
@@ -262,8 +262,8 @@ const MasterAccount = () => {
           </div>
         )}
 
-        <div className="bg-[#0F172A] border border-slate-700 rounded-xl overflow-hidden mb-6">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+        <div className="th-bg-surface border th-border rounded-xl overflow-hidden mb-6">
+          <div className="flex items-center justify-between px-5 py-4 border-b th-border">
             <div className="flex items-center gap-3">
               <div className={`w-2.5 h-2.5 rounded-full ${isLinked ? 'bg-emerald-500 shadow-[0_0_6px_#10b981]' : 'bg-slate-600'}`} />
               <span className={`text-sm font-semibold ${isLinked ? 'text-emerald-400' : 'text-slate-500'}`}>
@@ -275,7 +275,7 @@ const MasterAccount = () => {
                 <button
                   onClick={handleForceRefresh}
                   disabled={refreshing}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 rounded-lg transition-colors disabled:opacity-50"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:th-text-primary border th-border hover:border-slate-500 rounded-lg transition-colors disabled:opacity-50"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
                   {t('admin.master.force_refresh')}
@@ -297,11 +297,11 @@ const MasterAccount = () => {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-xs text-slate-500 mb-0.5">{t('admin.master.linked_by')}</p>
-                  <p className="text-slate-200">{status.linked_by || '--'}</p>
+                  <p className="th-text-primary">{status.linked_by || '--'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-500 mb-0.5">{t('admin.master.linked_at')}</p>
-                  <p className="text-slate-200">{fmtLinkedAt(status.linked_at)}</p>
+                  <p className="th-text-primary">{fmtLinkedAt(status.linked_at)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-slate-500 mb-0.5 flex items-center gap-1">
@@ -315,7 +315,7 @@ const MasterAccount = () => {
                 </div>
                 <div>
                   <p className="text-xs text-slate-500 mb-0.5">{t('admin.master.auto_refresh')}</p>
-                  <p className="text-slate-200">{status.refresh_interval_minutes} {t('admin.master.minutes')}</p>
+                  <p className="th-text-primary">{status.refresh_interval_minutes} {t('admin.master.minutes')}</p>
                 </div>
                 {status.admin_site_count != null && (
                   <div>
@@ -343,8 +343,8 @@ const MasterAccount = () => {
         </div>
 
         {!isLinked && (
-          <div className="bg-[#0F172A] border border-slate-700 rounded-xl p-5">
-            <h2 className="text-sm font-semibold text-white mb-1">{t('admin.master.link_account_title')}</h2>
+          <div className="th-bg-surface border th-border rounded-xl p-5">
+            <h2 className="text-sm font-semibold th-text-primary mb-1">{t('admin.master.link_account_title')}</h2>
             <p className="text-xs text-slate-500 mb-4">
               {t('admin.master.link_account_desc')}
               {t('admin.master.administrator_text')} <strong className="text-emerald-400">{t('admin.master.administrator_text')}</strong> {t('admin.master.will_be_managed')}.
@@ -359,7 +359,7 @@ const MasterAccount = () => {
                   value={form.aruba_username}
                   onChange={(e) => setForm({ ...form, aruba_username: e.target.value })}
                   placeholder={t('admin.master.aruba_username_placeholder')}
-                  className="w-full bg-slate-800 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                  className="w-full th-bg-elevated border border-slate-600 th-text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
                 />
               </div>
               <div>
@@ -370,13 +370,13 @@ const MasterAccount = () => {
                   value={form.aruba_password}
                   onChange={(e) => setForm({ ...form, aruba_password: e.target.value })}
                   placeholder={t('admin.master.aruba_password_placeholder')}
-                  className="w-full bg-slate-800 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                  className="w-full th-bg-elevated border border-slate-600 th-text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
                 />
               </div>
               <button
                 type="submit"
                 disabled={scanning}
-                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white text-sm py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50 mt-2"
+                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 th-text-primary text-sm py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50 mt-2"
               >
                 {scanning
                   ? <RefreshCw className="w-4 h-4 animate-spin" />

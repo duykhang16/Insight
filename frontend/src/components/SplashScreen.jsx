@@ -144,7 +144,7 @@ const SplashScreen = ({ prefetchPromise, email, onComplete }) => {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    background: #020617;
+                    background: var(--color-bg-base, #020617);
                     transition: opacity 0.4s ease, transform 0.4s ease;
                     overflow: hidden;
                 }
@@ -244,7 +244,7 @@ const SplashScreen = ({ prefetchPromise, email, onComplete }) => {
                 .splash-title {
                     font-size: 1.5rem;
                     font-weight: 900;
-                    color: #E2E8F0;
+                    color: var(--color-text-primary, #E2E8F0);
                     letter-spacing: 0.3em;
                     margin: 0 0 12px 0;
                     font-style: italic;
@@ -262,7 +262,7 @@ const SplashScreen = ({ prefetchPromise, email, onComplete }) => {
                 .splash-progress-track {
                     width: 220px;
                     height: 3px;
-                    background: #1E293B;
+                    background: var(--color-bg-surface-alt, #1E293B);
                     border-radius: 4px;
                     overflow: hidden;
                     margin-bottom: 14px;
@@ -278,7 +278,7 @@ const SplashScreen = ({ prefetchPromise, email, onComplete }) => {
                 /* Status */
                 .splash-status {
                     font-size: 0.7rem;
-                    color: #64748B;
+                    color: var(--color-text-muted, #64748B);
                     margin: 0;
                     letter-spacing: 0.05em;
                 }

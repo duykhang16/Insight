@@ -254,7 +254,7 @@ const BatchAccountAccess = () => {
     };
 
     return (
-        <div className="relative w-full min-h-[700px] bg-slate-50 dark:bg-[#020617] text-slate-800 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-gray-800 shadow-xl overflow-hidden">
+        <div className="relative w-full min-h-[700px] bg-slate-50 dark:th-bg-base text-slate-800 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-gray-800 shadow-xl overflow-hidden">
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden rounded-xl">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/5 dark:bg-blue-600/10 blur-[120px] rounded-full" />
                 <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/5 dark:bg-indigo-600/10 blur-[120px] rounded-full" />
@@ -285,13 +285,13 @@ const BatchAccountAccess = () => {
                             <div className="flex gap-2 mb-6 p-1 bg-slate-100 dark:bg-black/40 rounded-xl">
                                 <button
                                     onClick={() => setMode('add')}
-                                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mode === 'add' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200 dark:border-white/10' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mode === 'add' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200 dark:border-white/10' : 'text-slate-500 hover:text-slate-700 dark:hover:th-text-secondary'}`}
                                 >
                                     {t('batch_account.grant_access')}
                                 </button>
                                 <button
                                     onClick={() => setMode('remove')}
-                                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mode === 'remove' ? 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 shadow-sm border border-slate-200 dark:border-white/10' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${mode === 'remove' ? 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 shadow-sm border border-slate-200 dark:border-white/10' : 'text-slate-500 hover:text-slate-700 dark:hover:th-text-secondary'}`}
                                 >
                                     {t('batch_account.revoke_access')}
                                 </button>
@@ -347,13 +347,13 @@ const BatchAccountAccess = () => {
                             <div className="flex gap-2 p-1 bg-slate-100 dark:bg-black/40 rounded-xl relative mb-3">
                                 <button
                                     onClick={() => setActiveTab('zones')}
-                                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'zones' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200 dark:border-white/10' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'zones' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200 dark:border-white/10' : 'text-slate-500 hover:text-slate-700 dark:hover:th-text-secondary'}`}
                                 >
                                     {t('batch_account.zones_tab')}
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('sites')}
-                                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'sites' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200 dark:border-white/10' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'sites' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm border border-slate-200 dark:border-white/10' : 'text-slate-500 hover:text-slate-700 dark:hover:th-text-secondary'}`}
                                 >
                                     {t('batch_account.sites_tab')}
                                 </button>
@@ -402,7 +402,7 @@ const BatchAccountAccess = () => {
                                                         {selectedZones.has(zone.id) ? (
                                                             <CheckSquare size={18} className="text-blue-600 dark:text-blue-400" />
                                                         ) : (
-                                                            <SquareIcon size={18} className="text-slate-300 dark:text-slate-600" />
+                                                            <SquareIcon size={18} className="th-text-secondary dark:text-slate-600" />
                                                         )}
                                                     </div>
                                                     <div className="flex-1 min-w-0 flex items-center justify-between">
@@ -484,7 +484,7 @@ const BatchAccountAccess = () => {
                                                         {selectedSites.includes(site.id) ? (
                                                             <CheckSquare size={18} className="text-blue-600 dark:text-blue-400" />
                                                         ) : (
-                                                            <SquareIcon size={18} className="text-slate-300 dark:text-slate-600" />
+                                                            <SquareIcon size={18} className="th-text-secondary dark:text-slate-600" />
                                                         )}
                                                     </div>
                                                     <div className="flex-1 min-w-0 flex items-center justify-between">
@@ -590,8 +590,8 @@ const BatchAccountAccess = () => {
                             onClick={runPrecheck}
                             disabled={!canStart}
                             className={`w-full h-14 font-black uppercase tracking-[0.2em] text-xs rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-2 ${mode === 'add'
-                                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-emerald-500/20'
-                                : 'bg-gradient-to-r from-rose-500 to-amber-500 text-white shadow-rose-500/20'
+                                ? 'bg-gradient-to-r from-emerald-500 to-teal-500 th-text-primary shadow-emerald-500/20'
+                                : 'bg-gradient-to-r from-rose-500 to-amber-500 th-text-primary shadow-rose-500/20'
                                 }`}
                         >
                             {isRunning || isPrechecking ? (
@@ -608,7 +608,7 @@ const BatchAccountAccess = () => {
             {
                 showPrecheckModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md">
-                        <div className="bg-white dark:bg-slate-900 max-w-md w-full rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col animate-fade-in relative">
+                        <div className="bg-white dark:bg-slate-900 max-w-md w-full rounded-3xl shadow-2xl border border-slate-200 dark:th-border overflow-hidden flex flex-col animate-fade-in relative">
                             <div className="h-2 w-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500" />
                             <div className="p-6 pb-2">
                                 <div className="w-12 h-12 bg-amber-100 dark:bg-amber-500/20 rounded-full flex items-center justify-center text-amber-600 dark:text-amber-400 mb-4 mx-auto shadow-[0_0_20px_rgba(245,158,11,0.3)]">
@@ -639,7 +639,7 @@ const BatchAccountAccess = () => {
                                 </button>
                                 <button
                                     onClick={() => handleStart(existingSites.map(s => s.site_id))}
-                                    className="h-12 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 text-white font-black tracking-widest text-xs rounded-xl shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
+                                    className="h-12 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 th-text-primary font-black tracking-widest text-xs rounded-xl shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
                                 >
                                     <Play size={16} /> {t('batch_account.skip_continue')}
                                 </button>

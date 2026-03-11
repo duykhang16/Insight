@@ -181,7 +181,7 @@ const Configuration = ({ rolePermissions: propRolePermissions }) => {
                             className={`flex items-center gap-2 pb-3 px-2 border-b-2 transition-colors ${
                                 activeTab === tab.key
                                     ? `${colorMap[tab.color]} font-semibold`
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:th-text-secondary'
                             }`}
                             onClick={() => setActiveTab(tab.key)}
                         >
@@ -217,8 +217,8 @@ const Configuration = ({ rolePermissions: propRolePermissions }) => {
                                         onClick={() => setCloneSubTab('full_clone')}
                                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                                             cloneSubTab === 'full_clone'
-                                                ? 'bg-blue-600 text-white'
-                                                : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'
+                                                ? 'bg-blue-600 th-text-primary'
+                                                : 'text-slate-500 hover:th-text-secondary hover:th-bg-elevated'
                                         }`}
                                     >
                                         <Copy size={13} />
@@ -228,8 +228,8 @@ const Configuration = ({ rolePermissions: propRolePermissions }) => {
                                         onClick={() => setCloneSubTab('smart_sync')}
                                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                                             cloneSubTab === 'smart_sync'
-                                                ? 'bg-blue-600 text-white'
-                                                : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'
+                                                ? 'bg-blue-600 th-text-primary'
+                                                : 'text-slate-500 hover:th-text-secondary hover:th-bg-elevated'
                                         }`}
                                     >
                                         <Wifi size={13} />

@@ -61,13 +61,13 @@ export default function SuperLogs() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-white">{t('super.logs.title')}</h1>
+          <h1 className="text-lg font-bold th-text-primary">{t('super.logs.title')}</h1>
           <p className="text-xs text-slate-500 mt-0.5">{t('super.logs.subtitle')}</p>
         </div>
         <button
           onClick={fetchLogs}
           disabled={loading}
-          className="flex items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-sm text-white rounded transition-colors"
+          className="flex items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-sm th-text-primary rounded transition-colors"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           {t('super.logs.button_refresh')}
@@ -78,13 +78,13 @@ export default function SuperLogs() {
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
         <input
-          className="w-full bg-slate-800 border border-slate-700 rounded pl-9 pr-8 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+          className="w-full th-bg-elevated border th-border rounded pl-9 pr-8 py-2 text-sm th-text-primary placeholder-slate-500 focus:outline-none focus:border-blue-500"
           placeholder={t('super.logs.search_placeholder')}
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
         {search && (
-          <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+          <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:th-text-primary">
             <X className="w-3.5 h-3.5" />
           </button>
         )}
@@ -97,7 +97,7 @@ export default function SuperLogs() {
       )}
 
       {/* Log table */}
-      <div className="bg-[#0F172A] border border-slate-800 rounded-lg overflow-hidden">
+      <div className="th-bg-surface border th-border rounded-lg overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-500" />
@@ -107,7 +107,7 @@ export default function SuperLogs() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
-              <thead className="bg-slate-800/60">
+              <thead className="th-bg-surface-alt">
                 <tr>
                   <th className="px-3 py-3 text-left font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">{t('super.logs.table_header_timestamp')}</th>
                   <th className="px-3 py-3 text-left font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">{t('super.logs.table_header_actor')}</th>
@@ -120,9 +120,9 @@ export default function SuperLogs() {
               </thead>
               <tbody>
                 {filtered.map(log => (
-                  <tr key={log.id} className="border-t border-slate-800 hover:bg-slate-800/30 transition-colors">
+                  <tr key={log.id} className="border-t th-border hover:bg-slate-800/30 transition-colors">
                     <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{log.timestamp}</td>
-                    <td className="px-3 py-2 text-slate-300 whitespace-nowrap max-w-[180px] truncate" title={log.actor_email}>
+                    <td className="px-3 py-2 th-text-secondary whitespace-nowrap max-w-[180px] truncate" title={log.actor_email}>
                       {log.actor_email || log.insight_user_id || '—'}
                     </td>
                     <td className={`px-3 py-2 font-bold whitespace-nowrap ${METHOD_COLOR[log.method] || 'text-slate-400'}`}>
@@ -151,7 +151,7 @@ export default function SuperLogs() {
         <button
           disabled={page === 0 || loading}
           onClick={() => setPage(p => p - 1)}
-          className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300 text-sm rounded transition-colors"
+          className="px-3 py-1.5 th-bg-elevated hover:bg-slate-700 disabled:opacity-40 th-text-secondary text-sm rounded transition-colors"
         >
           {t('super.logs.pagination_previous')}
         </button>
@@ -159,7 +159,7 @@ export default function SuperLogs() {
         <button
           disabled={logs.length < PAGE_SIZE || loading}
           onClick={() => setPage(p => p + 1)}
-          className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300 text-sm rounded transition-colors"
+          className="px-3 py-1.5 th-bg-elevated hover:bg-slate-700 disabled:opacity-40 th-text-secondary text-sm rounded transition-colors"
         >
           {t('super.logs.pagination_next')}
         </button>

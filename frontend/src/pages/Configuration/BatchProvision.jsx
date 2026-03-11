@@ -196,7 +196,7 @@ const BatchProvision = () => {
     };
 
     return (
-        <div className="relative w-full min-h-[700px] bg-slate-50 dark:bg-[#020617] text-slate-800 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-gray-800 shadow-xl overflow-hidden">
+        <div className="relative w-full min-h-[700px] bg-slate-50 dark:th-bg-base text-slate-800 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-gray-800 shadow-xl overflow-hidden">
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden rounded-xl">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-violet-600/5 dark:bg-violet-600/10 blur-[120px] rounded-full" />
                 <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/5 dark:bg-indigo-600/10 blur-[120px] rounded-full" />
@@ -325,7 +325,7 @@ const BatchProvision = () => {
                                                 onClick={() => !isRunning && toggleZone(z.id)}
                                                 className={`p-2 rounded-xl flex items-center gap-3 border cursor-pointer transition-all ${selectedZones.has(z.id) ? 'bg-violet-50 dark:bg-violet-500/10 border-violet-200 dark:border-violet-500/30' : 'bg-white dark:bg-black/20 border-slate-100 dark:border-white/5 hover:border-slate-300'}`}
                                             >
-                                                {selectedZones.has(z.id) ? <CheckSquare size={16} className="text-violet-600 dark:text-violet-400" /> : <SquareIcon size={16} className="text-slate-300 dark:text-slate-600" />}
+                                                {selectedZones.has(z.id) ? <CheckSquare size={16} className="text-violet-600 dark:text-violet-400" /> : <SquareIcon size={16} className="th-text-secondary dark:text-slate-600" />}
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">{z.name}</p>
                                                     <p className="text-[9px] text-slate-500">{z.site_count || 0} Sites</p>
@@ -390,7 +390,7 @@ const BatchProvision = () => {
                                 </div>
                                 <button
                                     onClick={() => setConfirmShown(true)}
-                                    className="w-full h-10 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-black uppercase tracking-widest text-[10px] rounded-xl flex items-center justify-center gap-2 hover:scale-[1.02] transition-all shadow-lg shadow-violet-500/20"
+                                    className="w-full h-10 bg-gradient-to-r from-violet-600 to-indigo-600 th-text-primary font-black uppercase tracking-widest text-[10px] rounded-xl flex items-center justify-center gap-2 hover:scale-[1.02] transition-all shadow-lg shadow-violet-500/20"
                                 >
                                     <Rocket size={14} /> Xác nhận & Khởi chạy
                                 </button>
@@ -437,7 +437,7 @@ const BatchProvision = () => {
                         <button
                             onClick={handleStart}
                             disabled={!canStart || (prefix && selectedSourceId && !confirmShown && logs.length === 0)}
-                            className="w-full h-12 bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-black uppercase tracking-[0.2em] text-[10px] rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            className="w-full h-12 bg-gradient-to-r from-violet-600 to-indigo-600 th-text-primary font-black uppercase tracking-[0.2em] text-[10px] rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                             {isRunning ? (
                                 <><RefreshCw size={14} className="animate-spin" /> {t('batch_provision.provisioning_backend')}</>

@@ -18,8 +18,8 @@ function TenantRow({ tenant, allUsers, onEdit, onDelete, onAssignAdmin, refreshi
   const admin = allUsers.find(u => u.email === tenant.admin_email);
 
   return (
-    <tr className="border-t border-slate-800 hover:bg-slate-800/40 transition-colors">
-      <td className="px-4 py-3 font-medium text-white">{tenant.name}</td>
+    <tr className="border-t th-border hover:th-bg-surface-alt transition-colors">
+      <td className="px-4 py-3 font-medium th-text-primary">{tenant.name}</td>
       <td className="px-4 py-3 text-slate-400 text-sm">{tenant.note || '—'}</td>
       <td className="px-4 py-3">
         {tenant.admin_email ? (
@@ -43,7 +43,7 @@ function TenantRow({ tenant, allUsers, onEdit, onDelete, onAssignAdmin, refreshi
           </button>
           <button
             onClick={() => onEdit(tenant)}
-            className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
+            className="p-1.5 rounded text-slate-400 hover:th-text-primary hover:bg-slate-700 transition-colors"
             title={t('super.tenants.button_tooltip_edit')}
           >
             <Pencil className="w-4 h-4" />
@@ -64,10 +64,10 @@ function TenantRow({ tenant, allUsers, onEdit, onDelete, onAssignAdmin, refreshi
 function Modal({ title, onClose, children }) {
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-[#0F172A] border border-slate-700 rounded-lg w-full max-w-md shadow-xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700">
-          <h2 className="text-sm font-semibold text-white">{title}</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+      <div className="th-bg-surface border th-border rounded-lg w-full max-w-md shadow-xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b th-border">
+          <h2 className="text-sm font-semibold th-text-primary">{title}</h2>
+          <button onClick={onClose} className="text-slate-400 hover:th-text-primary transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -219,12 +219,12 @@ export default function TenantManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-white">{t('super.tenants.title')}</h1>
+          <h1 className="text-lg font-bold th-text-primary">{t('super.tenants.title')}</h1>
           <p className="text-xs text-slate-500 mt-0.5">{t('super.tenants.subtitle')}</p>
         </div>
         <button
           onClick={() => { setCreateModal(true); setFormName(''); setFormNote(''); }}
-          className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
+          className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 th-text-primary text-sm rounded transition-colors"
         >
           <Plus className="w-4 h-4" /> {t('super.tenants.add_button')}
         </button>
@@ -248,7 +248,7 @@ export default function TenantManagement() {
       )}
 
       {/* Table */}
-      <div className="bg-[#0F172A] border border-slate-800 rounded-lg overflow-hidden">
+      <div className="th-bg-surface border th-border rounded-lg overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-500" />
@@ -257,7 +257,7 @@ export default function TenantManagement() {
           <div className="text-center py-12 text-slate-500 text-sm">{t('super.tenants.empty_state')}</div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-slate-800/60">
+            <thead className="th-bg-surface-alt">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('super.tenants.table_header_name')}</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('super.tenants.table_header_notes')}</th>
@@ -289,7 +289,7 @@ export default function TenantManagement() {
             <div>
               <label className="block text-xs text-slate-400 mb-1">{t('super.tenants.modal_create_name_label')}</label>
               <input
-                className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                className="w-full th-bg-elevated border th-border rounded px-3 py-2 text-sm th-text-primary placeholder-slate-500 focus:outline-none focus:border-blue-500"
                 placeholder={t('super.tenants.modal_create_name_placeholder')}
                 value={formName}
                 onChange={e => setFormName(e.target.value)}
@@ -298,7 +298,7 @@ export default function TenantManagement() {
             <div>
               <label className="block text-xs text-slate-400 mb-1">{t('super.tenants.modal_create_notes_label')}</label>
               <textarea
-                className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                className="w-full th-bg-elevated border th-border rounded px-3 py-2 text-sm th-text-primary placeholder-slate-500 focus:outline-none focus:border-blue-500"
                 rows={2}
                 placeholder={t('super.tenants.modal_create_notes_placeholder')}
                 value={formNote}
@@ -306,11 +306,11 @@ export default function TenantManagement() {
               />
             </div>
             <div className="flex justify-end gap-2 pt-1">
-              <button onClick={() => setCreateModal(false)} className="px-3 py-2 text-sm text-slate-400 hover:text-white transition-colors">{t('super.tenants.modal_create_cancel')}</button>
+              <button onClick={() => setCreateModal(false)} className="px-3 py-2 text-sm text-slate-400 hover:th-text-primary transition-colors">{t('super.tenants.modal_create_cancel')}</button>
               <button
                 onClick={handleCreate}
                 disabled={!formName.trim() || submitting}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm rounded transition-colors"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 th-text-primary text-sm rounded transition-colors"
               >
                 {submitting ? t('super.tenants.modal_create_submitting') : t('super.tenants.modal_create_submit')}
               </button>
@@ -326,7 +326,7 @@ export default function TenantManagement() {
             <div>
               <label className="block text-xs text-slate-400 mb-1">{t('super.tenants.modal_edit_name_label')}</label>
               <input
-                className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full th-bg-elevated border th-border rounded px-3 py-2 text-sm th-text-primary focus:outline-none focus:border-blue-500"
                 value={formName}
                 onChange={e => setFormName(e.target.value)}
               />
@@ -334,18 +334,18 @@ export default function TenantManagement() {
             <div>
               <label className="block text-xs text-slate-400 mb-1">{t('super.tenants.modal_edit_notes_label')}</label>
               <textarea
-                className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full th-bg-elevated border th-border rounded px-3 py-2 text-sm th-text-primary focus:outline-none focus:border-blue-500"
                 rows={2}
                 value={formNote}
                 onChange={e => setFormNote(e.target.value)}
               />
             </div>
             <div className="flex justify-end gap-2 pt-1">
-              <button onClick={() => setEditTarget(null)} className="px-3 py-2 text-sm text-slate-400 hover:text-white transition-colors">{t('super.tenants.modal_edit_cancel')}</button>
+              <button onClick={() => setEditTarget(null)} className="px-3 py-2 text-sm text-slate-400 hover:th-text-primary transition-colors">{t('super.tenants.modal_edit_cancel')}</button>
               <button
                 onClick={handleEdit}
                 disabled={!formName.trim() || submitting}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm rounded transition-colors"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 th-text-primary text-sm rounded transition-colors"
               >
                 {submitting ? t('super.tenants.modal_edit_submitting') : t('super.tenants.modal_edit_submit')}
               </button>
@@ -358,8 +358,8 @@ export default function TenantManagement() {
       {deleteTarget && (
         <Modal title={t('super.tenants.modal_delete_title')} onClose={() => setDeleteTarget(null)}>
           <div className="space-y-4">
-            <p className="text-sm text-slate-300">
-              {t('super.tenants.modal_delete_confirm_text')} <span className="font-semibold text-white">"{deleteTarget.name}"</span>?
+            <p className="text-sm th-text-secondary">
+              {t('super.tenants.modal_delete_confirm_text')} <span className="font-semibold th-text-primary">"{deleteTarget.name}"</span>?
               {deleteTarget.admin_email && (
                 <span className="block mt-1 text-yellow-400 text-xs">
                   {t('super.tenants.modal_delete_has_admin_text')} {deleteTarget.admin_email}
@@ -367,11 +367,11 @@ export default function TenantManagement() {
               )}
             </p>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setDeleteTarget(null)} className="px-3 py-2 text-sm text-slate-400 hover:text-white transition-colors">{t('super.tenants.modal_delete_cancel')}</button>
+              <button onClick={() => setDeleteTarget(null)} className="px-3 py-2 text-sm text-slate-400 hover:th-text-primary transition-colors">{t('super.tenants.modal_delete_cancel')}</button>
               <button
                 onClick={handleDelete}
                 disabled={submitting}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm rounded transition-colors"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 th-text-primary text-sm rounded transition-colors"
               >
                 {submitting ? t('super.tenants.modal_delete_submitting') : t('super.tenants.modal_delete_submit')}
               </button>
@@ -394,13 +394,13 @@ export default function TenantManagement() {
                     <button
                       onClick={confirmAssignDespiteWarning}
                       disabled={submitting}
-                      className="px-3 py-1.5 bg-yellow-700 hover:bg-yellow-600 text-white text-xs rounded transition-colors"
+                      className="px-3 py-1.5 bg-yellow-700 hover:bg-yellow-600 th-text-primary text-xs rounded transition-colors"
                     >
                       {t('super.tenants.modal_assign_warning_confirm')}
                     </button>
                     <button
                       onClick={() => setAssignWarning('')}
-                      className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs rounded transition-colors"
+                      className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 th-text-secondary text-xs rounded transition-colors"
                     >
                       {t('super.tenants.modal_assign_warning_cancel')}
                     </button>
@@ -417,7 +417,7 @@ export default function TenantManagement() {
                     <p className="text-xs text-slate-500">{t('super.tenants.modal_assign_no_candidates')}</p>
                   ) : (
                     <select
-                      className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                      className="w-full th-bg-elevated border th-border rounded px-3 py-2 text-sm th-text-primary focus:outline-none focus:border-blue-500"
                       value={assignEmail}
                       onChange={e => setAssignEmail(e.target.value)}
                     >
@@ -431,14 +431,14 @@ export default function TenantManagement() {
                 <div className="flex justify-end gap-2">
                   <button
                     onClick={() => { setAssignTarget(null); setAssignWarning(''); }}
-                    className="px-3 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                    className="px-3 py-2 text-sm text-slate-400 hover:th-text-primary transition-colors"
                   >
                     {t('super.tenants.modal_assign_cancel')}
                   </button>
                   <button
                     onClick={handleAssign}
                     disabled={!assignEmail || submitting}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm rounded transition-colors"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 th-text-primary text-sm rounded transition-colors"
                   >
                     {submitting ? t('super.tenants.modal_assign_submitting') : t('super.tenants.modal_assign_submit')}
                   </button>

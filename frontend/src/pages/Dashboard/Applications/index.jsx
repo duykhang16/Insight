@@ -103,10 +103,10 @@ const Applications = () => {
     }, [dashboardData, searchTerm, sortConfig]);
 
     return (
-        <div className="p-8 pb-32 font-sans overflow-hidden bg-slate-950 min-h-screen">
+        <div className="p-8 pb-32 font-sans overflow-hidden th-bg-base min-h-screen">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
-                    <h1 className="text-2xl font-black text-white tracking-tight italic uppercase">{t('site.applications.title')}</h1>
+                    <h1 className="text-2xl font-black th-text-primary tracking-tight italic uppercase">{t('site.applications.title')}</h1>
                     <p className="text-sm text-slate-400 mt-1">
                         {t('site.applications.subtitle')} {sites.find(s => s.siteId === selectedSiteId)?.siteName || 'current site'}
                     </p>
@@ -122,11 +122,11 @@ const Applications = () => {
                         placeholder={t('site.applications.search_placeholder')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full h-14 pl-12 pr-4 bg-slate-900 border border-white/5 rounded-2xl text-white text-sm focus:outline-none focus:border-indigo-500/50 shadow-inner transition-all hover:bg-slate-800/50"
+                        className="w-full h-14 pl-12 pr-4 th-bg-surface border border-white/5 rounded-2xl th-text-primary text-sm focus:outline-none focus:border-indigo-500/50 shadow-inner transition-all hover:th-bg-surface-alt"
                     />
                 </div>
 
-                <div className="bg-slate-900 border border-white/5 rounded-2xl h-14 px-5 flex items-center gap-4 shadow-xl">
+                <div className="th-bg-surface border border-white/5 rounded-2xl h-14 px-5 flex items-center gap-4 shadow-xl">
                     <LayoutGrid size={18} className="text-indigo-400" />
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                         {processedData.length} {t('site.applications.stats_categories_label')}

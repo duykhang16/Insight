@@ -38,11 +38,11 @@ const SiteCard = ({ site }) => {
     return (
         <div
             onClick={() => navigate(`/overview/${siteId}`)}
-            className="bg-slate-800 rounded-xl shadow-lg border border-white/5 hover:border-blue-500/40 hover:shadow-blue-500/10 transition-all cursor-pointer flex flex-col overflow-hidden"
+            className="th-bg-elevated rounded-xl shadow-lg border border-white/5 hover:border-blue-500/40 hover:shadow-blue-500/10 transition-all cursor-pointer flex flex-col overflow-hidden"
         >
             {/* Header */}
             <div className="px-4 pt-4 pb-2">
-                <h3 className="text-sm font-bold text-white truncate" title={site.siteName}>
+                <h3 className="text-sm font-bold th-text-primary truncate" title={site.siteName}>
                     {site.siteName}
                 </h3>
             </div>
@@ -53,7 +53,7 @@ const SiteCard = ({ site }) => {
                 <div className="flex-1 min-w-0">
                     <p className="text-xs text-slate-400 mb-1">Health</p>
                     <div className="flex items-center gap-2">
-                        <span className="text-3xl font-black text-white leading-none">
+                        <span className="text-3xl font-black th-text-primary leading-none">
                             {score !== null && score !== undefined ? `${score}%` : '—'}
                         </span>
                         <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${dotClass}`} />
@@ -70,7 +70,7 @@ const SiteCard = ({ site }) => {
                                 <div className="flex items-center gap-1.5">
                                     {/* Red diamond */}
                                     <span className="text-rose-500 text-lg leading-none">◆</span>
-                                    <span className="text-2xl font-black text-white leading-none">{majorCount}</span>
+                                    <span className="text-2xl font-black th-text-primary leading-none">{majorCount}</span>
                                 </div>
                                 <p className="text-xs text-slate-400 mt-1">Major</p>
                             </>
@@ -79,7 +79,7 @@ const SiteCard = ({ site }) => {
                                 <div className="flex items-center gap-1.5">
                                     {/* Orange triangle */}
                                     <span className="text-amber-400 text-lg leading-none">▲</span>
-                                    <span className="text-2xl font-black text-white leading-none">{minorCount}</span>
+                                    <span className="text-2xl font-black th-text-primary leading-none">{minorCount}</span>
                                 </div>
                                 <p className="text-xs text-slate-400 mt-1">Minor</p>
                             </>
@@ -91,7 +91,7 @@ const SiteCard = ({ site }) => {
             {/* Footer */}
             <div className="px-4 pb-4 flex items-center justify-between">
                 <div>
-                    <div className="flex items-center gap-1 text-slate-300 text-xs font-semibold">
+                    <div className="flex items-center gap-1 th-text-secondary text-xs font-semibold">
                         <ArrowRight size={13} />
                         <span>{trend}</span>
                     </div>

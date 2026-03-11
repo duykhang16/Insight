@@ -151,7 +151,7 @@ const Login = ({ onLoginSuccess }) => {
 
     if (checkingAuth) {
         return (
-            <div className="min-h-screen bg-slate-50 dark:bg-[#020617] flex items-center justify-center text-blue-500">
+            <div className="min-h-screen bg-slate-50 dark:th-bg-base flex items-center justify-center text-blue-500">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
             </div>
         );
@@ -167,7 +167,7 @@ const Login = ({ onLoginSuccess }) => {
     // ── First-login: set password ─────────────────────────────────────────────
     if (setupMode) {
         return (
-            <div className="relative min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#020617] text-slate-800 dark:text-slate-200 overflow-hidden px-4">
+            <div className="relative min-h-screen flex items-center justify-center bg-slate-50 dark:th-bg-base text-slate-800 dark:text-slate-200 overflow-hidden px-4">
                 {bgOrbs}
                 <div className="relative z-10 w-full max-w-md">
                     <div className="backdrop-blur-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-3xl p-10 shadow-2xl dark:shadow-none">
@@ -209,7 +209,7 @@ const Login = ({ onLoginSuccess }) => {
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="w-full h-14 bg-blue-600 dark:bg-white text-white dark:text-black font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 dark:hover:bg-blue-500 dark:hover:text-white transition-all shadow-xl shadow-blue-500/10 active:scale-95 disabled:opacity-50 flex items-center justify-center"
+                                    className="w-full h-14 bg-blue-600 dark:bg-white th-text-primary dark:text-black font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 dark:hover:bg-blue-500 dark:hover:th-text-primary transition-all shadow-xl shadow-blue-500/10 active:scale-95 disabled:opacity-50 flex items-center justify-center"
                                 >
                                     {loading ? <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-current mr-3"></div> : null}
                                     {loading ? 'Đang lưu...' : 'Xác nhận & Đăng nhập'}
@@ -225,7 +225,7 @@ const Login = ({ onLoginSuccess }) => {
 
     // ── Normal login ──────────────────────────────────────────────────────────
     return (
-        <div className="relative min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#020617] text-slate-800 dark:text-slate-200 overflow-hidden px-4">
+        <div className="relative min-h-screen flex items-center justify-center bg-slate-50 dark:th-bg-base text-slate-800 dark:text-slate-200 overflow-hidden px-4">
             {bgOrbs}
 
             <div className="relative z-10 w-full max-w-md">
@@ -267,7 +267,7 @@ const Login = ({ onLoginSuccess }) => {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full h-14 bg-blue-600 dark:bg-white text-white dark:text-black font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 dark:hover:bg-blue-500 dark:hover:text-white transition-all shadow-xl shadow-blue-500/10 active:scale-95 disabled:opacity-50 flex items-center justify-center border border-transparent hover:border-blue-400/50"
+                                className="w-full h-14 bg-blue-600 dark:bg-white th-text-primary dark:text-black font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 dark:hover:bg-blue-500 dark:hover:th-text-primary transition-all shadow-xl shadow-blue-500/10 active:scale-95 disabled:opacity-50 flex items-center justify-center border border-transparent hover:border-blue-400/50"
                             >
                                 {loading ? (
                                     <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-current mr-3"></div>

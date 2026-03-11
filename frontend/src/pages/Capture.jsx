@@ -114,9 +114,9 @@ function Capture() {
     return (
         <div className="animate-fade-in space-y-6 pb-20">
             {/* Header section */}
-            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-800/40 p-6 rounded-2xl border border-white/5 backdrop-blur-md">
+            <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 th-bg-surface-alt p-6 rounded-2xl border border-white/5 backdrop-blur-md">
                 <div>
-                    <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-3">
+                    <h1 className="text-2xl font-black th-text-primary tracking-tight flex items-center gap-3">
                         <Activity className="text-blue-500 animate-pulse" />
                         Traffic Explorer
                     </h1>
@@ -125,23 +125,23 @@ function Capture() {
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className="flex bg-slate-900/50 p-1 rounded-xl border border-white/5">
+                    <div className="flex th-bg-surface p-1 rounded-xl border border-white/5">
                         <button
                             onClick={() => setIsLive(true)}
-                            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${isLive ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${isLive ? 'bg-blue-600 th-text-primary shadow-lg' : 'text-slate-500 hover:th-text-secondary'}`}
                         >
                             Live
                         </button>
                         <button
                             onClick={() => setIsLive(false)}
-                            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${!isLive ? 'bg-slate-700 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${!isLive ? 'bg-slate-700 th-text-primary shadow-lg' : 'text-slate-500 hover:th-text-secondary'}`}
                         >
                             Snapshot
                         </button>
                     </div>
                     <button
                         onClick={fetchLogs}
-                        className="p-2.5 bg-slate-800 hover:bg-slate-700 border border-white/10 rounded-xl text-slate-300 transition-all active:scale-95"
+                        className="p-2.5 th-bg-elevated hover:bg-slate-700 border border-white/10 rounded-xl th-text-secondary transition-all active:scale-95"
                         title="Refresh Data"
                     >
                         <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
@@ -163,7 +163,7 @@ function Capture() {
                     <input
                         type="text"
                         placeholder="Search URL or body..."
-                        className="w-full h-12 bg-slate-800/50 border border-white/5 rounded-xl pl-11 pr-4 text-sm text-white focus:outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/5 transition-all"
+                        className="w-full h-12 th-bg-surface-alt border border-white/5 rounded-xl pl-11 pr-4 text-sm th-text-primary focus:outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/5 transition-all"
                         value={filters.keyword}
                         onChange={(e) => setFilters(f => ({ ...f, keyword: e.target.value }))}
                         onKeyDown={(e) => e.key === 'Enter' && fetchLogs()}
@@ -172,7 +172,7 @@ function Capture() {
                 <div className="relative">
                     <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
                     <select
-                        className="w-full h-12 bg-slate-800/50 border border-white/5 rounded-xl pl-11 pr-4 text-sm text-white appearance-none focus:outline-none focus:border-blue-500/50"
+                        className="w-full h-12 th-bg-surface-alt border border-white/5 rounded-xl pl-11 pr-4 text-sm th-text-primary appearance-none focus:outline-none focus:border-blue-500/50"
                         value={filters.method}
                         onChange={(e) => setFilters(f => ({ ...f, method: e.target.value }))}
                     >
@@ -186,7 +186,7 @@ function Capture() {
                 <div className="relative">
                     <Database className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
                     <select
-                        className="w-full h-12 bg-slate-800/50 border border-white/5 rounded-xl pl-11 pr-4 text-sm text-white appearance-none focus:outline-none focus:border-blue-500/50"
+                        className="w-full h-12 th-bg-surface-alt border border-white/5 rounded-xl pl-11 pr-4 text-sm th-text-primary appearance-none focus:outline-none focus:border-blue-500/50"
                         value={filters.status}
                         onChange={(e) => setFilters(f => ({ ...f, status: e.target.value }))}
                     >
@@ -198,7 +198,7 @@ function Capture() {
                 </div>
                 <button
                     onClick={fetchLogs}
-                    className="h-12 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl transition-all shadow-lg active:scale-95"
+                    className="h-12 bg-blue-600 hover:bg-blue-500 th-text-primary font-bold text-sm rounded-xl transition-all shadow-lg active:scale-95"
                 >
                     Apply Filters
                 </button>
@@ -209,7 +209,7 @@ function Capture() {
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-slate-900/50 text-slate-500 text-[10px] uppercase font-black tracking-[0.2em] border-b border-white/5">
+                            <tr className="th-bg-surface text-slate-500 text-[10px] uppercase font-black tracking-[0.2em] border-b border-white/5">
                                 <th className="px-6 py-4">Status</th>
                                 <th className="px-6 py-4">Method</th>
                                 <th className="px-6 py-4">Domain</th>
@@ -223,7 +223,7 @@ function Capture() {
                                 <tr>
                                     <td colSpan="6" className="px-6 py-20 text-center">
                                         <div className="flex flex-col items-center gap-3">
-                                            <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center text-slate-600">
+                                            <div className="w-16 h-16 th-bg-elevated rounded-2xl flex items-center justify-center text-slate-600">
                                                 <RefreshCw size={32} />
                                             </div>
                                             <p className="text-slate-500 font-medium">No captured logs found.</p>
@@ -252,7 +252,7 @@ function Capture() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2 text-slate-300">
+                                            <div className="flex items-center gap-2 th-text-secondary">
                                                 <Globe size={14} className="text-slate-600" />
                                                 <span className="text-xs font-medium truncate max-w-[150px]">{log.domain}</span>
                                             </div>
@@ -270,7 +270,7 @@ function Capture() {
                                         </td>
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex flex-col items-end">
-                                                <span className="text-xs text-slate-300 font-mono">{formatTime(log.timestamp)}</span>
+                                                <span className="text-xs th-text-secondary font-mono">{formatTime(log.timestamp)}</span>
                                                 <ArrowUpRight size={14} className="text-slate-700 group-hover:text-blue-500 transition-colors mt-1" />
                                             </div>
                                         </td>

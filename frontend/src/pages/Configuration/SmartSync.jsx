@@ -379,7 +379,7 @@ const SmartSync = () => {
 
     // --- 4. Giao diện ---
     return (
-        <div className={`relative w-full min-h-[800px] h-full bg-slate-50 dark:bg-[#020617] text-slate-800 dark:text-slate-200 font-sans overflow-x-hidden rounded-xl border border-slate-200 dark:border-gray-800 shadow-xl dark:shadow-2xl ${styles.clonerWrapper}`}>
+        <div className={`relative w-full min-h-[800px] h-full bg-slate-50 dark:th-bg-base text-slate-800 dark:text-slate-200 font-sans overflow-x-hidden rounded-xl border border-slate-200 dark:border-gray-800 shadow-xl dark:shadow-2xl ${styles.clonerWrapper}`}>
             {/* Background Orbs */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none rounded-xl">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-600/5 dark:bg-emerald-600/10 blur-[120px] rounded-full"></div>
@@ -388,7 +388,7 @@ const SmartSync = () => {
 
             <div className="relative z-10 w-full h-full p-8 space-y-12">
                 {/* Horizontal Progress Stepper */}
-                <div className="bg-white/80 dark:bg-[#020617]/80 backdrop-blur-xl py-6 border-b border-slate-200 dark:border-white/5 -mx-8 px-12 mb-10 transition-all duration-300">
+                <div className="bg-white/80 dark:th-bg-base/80 backdrop-blur-xl py-6 border-b border-slate-200 dark:border-white/5 -mx-8 px-12 mb-10 transition-all duration-300">
                     <div className="max-w-4xl mx-auto relative px-4">
                         <div className="flex justify-between items-center relative z-10">
                             {['Scope & Target', 'Filter & Config', 'Execution Log'].map((step, idx) => {
@@ -397,8 +397,8 @@ const SmartSync = () => {
                                 const isCurrent = currentStep === stepNum;
                                 return (
                                     <div key={idx} className="flex flex-col items-center">
-                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 border ${isCurrent ? 'bg-emerald-600 border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)] scale-110 text-white' :
-                                            isActive ? 'bg-white dark:bg-slate-900 border-emerald-200 dark:border-emerald-500/50 text-emerald-500 dark:text-emerald-400' : 'bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-white/5 text-slate-400 dark:text-slate-700'
+                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 border ${isCurrent ? 'bg-emerald-600 border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)] scale-110 th-text-primary' :
+                                            isActive ? 'bg-white dark:bg-slate-900 border-emerald-200 dark:border-emerald-500/50 text-emerald-500 dark:text-emerald-400' : 'bg-slate-100 dark:th-bg-base border-slate-200 dark:border-white/5 text-slate-400 dark:text-slate-700'
                                             }`}>
                                             {isActive && !isCurrent ? <CheckCircle size={20} /> :
                                                 idx === 0 ? <Server size={20} /> :
@@ -453,7 +453,7 @@ const SmartSync = () => {
                                                         ? 'bg-emerald-500/10 border-emerald-500 shadow-lg shadow-emerald-500/5' 
                                                         : 'bg-white dark:bg-black/40 border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/10'}`}
                                                 >
-                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${selectedAction === action.id ? 'bg-emerald-500 text-white' : 'bg-slate-100 dark:bg-white/5 ' + action.color}`}>
+                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${selectedAction === action.id ? 'bg-emerald-500 th-text-primary' : 'bg-slate-100 dark:bg-white/5 ' + action.color}`}>
                                                         <action.icon size={20} />
                                                     </div>
                                                     <span className={`text-sm font-bold ${selectedAction === action.id ? 'text-emerald-900 dark:text-emerald-400' : 'text-slate-600 dark:text-slate-400'}`}>
@@ -517,7 +517,7 @@ const SmartSync = () => {
                                                             : !canSelect ? 'opacity-40 grayscale bg-slate-100 dark:bg-white/5' : 'bg-white dark:bg-black/40 border-slate-200 dark:border-white/10 hover:border-slate-300'}`}
                                                     >
                                                         <div className="flex items-center gap-4">
-                                                            <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${isSelected ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 dark:border-white/10'}`}>
+                                                            <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${isSelected ? 'bg-emerald-500 border-emerald-500 th-text-primary' : 'border-slate-300 dark:border-white/10'}`}>
                                                                 {isSelected && <CheckCircle size={14} />}
                                                             </div>
                                                             <div className="flex flex-col">
@@ -555,7 +555,7 @@ const SmartSync = () => {
                                             <button
                                                 onClick={handleAnalyzeSites}
                                                 disabled={isAnalyzing || selectedTargetIds.size === 0}
-                                                className="flex-1 h-12 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black uppercase tracking-widest shadow-lg hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-30 disabled:hover:scale-100 flex items-center justify-center gap-2"
+                                                className="flex-1 h-12 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 th-text-primary font-black uppercase tracking-widest shadow-lg hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-30 disabled:hover:scale-100 flex items-center justify-center gap-2"
                                             >
                                                 {isAnalyzing ? <Activity size={18} className="animate-spin" /> : <Search size={18} />}
                                                 Analyze Selection
@@ -661,7 +661,7 @@ const SmartSync = () => {
                                                 selectedAction === 'delete_ssid' ? !selectedSSIDName : 
                                                 (!selectedSSIDName || !selectedSourceSiteId)
                                             }
-                                            className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl hover:scale-[1.02] active:scale-98 transition-all disabled:opacity-30 flex items-center justify-center gap-2 mt-4"
+                                            className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 th-text-primary font-black uppercase tracking-widest rounded-2xl shadow-xl hover:scale-[1.02] active:scale-98 transition-all disabled:opacity-30 flex items-center justify-center gap-2 mt-4"
                                         >
                                             Next: Deployment Review <ChevronRight size={18} />
                                         </button>
@@ -688,7 +688,7 @@ const SmartSync = () => {
                                 </div>
                                 <div className="flex-1 overflow-y-auto custom-scrollbar">
                                     <table className="w-full text-left">
-                                        <thead className="sticky top-0 bg-white dark:bg-[#0f172a] z-10">
+                                        <thead className="sticky top-0 bg-white dark:th-bg-surface z-10">
                                             <tr className="border-b border-slate-200 dark:border-white/5">
                                                 <th className="p-4 text-[10px] font-black uppercase text-slate-400">Target Site</th>
                                                 <th className="p-4 text-[10px] font-black uppercase text-slate-400 text-center">Status</th>
@@ -784,7 +784,7 @@ const SmartSync = () => {
                                                 </button>
                                                 <button
                                                     onClick={() => setConfirmReady(true)}
-                                                    className={`flex-1 h-12 rounded-2xl font-black uppercase tracking-widest text-sm text-white transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 shadow-lg ${
+                                                    className={`flex-1 h-12 rounded-2xl font-black uppercase tracking-widest text-sm th-text-primary transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 shadow-lg ${
                                                         selectedAction === 'delete_ssid'
                                                             ? 'bg-gradient-to-r from-rose-600 to-red-600 shadow-rose-500/20'
                                                             : 'bg-gradient-to-r from-emerald-600 to-teal-600 shadow-emerald-500/20'
@@ -827,7 +827,7 @@ const SmartSync = () => {
                                             {(!executionLoading && executionResult) ? (
                                                 <button 
                                                     onClick={() => window.location.reload()}
-                                                    className="px-10 h-14 bg-gradient-to-r from-slate-700 to-slate-900 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl flex items-center gap-2"
+                                                    className="px-10 h-14 bg-gradient-to-r from-slate-700 to-slate-900 th-text-primary font-black uppercase tracking-widest rounded-2xl shadow-xl flex items-center gap-2"
                                                 >
                                                     Done / Reload <RotateCcw size={18} />
                                                 </button>
@@ -836,7 +836,7 @@ const SmartSync = () => {
                                                     <button 
                                                         onClick={handleExecuteSync}
                                                         disabled={executionLoading}
-                                                        className="px-12 h-14 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl hover:scale-[1.05] transition-all disabled:opacity-30 flex items-center gap-3"
+                                                        className="px-12 h-14 bg-gradient-to-r from-emerald-600 to-teal-600 th-text-primary font-black uppercase tracking-widest rounded-2xl shadow-xl hover:scale-[1.05] transition-all disabled:opacity-30 flex items-center gap-3"
                                                     >
                                                         {executionLoading ? <Activity size={20} className="animate-spin" /> : <Rocket size={20} />}
                                                         Start Deployment
@@ -845,7 +845,7 @@ const SmartSync = () => {
                                                         <button 
                                                             onClick={handleStop}
                                                             disabled={isStopping}
-                                                            className="px-8 h-14 bg-rose-500/10 border border-rose-500/20 text-rose-500 font-black uppercase tracking-widest rounded-2xl hover:bg-rose-500 hover:text-white transition-all disabled:opacity-30"
+                                                            className="px-8 h-14 bg-rose-500/10 border border-rose-500/20 text-rose-500 font-black uppercase tracking-widest rounded-2xl hover:bg-rose-500 hover:th-text-primary transition-all disabled:opacity-30"
                                                         >
                                                             {isStopping ? "Stopping..." : "Emergency Stop"}
                                                         </button>
@@ -858,7 +858,7 @@ const SmartSync = () => {
                             </div>
 
                             {/* Execution Terminal */}
-                            <div className="backdrop-blur-2xl bg-[#0f172a] border border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[400px]">
+                            <div className="backdrop-blur-2xl th-bg-surface border border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[400px]">
                                 <div className="px-6 py-4 bg-white/5 border-b border-white/5 flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <div className="flex gap-1.5">
@@ -889,7 +889,7 @@ const SmartSync = () => {
                                             }`}>
                                                 {log.status}
                                             </span>
-                                            <span className="text-slate-300 font-bold shrink-0">{log.siteName}:</span>
+                                            <span className="th-text-secondary font-bold shrink-0">{log.siteName}:</span>
                                             <span className="text-slate-400 italic">{log.detail}</span>
                                         </div>
                                     ))}

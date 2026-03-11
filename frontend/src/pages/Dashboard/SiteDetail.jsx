@@ -202,7 +202,7 @@ const SiteDetail = () => {
                 <div>
                     <button
                         onClick={() => navigate('/overview')}
-                        className="flex items-center gap-1 text-sm text-slate-400 hover:text-white mb-2 transition-colors"
+                        className="flex items-center gap-1 text-sm th-text-muted hover:th-text-primary mb-2 transition-colors"
                     >
                         <ChevronLeft size={16} />
                         {t('site.dashboard.button_back')}

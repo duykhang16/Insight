@@ -99,16 +99,16 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
 
     const getNavLinkClass = ({ isActive }) =>
         `flex items-center px-4 py-3 text-sm font-medium transition-colors ${isActive
-            ? 'bg-blue-600 text-white'
-            : 'text-gray-300 hover:bg-slate-800 hover:text-white'
+            ? 'bg-blue-600 th-text-primary'
+            : 'th-text-secondary hover:th-bg-surface-alt hover:th-text-primary'
         }`;
 
     return (
-        <div className="flex flex-col w-64 bg-[#0F172A] border-r border-slate-800 h-full">
+        <div className="flex flex-col w-64 th-bg-sidebar border-r th-border h-full transition-colors duration-200">
             {/* Brand header */}
-            <div className="flex items-center justify-between px-4 h-16 border-b border-slate-800 gap-3">
+            <div className="flex items-center justify-between px-4 h-16 border-b th-border gap-3">
                 <div className="flex items-center gap-3">
-                    <span className="text-xl font-black italic text-white tracking-widest uppercase">INSIGHT</span>
+                    <span className="text-xl font-black italic th-text-primary tracking-widest uppercase">INSIGHT</span>
                     <div className="relative flex items-center justify-center h-2 w-2" title="Live Sync">
                         <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50 animate-ping"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -120,7 +120,7 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
             <div className="px-3 pt-3 pb-1">
                 <button
                     onClick={() => navigate('/zones')}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold th-text-muted hover:th-text-primary hover:th-bg-surface-alt rounded-md transition-colors"
                 >
                     <ArrowLeft size={14} />
                     Zones
@@ -128,43 +128,44 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
             </div>
 
             {/* Site Switcher */}
-            <div className="px-3 pb-2 border-b border-slate-800/50 relative" ref={switcherRef}>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 px-1 mb-1">Current Site</p>
+            <div className="px-3 pb-2 border-b th-border relative" style={{ borderColor: 'var(--color-border-subtle)' }} ref={switcherRef}>
+                <p className="text-[10px] font-black uppercase tracking-widest th-text-muted px-1 mb-1">Current Site</p>
                 <button
                     onClick={() => setIsSwitcherOpen(!isSwitcherOpen)}
-                    className={`w-full flex items-center justify-between px-3 py-2 bg-slate-800/40 hover:bg-slate-700/60 border ${isSwitcherOpen ? 'border-emerald-500/50' : 'border-slate-700'} rounded-lg transition-all text-left group`}
+                    className={`w-full flex items-center justify-between px-3 py-2 th-bg-surface-alt hover:th-bg-elevated border ${isSwitcherOpen ? 'border-emerald-500/50' : 'th-border'} rounded-lg transition-all text-left group`}
                 >
                     <div className="flex flex-col min-w-0 pr-2">
-                        <span className="text-[13px] font-bold text-white truncate mt-0.5" title={siteName}>{siteName}</span>
+                        <span className="text-[13px] font-bold th-text-primary truncate mt-0.5" title={siteName}>{siteName}</span>
                     </div>
-                    <ChevronDown size={14} className={`text-slate-400 transition-transform ${isSwitcherOpen ? 'rotate-180 text-emerald-400' : 'group-hover:text-slate-300'}`} />
+                    <ChevronDown size={14} className={`th-text-muted transition-transform ${isSwitcherOpen ? 'rotate-180 text-emerald-400' : 'group-hover:th-text-secondary'}`} />
                 </button>
 
                 {/* Dropdown Menu */}
                 {isSwitcherOpen && (
-                    <div className="absolute top-[calc(100%+4px)] left-3 right-3 bg-[#1E293B] border border-slate-600 rounded-xl shadow-2xl z-50 flex flex-col max-h-[400px]">
-                        <div className="p-2 border-b border-slate-700 shrink-0">
+                    <div className="absolute top-[calc(100%+4px)] left-3 right-3 th-bg-dropdown border th-border rounded-xl shadow-2xl z-50 flex flex-col max-h-[400px]" style={{ borderColor: 'var(--color-dropdown-border)' }}>
+                        <div className="p-2 border-b th-border shrink-0">
                             <div className="relative">
-                                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 th-text-muted" />
                                 <input
                                     type="text"
                                     placeholder="Search site..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     autoFocus
-                                    className="w-full bg-[#0F172A] border border-slate-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50"
+                                    className="w-full th-bg-surface border th-border rounded-lg pl-8 pr-3 py-1.5 text-xs th-text-primary placeholder:th-text-muted focus:outline-none focus:border-emerald-500/50"
+                                    style={{ backgroundColor: 'var(--color-bg-surface)', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
                                 />
                             </div>
                         </div>
                         <div className="overflow-y-auto flex-1 p-2 space-y-3 custom-scrollbar">
                             {groupedSites.length === 0 ? (
-                                <p className="text-xs text-center text-slate-500 py-4">No sites found</p>
+                                <p className="text-xs text-center th-text-muted py-4">No sites found</p>
                             ) : (
                                 groupedSites.map(group => (
                                     <div key={group.id}>
                                         <div className="flex items-center gap-1.5 px-1 mb-1.5 opacity-80">
                                             <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: group.color || '#3B82F6' }} />
-                                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 truncate">{group.name}</span>
+                                            <span className="text-[10px] font-bold uppercase tracking-wider th-text-muted truncate">{group.name}</span>
                                         </div>
                                         <div className="space-y-0.5">
                                             {group.sites.map(s => {
@@ -175,10 +176,10 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
                                                     <button
                                                         key={id}
                                                         onClick={() => handleSiteSelect(id)}
-                                                        className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-left transition-colors ${isSelected ? 'bg-emerald-500/10 text-emerald-400' : 'hover:bg-slate-800 text-slate-300 hover:text-white'}`}
+                                                        className={`w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-left transition-colors ${isSelected ? 'bg-emerald-500/10 text-emerald-400' : 'hover:th-bg-surface-alt th-text-secondary hover:th-text-primary'}`}
                                                     >
                                                         <div className="flex items-center gap-2 overflow-hidden pr-2">
-                                                            <Server size={12} className={`shrink-0 ${isSelected ? 'text-emerald-500' : 'text-slate-500'}`} />
+                                                            <Server size={12} className={`shrink-0 ${isSelected ? 'text-emerald-500' : 'th-text-muted'}`} />
                                                             <span className="text-xs truncate">{name}</span>
                                                         </div>
                                                         {isSelected && <Check size={12} className="text-emerald-500 shrink-0" />}

@@ -199,17 +199,17 @@ const Devices = () => {
     const siteName = sites.find(s => s.siteId === selectedSiteId)?.siteName || 'current site';
 
     return (
-        <div className="p-6 pb-32 min-h-screen bg-slate-950">
+        <div className="p-6 pb-32 min-h-screen th-bg-base">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <div>
-                    <h1 className="text-xl font-black text-white tracking-tight uppercase italic">{t('site.devices.title')}</h1>
+                    <h1 className="text-xl font-black th-text-primary tracking-tight uppercase italic">{t('site.devices.title')}</h1>
                     <p className="text-xs text-slate-500 mt-1 font-mono">{siteName} · {processedDevices.length} {t('site.devices.subtitle')}</p>
                 </div>
                 <button
                     onClick={() => fetchInventory(selectedSiteId)}
                     disabled={loading}
-                    className="h-10 px-5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/5 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                    className="h-10 px-5 th-bg-elevated hover:bg-slate-700 th-text-primary rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/5 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
                 >
                     <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
                     {t('site.devices.button_refresh')}
@@ -225,13 +225,13 @@ const Devices = () => {
                         placeholder={t('site.devices.search_placeholder')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full h-10 pl-10 pr-4 bg-slate-900 border border-white/5 rounded-xl text-slate-200 text-xs focus:outline-none focus:border-purple-500/50 transition-all"
+                        className="w-full h-10 pl-10 pr-4 th-bg-surface border border-white/5 rounded-xl th-text-primary text-xs focus:outline-none focus:border-purple-500/50 transition-all"
                     />
                 </div>
                 <select
                     value={typeFilter}
                     onChange={(e) => setTypeFilter(e.target.value)}
-                    className="h-10 bg-slate-900 border border-white/5 rounded-xl px-4 text-slate-300 text-xs font-bold focus:outline-none appearance-none min-w-[130px]"
+                    className="h-10 th-bg-surface border border-white/5 rounded-xl px-4 th-text-secondary text-xs font-bold focus:outline-none appearance-none min-w-[130px]"
                 >
                     <option value="all">{t('site.devices.filter_type_all')}</option>
                     <option value="accesspoint">{t('site.devices.filter_type_ap')}</option>
@@ -240,7 +240,7 @@ const Devices = () => {
                 <select
                     value={healthFilter}
                     onChange={(e) => setHealthFilter(e.target.value)}
-                    className="h-10 bg-slate-900 border border-white/5 rounded-xl px-4 text-slate-300 text-xs font-bold focus:outline-none appearance-none min-w-[130px]"
+                    className="h-10 th-bg-surface border border-white/5 rounded-xl px-4 th-text-secondary text-xs font-bold focus:outline-none appearance-none min-w-[130px]"
                 >
                     <option value="all">{t('site.devices.filter_health_all')}</option>
                     <option value="good">{t('site.devices.filter_health_good')}</option>
@@ -257,21 +257,21 @@ const Devices = () => {
             )}
 
             {/* Table */}
-            <div className="bg-slate-900 rounded-2xl border border-white/5 overflow-hidden shadow-2xl">
+            <div className="th-bg-surface rounded-2xl border border-white/5 overflow-hidden shadow-2xl">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs whitespace-nowrap">
-                        <thead className="bg-slate-800/60 border-b border-white/5">
+                        <thead className="th-bg-surface-alt border-b border-white/5">
                             <tr>
-                                <th onClick={() => handleSort('name')} className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400 cursor-pointer hover:text-slate-200 transition-colors">
+                                <th onClick={() => handleSort('name')} className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400 cursor-pointer hover:th-text-primary transition-colors">
                                     {t('site.devices.table_header_device')} <SortIcon column="name" />
                                 </th>
-                                <th onClick={() => handleSort('health')} className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400 cursor-pointer hover:text-slate-200 transition-colors">
+                                <th onClick={() => handleSort('health')} className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400 cursor-pointer hover:th-text-primary transition-colors">
                                     {t('site.devices.table_header_health')} <SortIcon column="health" />
                                 </th>
                                 <th className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400">
                                     {t('site.devices.table_header_state')}
                                 </th>
-                                <th onClick={() => handleSort('uptime')} className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400 cursor-pointer hover:text-slate-200 transition-colors">
+                                <th onClick={() => handleSort('uptime')} className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400 cursor-pointer hover:th-text-primary transition-colors">
                                     {t('site.devices.table_header_duration')} <SortIcon column="uptime" />
                                 </th>
                                 <th className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400">
@@ -283,10 +283,10 @@ const Devices = () => {
                                 <th className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400">
                                     {t('site.devices.table_header_mac')}
                                 </th>
-                                <th onClick={() => handleSort('ip')} className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400 cursor-pointer hover:text-slate-200 transition-colors">
+                                <th onClick={() => handleSort('ip')} className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400 cursor-pointer hover:th-text-primary transition-colors">
                                     {t('site.devices.table_header_ip')} <SortIcon column="ip" />
                                 </th>
-                                <th onClick={() => handleSort('clients')} className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400 cursor-pointer hover:text-slate-200 transition-colors text-right">
+                                <th onClick={() => handleSort('clients')} className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400 cursor-pointer hover:th-text-primary transition-colors text-right">
                                     {t('site.devices.table_header_clients')} <SortIcon column="clients" />
                                 </th>
                             </tr>
@@ -297,7 +297,7 @@ const Devices = () => {
                                     <tr key={i} className="animate-pulse">
                                         {[...Array(9)].map((_, j) => (
                                             <td key={j} className="px-4 py-3.5">
-                                                <div className="h-3 bg-slate-800 rounded w-3/4"></div>
+                                                <div className="h-3 th-bg-elevated rounded w-3/4"></div>
                                             </td>
                                         ))}
                                     </tr>
@@ -321,7 +321,7 @@ const Devices = () => {
                                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 transition-colors
                                                     ${isAP
                                                         ? 'bg-purple-500/10 border-purple-500/20 text-purple-400 group-hover:border-purple-500/40'
-                                                        : 'bg-slate-800 border-white/5 text-slate-400 group-hover:border-white/10'}`}>
+                                                        : 'th-bg-elevated border-white/5 text-slate-400 group-hover:border-white/10'}`}>
                                                     {isAP ? <Wifi size={14} /> : isSwitch ? <HardDrive size={14} /> : <HardDrive size={14} />}
                                                 </div>
                                                 <div className="min-w-0">
@@ -354,7 +354,7 @@ const Devices = () => {
 
                                         {/* Duration */}
                                         <td className="px-4 py-3">
-                                            <span className="text-slate-300 font-mono text-[10px]">
+                                            <span className="th-text-secondary font-mono text-[10px]">
                                                 {formatUptime(device.uptimeInSeconds)}
                                             </span>
                                         </td>
@@ -365,7 +365,7 @@ const Devices = () => {
                                                 {isAP
                                                     ? <Wifi size={11} className="text-purple-400 shrink-0" />
                                                     : <HardDrive size={11} className="text-slate-400 shrink-0" />}
-                                                <span className="text-slate-300 text-[10px] font-bold">
+                                                <span className="th-text-secondary text-[10px] font-bold">
                                                     {isAP ? t('site.devices.device_type_ap') : isSwitch ? t('site.devices.device_type_switch') : (device.deviceType || 'Unknown')}
                                                 </span>
                                             </div>
@@ -376,7 +376,7 @@ const Devices = () => {
 
                                         {/* Model */}
                                         <td className="px-4 py-3">
-                                            <span className="text-slate-300 font-mono text-[10px] font-bold">
+                                            <span className="th-text-secondary font-mono text-[10px] font-bold">
                                                 {getDisplayModel(model)}
                                             </span>
                                         </td>
@@ -390,7 +390,7 @@ const Devices = () => {
 
                                         {/* IP */}
                                         <td className="px-4 py-3">
-                                            <span className="text-slate-300 font-mono text-[10px]">
+                                            <span className="th-text-secondary font-mono text-[10px]">
                                                 {device.ipAddress || '—'}
                                             </span>
                                         </td>
@@ -399,7 +399,7 @@ const Devices = () => {
                                         <td className="px-4 py-3 text-right">
                                             <div className="flex items-center justify-end gap-1">
                                                 <Users size={10} className="text-slate-500 shrink-0" />
-                                                <span className={`font-black text-xs tabular-nums ${clients > 0 ? 'text-white' : 'text-slate-600'}`}>
+                                                <span className={`font-black text-xs tabular-nums ${clients > 0 ? 'th-text-primary' : 'text-slate-600'}`}>
                                                     {clients}
                                                 </span>
                                             </div>

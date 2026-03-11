@@ -12,7 +12,7 @@ const ROLE_LABEL = {
 
 const ROLE_BADGE = {
     manager: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-    viewer:  'bg-slate-700/50 text-slate-500 border-slate-700',
+    viewer:  'bg-slate-700/50 text-slate-500 th-border',
 };
 
 // ── Email autocomplete (same domain) ─────────────────────────────────────────
@@ -55,16 +55,16 @@ function EmailInput({ value, onChange, existingEmails, placeholder }) {
                 value={value}
                 onChange={handleChange}
                 onFocus={() => { if (suggestions.length) setOpen(true); }}
-                className="w-full bg-slate-800 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                className="w-full th-bg-elevated border border-slate-600 th-text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
                 placeholder={placeholder}
                 autoComplete="off"
             />
             {open && (
-                <ul className="absolute top-full left-0 right-0 mt-1 bg-slate-800 border border-slate-700 rounded shadow-xl z-50 max-h-40 overflow-y-auto">
+                <ul className="absolute top-full left-0 right-0 mt-1 th-bg-elevated border th-border rounded shadow-xl z-50 max-h-40 overflow-y-auto">
                     {suggestions.map(s => (
                         <li
                             key={s}
-                            className="px-3 py-2 text-sm text-slate-300 hover:bg-slate-700 cursor-pointer"
+                            className="px-3 py-2 text-sm th-text-secondary hover:bg-slate-700 cursor-pointer"
                             onMouseDown={() => { onChange(s); setOpen(false); }}
                         >
                             {s}
@@ -204,14 +204,14 @@ const UserManagement = () => {
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                     <Users className="w-5 h-5 text-blue-400" />
-                    <h1 className="text-lg font-semibold text-white">{t('admin.users.title')}</h1>
-                    <span className="text-xs text-slate-500 bg-slate-800 border border-slate-700 rounded px-2 py-0.5">
+                    <h1 className="text-lg font-semibold th-text-primary">{t('admin.users.title')}</h1>
+                    <span className="text-xs text-slate-500 th-bg-elevated border th-border rounded px-2 py-0.5">
                         {subUsers.length} {subUsers.length !== 1 ? t('admin.users.sub_accounts') : t('admin.users.sub_account')}
                     </span>
                 </div>
                 <button
                     onClick={() => { setShowCreate(!showCreate); setFormEmail(''); setFormRole('viewer'); }}
-                    className="flex items-center gap-1.5 px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 th-text-primary rounded-lg transition-colors"
                 >
                     <Plus className="w-4 h-4" />
                     {t('admin.users.create_user')}
@@ -222,10 +222,10 @@ const UserManagement = () => {
 
             {/* Create user panel */}
             {showCreate && (
-                <div className="bg-[#0F172A] border border-slate-700 rounded-xl p-5 mb-6">
+                <div className="th-bg-surface border th-border rounded-xl p-5 mb-6">
                     <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-sm font-semibold text-white">{t('admin.users.create_new_account')}</h2>
-                        <button onClick={() => setShowCreate(false)} className="text-slate-500 hover:text-white">
+                        <h2 className="text-sm font-semibold th-text-primary">{t('admin.users.create_new_account')}</h2>
+                        <button onClick={() => setShowCreate(false)} className="text-slate-500 hover:th-text-primary">
                             <X className="w-4 h-4" />
                         </button>
                     </div>
@@ -244,7 +244,7 @@ const UserManagement = () => {
                             <select
                                 value={formRole}
                                 onChange={e => setFormRole(e.target.value)}
-                                className="w-full bg-slate-800 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                                className="w-full th-bg-elevated border border-slate-600 th-text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
                             >
                                 {TENANT_ADMIN_CREATABLE_ROLES.map(r => (
                                     <option key={r} value={r}>{ROLE_LABEL[r]}</option>
@@ -255,7 +255,7 @@ const UserManagement = () => {
                             <button
                                 type="submit"
                                 disabled={creating || !formEmail}
-                                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+                                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 th-text-primary text-sm rounded-lg transition-colors disabled:opacity-50"
                             >
                                 {creating ? t('admin.users.creating_button') : t('admin.users.create_button')}
                             </button>
@@ -270,13 +270,13 @@ const UserManagement = () => {
             {/* Reset-password confirm modal */}
             {resetTarget && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-                    <div className="bg-[#0F172A] border border-slate-700 rounded-xl p-6 w-full max-w-sm mx-4">
+                    <div className="th-bg-surface border th-border rounded-xl p-6 w-full max-w-sm mx-4">
                         <div className="flex items-center gap-2 mb-3">
                             <KeyRound className="w-4 h-4 text-amber-400" />
-                            <h3 className="text-sm font-semibold text-white">{t('admin.users.reset_password_title')}</h3>
+                            <h3 className="text-sm font-semibold th-text-primary">{t('admin.users.reset_password_title')}</h3>
                         </div>
-                        <p className="text-sm text-slate-300 mb-1">
-                            {t('admin.users.reset_password_confirm')} <span className="font-semibold text-white">{resetTarget.email}</span>?
+                        <p className="text-sm th-text-secondary mb-1">
+                            {t('admin.users.reset_password_confirm')} <span className="font-semibold th-text-primary">{resetTarget.email}</span>?
                         </p>
                         <p className="text-xs text-slate-500 mb-5">
                             {t('admin.users.reset_password_note')}
@@ -285,13 +285,13 @@ const UserManagement = () => {
                             <button
                                 onClick={handleResetPassword}
                                 disabled={resetting}
-                                className="flex-1 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm rounded-lg transition-colors disabled:opacity-50"
+                                className="flex-1 py-2 bg-amber-600 hover:bg-amber-700 th-text-primary text-sm rounded-lg transition-colors disabled:opacity-50"
                             >
                                 {resetting ? t('admin.users.resetting_button') : t('admin.users.reset_confirm_button')}
                             </button>
                             <button
                                 onClick={() => setResetTarget(null)}
-                                className="flex-1 py-2 bg-slate-700 hover:bg-slate-600 text-slate-300 text-sm rounded-lg transition-colors"
+                                className="flex-1 py-2 bg-slate-700 hover:bg-slate-600 th-text-secondary text-sm rounded-lg transition-colors"
                             >
                                 {t('admin.users.cancel')}
                             </button>
@@ -301,10 +301,10 @@ const UserManagement = () => {
             )}
 
             {/* User table */}
-            <div className="bg-[#0F172A] border border-slate-700 rounded-xl overflow-hidden">
+            <div className="th-bg-surface border th-border rounded-xl overflow-hidden">
                 <table className="w-full text-sm">
                     <thead>
-                        <tr className="border-b border-slate-800 text-left">
+                        <tr className="border-b th-border text-left">
                             <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('admin.users.table_email')}</th>
                             <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('admin.users.table_role')}</th>
                             <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('admin.users.table_status')}</th>
@@ -319,7 +319,7 @@ const UserManagement = () => {
                             const isDisabled = isLocked || isOutOfScope;
                             return (
                                 <tr key={user.id} className={`hover:bg-slate-800/30 transition-colors ${isDisabled ? 'opacity-50' : ''}`}>
-                                    <td className="px-4 py-3 text-slate-200 font-mono text-xs">
+                                    <td className="px-4 py-3 th-text-primary font-mono text-xs">
                                         {user.email}
                                         {user.must_set_password && (
                                             <span className="ml-2 text-[10px] bg-yellow-900/40 text-yellow-400 px-1.5 py-0.5 rounded">
@@ -330,7 +330,7 @@ const UserManagement = () => {
                                     </td>
                                     <td className="px-4 py-3">
                                         {isOutOfScope ? (
-                                            <span className={`text-xs border rounded px-2 py-1 bg-transparent ${ROLE_BADGE[user.role] || 'text-slate-400 border-slate-700'}`}>
+                                            <span className={`text-xs border rounded px-2 py-1 bg-transparent ${ROLE_BADGE[user.role] || 'text-slate-400 th-border'}`}>
                                                 {ROLE_LABEL[user.role] || user.role}
                                             </span>
                                         ) : (
@@ -341,7 +341,7 @@ const UserManagement = () => {
                                                 className={`text-xs border rounded px-2 py-1 bg-transparent focus:outline-none cursor-pointer disabled:cursor-not-allowed ${ROLE_BADGE[user.role] || ROLE_BADGE.viewer}`}
                                             >
                                                 {TENANT_ADMIN_CREATABLE_ROLES.map(r => (
-                                                    <option key={r} value={r} className="bg-slate-900 text-slate-200">{ROLE_LABEL[r]}</option>
+                                                    <option key={r} value={r} className="th-bg-surface th-text-primary">{ROLE_LABEL[r]}</option>
                                                 ))}
                                             </select>
                                         )}
@@ -353,7 +353,7 @@ const UserManagement = () => {
                                             className={`flex items-center gap-1.5 text-xs border rounded px-2 py-1 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                                                 user.isApproved
                                                     ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
-                                                    : 'bg-slate-700/50 text-slate-500 border-slate-700 hover:bg-slate-700'
+                                                    : 'bg-slate-700/50 text-slate-500 th-border hover:bg-slate-700'
                                             }`}
                                         >
                                             <ShieldCheck className="w-3 h-3" />

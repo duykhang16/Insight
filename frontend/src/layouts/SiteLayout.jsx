@@ -14,7 +14,7 @@ const SiteLayout = ({ onLogout, userRole }) => {
     }, [siteId, setSelectedSiteId]);
 
     return (
-        <div className="flex h-screen w-full overflow-hidden bg-[#020617] text-white">
+        <div className="flex h-screen w-full overflow-hidden th-bg-base th-text-primary transition-colors duration-200">
             <SiteSidebar siteId={siteId} onLogout={onLogout} userRole={userRole} />
             <div className="relative flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
                 <main className="w-full flex-1">

@@ -24,7 +24,7 @@ const SortableHeader = ({ id, content, onSort, sortIcon, minWidth }) => {
         <th
             ref={setNodeRef}
             style={style}
-            className={`px-6 py-5 font-black uppercase tracking-widest text-[10px] transition-colors group ${isDragging ? "bg-slate-800/80 shadow-xl" : "hover:text-white"}`}
+            className={`px-6 py-5 font-black uppercase tracking-widest text-[10px] transition-colors group ${isDragging ? "bg-slate-800/80 shadow-xl" : "hover:th-text-primary"}`}
         >
             <div className="flex items-center gap-2">
                 <div
@@ -314,10 +314,10 @@ const Clients = () => {
     };
 
     return (
-        <div className="p-8 pb-32 min-h-screen bg-slate-950">
+        <div className="p-8 pb-32 min-h-screen th-bg-base">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
-                    <h1 className="text-2xl font-black text-white tracking-tight">{t('site.clients.title')}</h1>
+                    <h1 className="text-2xl font-black th-text-primary tracking-tight">{t('site.clients.title')}</h1>
                     <p className="text-sm text-slate-400 mt-1">
                         {t('site.clients.subtitle')} {sites.find(s => s.siteId === selectedSiteId)?.siteName || 'current site'}
                     </p>
@@ -326,7 +326,7 @@ const Clients = () => {
                 <div className="flex items-center gap-4 w-full md:w-auto">
                     <button
                         onClick={resetColumns}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg border border-white/10 transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 th-bg-elevated hover:bg-slate-700 th-text-primary text-xs font-bold rounded-lg border border-white/10 transition-colors"
                     >
                         <RefreshCw size={14} />
                         {t('site.clients.reset_columns') || 'Đặt lại giao diện'}
@@ -343,7 +343,7 @@ const Clients = () => {
                         placeholder={t('site.clients.search_placeholder')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full h-14 pl-12 pr-4 bg-slate-900 border border-white/5 rounded-2xl text-white text-sm focus:outline-none focus:border-blue-500/50 shadow-inner"
+                        className="w-full h-14 pl-12 pr-4 th-bg-surface border border-white/5 rounded-2xl th-text-primary text-sm focus:outline-none focus:border-blue-500/50 shadow-inner"
                     />
                 </div>
 
@@ -353,7 +353,7 @@ const Clients = () => {
                         <select
                             value={typeFilter}
                             onChange={(e) => setTypeFilter(e.target.value)}
-                            className="h-14 bg-slate-900 border border-white/5 rounded-2xl px-5 text-white text-sm font-bold focus:outline-none focus:border-blue-500/50 min-w-[140px] appearance-none"
+                            className="h-14 th-bg-surface border border-white/5 rounded-2xl px-5 th-text-primary text-sm font-bold focus:outline-none focus:border-blue-500/50 min-w-[140px] appearance-none"
                         >
                             <option value="all">{t('site.clients.filter_type_all')}</option>
                             <option value="wired">{t('site.clients.filter_type_wired')}</option>
@@ -366,7 +366,7 @@ const Clients = () => {
                         <select
                             value={healthFilter}
                             onChange={(e) => setHealthFilter(e.target.value)}
-                            className="h-14 bg-slate-900 border border-white/5 rounded-2xl px-5 text-white text-sm font-bold focus:outline-none focus:border-blue-500/50 min-w-[140px] appearance-none"
+                            className="h-14 th-bg-surface border border-white/5 rounded-2xl px-5 th-text-primary text-sm font-bold focus:outline-none focus:border-blue-500/50 min-w-[140px] appearance-none"
                         >
                             <option value="all">{t('site.clients.filter_health_all')}</option>
                             <option value="good">{t('site.clients.filter_health_good')}</option>
@@ -384,11 +384,11 @@ const Clients = () => {
                 </div>
             )}
 
-            <div className="bg-slate-900 rounded-3xl shadow-2xl border border-white/5 overflow-hidden w-full">
+            <div className="th-bg-surface rounded-3xl shadow-2xl border border-white/5 overflow-hidden w-full">
                 <div className="max-h-[calc(100vh-250px)] overflow-auto custom-scrollbar">
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                         <table className="w-full min-w-[1200px] text-left text-sm whitespace-nowrap block md:table">
-                            <thead className="bg-slate-900/50 text-slate-500 border-b border-white/5 table-header-sticky">
+                            <thead className="th-bg-surface text-slate-500 border-b border-white/5 table-header-sticky">
                                 <tr>
                                     <SortableContext items={columns.map(c => c.id)} strategy={horizontalListSortingStrategy}>
                                         {columns.map(col => (
@@ -404,7 +404,7 @@ const Clients = () => {
                                     </SortableContext>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-white/5 text-slate-300">
+                            <tbody className="divide-y divide-white/5 th-text-secondary">
                                 {processedClients.map((item) => {
                                     const isWired = item.clientType?.toLowerCase() === 'wired';
 
@@ -441,13 +441,13 @@ const Clients = () => {
                                         switch (colId) {
                                             case 'client':
                                                 return (
-                                                    <td key={colId} className="px-6 py-4 bg-slate-900 group-hover:bg-white/[0.03] transition-colors">
+                                                    <td key={colId} className="px-6 py-4 th-bg-surface group-hover:bg-white/[0.03] transition-colors">
                                                         <div className="flex items-center gap-3">
-                                                            <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-blue-400 border border-white/5 group-hover:border-blue-500/30 transition-colors">
+                                                            <div className="w-10 h-10 th-bg-elevated rounded-xl flex items-center justify-center text-blue-400 border border-white/5 group-hover:border-blue-500/30 transition-colors">
                                                                 <Laptop size={18} />
                                                             </div>
                                                             <div className="min-w-0 flex-1">
-                                                                <div className="text-white font-bold tracking-tight text-sm truncate max-w-[180px]" title={clientName}>{clientName}</div>
+                                                                <div className="th-text-primary font-bold tracking-tight text-sm truncate max-w-[180px]" title={clientName}>{clientName}</div>
                                                                 <div className="text-[10px] text-slate-500 font-mono uppercase truncate max-w-[180px] flex items-center gap-1">
                                                                     <span>{item.macAddress || ''}</span>
                                                                 </div>
@@ -469,7 +469,7 @@ const Clients = () => {
                                             case 'state':
                                                 return (
                                                     <td key={colId} className="px-6 py-4">
-                                                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-800 rounded-full w-fit border border-white/5">
+                                                        <div className="flex items-center gap-1.5 px-2.5 py-1 th-bg-elevated rounded-full w-fit border border-white/5">
                                                             <Circle size={8} className={isUp ? "fill-emerald-500 text-emerald-500" : "text-slate-600"} />
                                                             <span className="text-[10px] font-bold uppercase">{isUp ? t('site.clients.state_online') : t('site.clients.state_offline')}</span>
                                                         </div>
@@ -480,26 +480,26 @@ const Clients = () => {
                                                     <td key={colId} className="px-6 py-4">
                                                         <div className="flex items-center gap-2 text-xs font-bold">
                                                             {isWired ? <Globe size={14} className="text-emerald-500" /> : <Wifi size={14} className="text-blue-500" />}
-                                                            <span className="text-slate-200">{capitalize(item.clientType)}</span>
+                                                            <span className="th-text-primary">{capitalize(item.clientType)}</span>
                                                         </div>
                                                     </td>
                                                 );
                                             case 'network':
                                                 return (
                                                     <td key={colId} className="px-6 py-4">
-                                                        <div className="text-xs font-bold text-slate-200">{networkDisplay}</div>
+                                                        <div className="text-xs font-bold th-text-primary">{networkDisplay}</div>
                                                     </td>
                                                 );
                                             case 'interface':
                                                 return (
                                                     <td key={colId} className="px-6 py-4">
-                                                        <div className="text-xs font-bold text-slate-200 font-mono">{formatInterface(item)}</div>
+                                                        <div className="text-xs font-bold th-text-primary font-mono">{formatInterface(item)}</div>
                                                     </td>
                                                 );
                                             case 'mac':
                                                 return (
                                                     <td key={colId} className="px-6 py-4">
-                                                        <div className="text-xs font-black text-slate-200 font-mono">
+                                                        <div className="text-xs font-black th-text-primary font-mono">
                                                             {item.macAddress || '-'}
                                                         </div>
                                                     </td>
@@ -507,7 +507,7 @@ const Clients = () => {
                                             case 'ip':
                                                 return (
                                                     <td key={colId} className="px-6 py-4">
-                                                        <div className="text-xs font-black text-slate-200 font-mono">
+                                                        <div className="text-xs font-black th-text-primary font-mono">
                                                             {item.ipAddress || ''}
                                                         </div>
                                                     </td>
@@ -515,7 +515,7 @@ const Clients = () => {
                                             case 'device':
                                                 return (
                                                     <td key={colId} className="px-6 py-4">
-                                                        <div className="text-xs font-bold text-white uppercase tracking-tight">
+                                                        <div className="text-xs font-bold th-text-primary uppercase tracking-tight">
                                                             {deviceDisplayName}
                                                         </div>
                                                         <div className="text-[9px] text-slate-500 font-bold">
@@ -527,7 +527,7 @@ const Clients = () => {
                                                 const totalBytes = (item.downstreamDataTransferredInBytes || 0) + (item.upstreamDataTransferredInBytes || 0);
                                                 return (
                                                     <td key={colId} className="px-6 py-4 text-right">
-                                                        <div className="text-white font-black text-xs tracking-tighter">
+                                                        <div className="th-text-primary font-black text-xs tracking-tighter">
                                                             {formatBytes(totalBytes)}
                                                         </div>
                                                         <div className="text-[9px] text-slate-500 font-bold uppercase">{t('site.clients.usage_total')}</div>
