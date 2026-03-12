@@ -31,3 +31,55 @@ async def get_site_overview(
     master_token: str = Depends(require_master_token),
 ):
     return await config_service.get_site_overview(site_id, master_token)
+
+
+@router.get("/sites/{site_id}/individual/networks")
+async def get_individual_networks(
+    site_id: str,
+    user: Dict[str, Any] = Depends(get_current_insight_user),
+    master_token: str = Depends(require_master_token),
+):
+    return await config_service.get_individual_networks(site_id, master_token)
+
+
+@router.put("/sites/{site_id}/individual/networks/{network_id}/overview")
+async def update_individual_wireless_overview(
+    site_id: str,
+    network_id: str,
+    payload: Dict[str, Any],
+    user: Dict[str, Any] = Depends(get_current_insight_user),
+    master_token: str = Depends(require_master_token),
+):
+    return await config_service.update_individual_wireless_overview(site_id, network_id, payload, master_token)
+
+
+@router.delete("/sites/{site_id}/individual/networks/{network_id}")
+async def delete_individual_network(
+    site_id: str,
+    network_id: str,
+    user: Dict[str, Any] = Depends(get_current_insight_user),
+    master_token: str = Depends(require_master_token),
+):
+    return await config_service.delete_individual_network(site_id, network_id, master_token)
+
+
+@router.put("/sites/{site_id}/individual/networks/{network_id}/ip-assignment")
+async def update_individual_wireless_ip_assignment(
+    site_id: str,
+    network_id: str,
+    payload: Dict[str, Any],
+    user: Dict[str, Any] = Depends(get_current_insight_user),
+    master_token: str = Depends(require_master_token),
+):
+    return await config_service.update_individual_wireless_ip_assignment(site_id, network_id, payload, master_token)
+
+
+@router.put("/sites/{site_id}/individual/networks/{network_id}/network-assignment")
+async def update_individual_wireless_network_assignment(
+    site_id: str,
+    network_id: str,
+    payload: Dict[str, Any],
+    user: Dict[str, Any] = Depends(get_current_insight_user),
+    master_token: str = Depends(require_master_token),
+):
+    return await config_service.update_individual_wireless_network_assignment(site_id, network_id, payload, master_token)

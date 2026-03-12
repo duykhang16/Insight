@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, Sliders, ArrowLeft, Activity, Bell, Users, Wifi, Monitor, Box, ChevronDown, Search, Server, Check } from 'lucide-react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { Home, Sliders, ArrowLeft, Activity, Bell, Users, Wifi, Monitor, Box, ChevronDown, Search, Server, Check, Settings2 } from 'lucide-react';
 import UserWidget from './UserWidget';
 import { useSite } from '../../context/SiteContext';
 
 const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { sites, setSelectedSiteId } = useSite();
 
     const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
+    const [isConfigurationOpen, setIsConfigurationOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [zones, setZones] = useState([]);
     const switcherRef = useRef(null);
@@ -38,6 +40,7 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
         if (setSelectedSiteId) setSelectedSiteId(id);
         setIsSwitcherOpen(false);
         setSearchQuery('');
+        setIsConfigurationOpen(false);
         navigate(`/site/${id}`);
     };
 
@@ -96,11 +99,40 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
     };
 
     const groupedSites = getGroupedSites();
+    const isConfigurationSectionActive = location.pathname.startsWith(`/site/${siteId}/configuration`) || location.pathname === `/site/${siteId}/cloner`;
+
+    const handleConfigurationToggle = () => {
+        if (isConfigurationOpen) {
+            setIsConfigurationOpen(false);
+            return;
+        }
+
+        setIsConfigurationOpen(true);
+        navigate(`/site/${siteId}/configuration/overview`);
+    };
+
+    useEffect(() => {
+        if (isConfigurationSectionActive) {
+            setIsConfigurationOpen(true);
+        }
+    }, [isConfigurationSectionActive]);
+
+    useEffect(() => {
+        if (!location.pathname.startsWith(`/site/${siteId}/configuration`) && location.pathname !== `/site/${siteId}/cloner`) {
+            setIsConfigurationOpen(false);
+        }
+    }, [location.pathname, siteId]);
 
     const getNavLinkClass = ({ isActive }) =>
-        `flex items-center px-4 py-3 text-sm font-medium transition-colors ${isActive
+        `flex min-h-[48px] w-full items-center px-6 py-3 text-sm font-semibold transition-colors ${isActive
             ? 'bg-blue-600 text-white'
-            : 'text-gray-300 hover:bg-slate-800 hover:text-white'
+            : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+        }`;
+
+    const getSubNavLinkClass = ({ isActive }) =>
+        `flex min-h-[40px] items-center ml-6 mr-2 px-4 py-2.5 text-xs font-bold uppercase tracking-[0.16em] transition-colors ${isActive
+            ? 'bg-blue-600/90 text-white'
+            : 'text-slate-400 hover:text-white hover:bg-slate-800'
         }`;
 
     return (
@@ -224,10 +256,47 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
                     <Box className="w-5 h-5 mr-3" />
                     Applications
                 </NavLink>
-                <NavLink to={`/site/${siteId}/cloner`} className={getNavLinkClass}>
-                    <Sliders className="w-5 h-5 mr-3" />
-                    Configuration
-                </NavLink>
+                <div className="mx-0">
+                <button
+                    type="button"
+                    onClick={handleConfigurationToggle}
+                    className="flex min-h-[48px] w-full items-center justify-between px-6 py-3 text-sm font-semibold text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+                >
+                        <span className="flex items-center">
+                            <Sliders className="w-5 h-5 mr-3" />
+                            Configuration
+                        </span>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${isConfigurationOpen ? 'rotate-180 text-slate-300' : 'text-slate-500'}`} />
+                    </button>
+                    {isConfigurationOpen && (
+                        <div className="pb-2 space-y-1">
+                            <NavLink to={`/site/${siteId}/configuration/overview`} className={getSubNavLinkClass}>
+                                <Settings2 className="w-4 h-4 mr-2" />
+                                Overview
+                            </NavLink>
+                            <NavLink to={`/site/${siteId}/configuration/ip-assignment`} className={getSubNavLinkClass}>
+                                <Settings2 className="w-4 h-4 mr-2" />
+                                IP Assignment
+                            </NavLink>
+                            <NavLink to={`/site/${siteId}/configuration/network-assignment`} className={getSubNavLinkClass}>
+                                <Settings2 className="w-4 h-4 mr-2" />
+                                Network Assignment
+                            </NavLink>
+                            <NavLink to={`/site/${siteId}/configuration/access-control`} className={getSubNavLinkClass}>
+                                <Settings2 className="w-4 h-4 mr-2" />
+                                Access Control
+                            </NavLink>
+                            <NavLink to={`/site/${siteId}/configuration/schedule`} className={getSubNavLinkClass}>
+                                <Settings2 className="w-4 h-4 mr-2" />
+                                Schedule
+                            </NavLink>
+                            <NavLink to={`/site/${siteId}/configuration/wireless-options`} className={getSubNavLinkClass}>
+                                <Settings2 className="w-4 h-4 mr-2" />
+                                Wireless Options
+                            </NavLink>
+                        </div>
+                    )}
+                </div>
             </nav>
 
             <UserWidget onLogout={onLogout} />
