@@ -28,7 +28,7 @@ jobs:
           
           # 5. Yêu cầu Docker dựng lại (Build) các Image mới và khởi chạy container
           # Lệnh này sẽ tự cập nhật các thay đổi trong source code của anh
-          docker compose up -d --build --no-cache
+          docker compose up -d --build
           
           # 5. Xóa bỏ các bản build cũ (dangling images) để tiết kiệm 30GB SSD của VPS
           docker image prune -f
