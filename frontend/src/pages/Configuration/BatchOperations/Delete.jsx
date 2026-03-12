@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import apiClient from '../../api/apiClient';
-import { useLanguage } from '../../context/LanguageContext';
+import apiClient from '../../../api/apiClient';
+import { useLanguage } from '../../../context/LanguageContext';
 import { toast } from 'sonner';
 import {
     Trash2, Play, Square, AlertTriangle, CheckCircle,

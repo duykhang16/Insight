@@ -1,25 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import apiClient from '../../api/apiClient';
-import styles from './Cloner.module.css';
-import { useLanguage } from '../../context/LanguageContext';
+import apiClient from '../../../api/apiClient';
+import styles from './Clone.module.css';
+import { useLanguage } from '../../../context/LanguageContext';
 import { toast } from 'sonner';
 import {
     Download, LayoutDashboard, CheckSquare, FileJson,
-    ArrowRight, Server, Rocket, Activity, Code, Network, Search, CheckCircle, Wifi, Cable, Users, Layout
+    ArrowRight, Server, Rocket, Activity, Code, Network, Search, CheckCircle, Wifi, Cable, Users
 } from 'lucide-react';
 
 
 const Cloner = () => {
     const { t } = useLanguage();
     // --- 1. Quản lý State ---
-    const [sourceMode, setSourceMode] = useState('live'); // 'live' | 'template'
     const [sourceSites, setSourceSites] = useState([]);
-    const [templates, setTemplates] = useState([]);
-    // selectedSourceId = live site ID (always, even in template mode)
     const [selectedSourceId, setSelectedSourceId] = useState('');
-    // selectedTemplateId = template to badge sites with (only in template mode)
-    const [selectedTemplateId, setSelectedTemplateId] = useState('');
+    const [sourceZoneFilter, setSourceZoneFilter] = useState('all');
+    const [sourceSearchTerm, setSourceSearchTerm] = useState('');
     const [fetchLoading, setFetchLoading] = useState(false);
     const [fetchError, setFetchError] = useState('');
 
@@ -43,16 +40,9 @@ const Cloner = () => {
     // --- 2. Khởi tạo & Đồng bộ hóa ---
     useEffect(() => {
         loadSourceSites();
-        loadTemplates();
         loadTargetSites();
         loadZones();
     }, []);
-
-    useEffect(() => {
-        setSelectedSourceId('');
-        setSelectedTemplateId('');
-        setShowPreview(false);
-    }, [sourceMode]);
 
     useEffect(() => {
         if (executionResult) setCurrentStep(3);
@@ -71,14 +61,7 @@ const Cloner = () => {
         }
     };
 
-    const loadTemplates = async () => {
-        try {
-            const res = await apiClient.get('/templates');
-            setTemplates(res.data || []);
-        } catch (error) {
-            setTemplates([]);
-        }
-    };
+
 
     const loadTargetSites = async () => {
         try {
@@ -102,12 +85,7 @@ const Cloner = () => {
     };
 
     const handleFetchConfig = async () => {
-        // Template mode: vẫn dùng live site làm nguồn config
         if (!selectedSourceId) return;
-        if (sourceMode === 'template' && !selectedTemplateId) {
-            setFetchError('Vui lòng chọn template để gán nhãn.');
-            return;
-        }
         setFetchLoading(true);
         setFetchError('');
         try {
@@ -157,8 +135,6 @@ const Cloner = () => {
             const res = await apiClient.post('/cloner/apply', {
                 target_site_ids: Array.from(selectedTargetIds),
                 operations: opsToRun,
-                // Gán nhãn template nếu đang ở template mode
-                template_id: (sourceMode === 'template' && selectedTemplateId) ? selectedTemplateId : null
             });
             clearInterval(progressRef.current);
             setExecutionProgress(100);
@@ -269,79 +245,113 @@ const Cloner = () => {
                                 </div>
                             </div>
 
-                            <div className="max-w-2xl mx-auto flex flex-col gap-6">
-                                {/* Mode Toggle */}
-                                <div className="flex p-1.5 bg-slate-100 dark:bg-black/40 rounded-2xl w-full">
-                                    <button 
-                                        onClick={() => setSourceMode('live')}
-                                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${sourceMode === 'live' ? 'bg-white dark:bg-slate-800 text-blue-600 shadow-md' : 'text-slate-500'}`}
-                                    >
-                                        <Server size={14} /> {t('cloner.source_live') || 'Live Site'}
-                                    </button>
-                                    <button 
-                                        onClick={() => setSourceMode('template')}
-                                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${sourceMode === 'template' ? 'bg-white dark:bg-slate-800 text-emerald-600 shadow-md' : 'text-slate-500'}`}
-                                    >
-                                        <Layout size={14} /> {t('config.tabs.templates') || 'Template Library'}
-                                    </button>
-                                </div>
-
-                                {/* Template mode: chọn template để gán nhãn TRƯỚC */}
-                                {sourceMode === 'template' && (
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
-                                            <Layout size={12} /> 1. Chọn Template (nhãn sẽ gán cho site đích)
-                                        </label>
-                                        <div className="relative">
-                                            <select
-                                                value={selectedTemplateId}
-                                                onChange={e => setSelectedTemplateId(e.target.value)}
-                                                className="w-full h-14 bg-slate-50 dark:bg-black/40 border border-emerald-200 dark:border-emerald-500/20 rounded-2xl px-6 text-slate-800 dark:text-white font-bold appearance-none focus:outline-none focus:border-emerald-500/50"
-                                            >
-                                                <option value="">-- Chọn Template để gán nhãn --</option>
-                                                {templates.map(tpl => (
-                                                    <option key={tpl.id} value={tpl.id} className="bg-white dark:bg-slate-900">{tpl.name}</option>
-                                                ))}
-                                            </select>
-                                            {selectedTemplateId && (() => {
-                                                const tpl = templates.find(t => t.id === selectedTemplateId);
-                                                return tpl ? (
-                                                    <span
-                                                        className="absolute right-12 top-1/2 -translate-y-1/2 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border"
-                                                        style={{ borderColor: `${tpl.color}40`, backgroundColor: `${tpl.color}10`, color: tpl.color }}
-                                                    >
-                                                        {tpl.name}
-                                                    </span>
-                                                ) : null;
-                                            })()}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Site nguồn cấu hình — luôn là live site */}
-                                <div className="space-y-2">
+                            <div className="max-w-2xl mx-auto flex flex-col gap-5">
+                                {/* Source Site Selector */}
+                                <div className="space-y-3">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                                        <Server size={12} /> {sourceMode === 'template' ? '2. Chọn Site nguồn cấu hình (Live)' : t('cloner.origin_site') || 'Site nguồn'}
+                                        <Server size={12} /> {t('cloner.origin_site') || 'Site nguồn'}
                                     </label>
-                                    <div className="relative">
+
+                                    {/* Zone filter + Search */}
+                                    <div className="flex gap-2">
                                         <select
-                                            value={selectedSourceId}
-                                            onChange={e => setSelectedSourceId(e.target.value)}
-                                            className="w-full h-14 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-2xl px-6 text-slate-800 dark:text-white font-bold appearance-none focus:outline-none focus:border-blue-500/50"
+                                            value={sourceZoneFilter}
+                                            onChange={e => setSourceZoneFilter(e.target.value)}
+                                            className="h-10 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-xl px-3 text-slate-800 dark:text-white text-xs font-bold focus:outline-none min-w-[140px] appearance-none"
                                         >
-                                            <option value="">{t('cloner.origin_site') || '-- Chọn site nguồn --'}</option>
-                                            {sourceSites.map(site => (
-                                                <option key={site.siteId} value={site.siteId} className="bg-white dark:bg-slate-900">{site.siteName}</option>
+                                            <option value="all">All Zones</option>
+                                            {zones.map(z => (
+                                                <option key={z.id || z._id} value={z.id || z._id}>{z.name}</option>
                                             ))}
                                         </select>
-                                        <ArrowRight className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 rotate-90" size={20} />
+                                        <div className="relative flex-1">
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <Search size={14} className="text-slate-400" />
+                                            </div>
+                                            <input
+                                                type="text"
+                                                placeholder="Search source site..."
+                                                value={sourceSearchTerm}
+                                                onChange={e => setSourceSearchTerm(e.target.value)}
+                                                className="w-full h-10 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-xl pl-9 pr-4 text-slate-800 dark:text-white text-xs font-medium focus:outline-none focus:border-blue-500/50 transition-all"
+                                            />
+                                        </div>
                                     </div>
+
+                                    {/* Site list */}
+                                    <div className="bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-2xl overflow-hidden max-h-[240px] overflow-y-auto custom-scrollbar">
+                                        {(() => {
+                                            const filtered = sourceSites.filter(site => {
+                                                const matchesSearch = (site.siteName || '').toLowerCase().includes(sourceSearchTerm.toLowerCase());
+                                                let matchesZone = true;
+                                                if (sourceZoneFilter !== 'all') {
+                                                    const zoneObj = zones.find(z => String(z.id || z._id) === sourceZoneFilter);
+                                                    matchesZone = zoneObj ? (zoneObj.site_ids || []).includes(site.siteId || site.id) : false;
+                                                }
+                                                return matchesSearch && matchesZone;
+                                            }).sort((a, b) => (a.siteName || '').localeCompare(b.siteName || ''));
+                                            if (filtered.length === 0) {
+                                                return (
+                                                    <div className="p-6 text-center text-slate-400 dark:text-slate-600 text-xs">
+                                                        No sites found
+                                                    </div>
+                                                );
+                                            }
+                                            return filtered.map(site => {
+                                                const isSelected = selectedSourceId === site.siteId;
+                                                const tpl = site.template;
+                                                return (
+                                                    <div
+                                                        key={site.siteId}
+                                                        onClick={() => setSelectedSourceId(site.siteId)}
+                                                        className={`flex items-center justify-between px-4 py-3 cursor-pointer transition-all border-b border-slate-100 dark:border-white/5 last:border-b-0 ${
+                                                            isSelected
+                                                                ? 'bg-blue-50 dark:bg-blue-500/10'
+                                                                : 'hover:bg-slate-100 dark:hover:bg-white/5'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                            <div className={`w-2 h-2 rounded-full shrink-0 ${
+                                                                isSelected ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'
+                                                            }`} />
+                                                            <span className={`text-sm font-semibold truncate ${
+                                                                isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-slate-700 dark:text-slate-200'
+                                                            }`}>
+                                                                {site.siteName}
+                                                            </span>
+                                                            {tpl && (
+                                                                <span
+                                                                    className="shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border"
+                                                                    style={{
+                                                                        borderColor: `${tpl.color || '#6366f1'}30`,
+                                                                        backgroundColor: `${tpl.color || '#6366f1'}10`,
+                                                                        color: tpl.color || '#6366f1'
+                                                                    }}
+                                                                >
+                                                                    {tpl.name}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {isSelected && <CheckCircle size={16} className="text-blue-500 shrink-0" />}
+                                                    </div>
+                                                );
+                                            });
+                                        })()}
+                                    </div>
+
+                                    {/* Selected indicator */}
+                                    {selectedSourceId && (
+                                        <div className="flex items-center gap-2 text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                                            <CheckCircle size={12} />
+                                            Selected: {sourceSites.find(s => s.siteId === selectedSourceId)?.siteName || selectedSourceId}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <button
                                     onClick={handleFetchConfig}
-                                    disabled={!selectedSourceId || fetchLoading || (sourceMode === 'template' && !selectedTemplateId)}
-                                    className={`h-14 bg-gradient-to-r th-text-primary font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl hover:scale-[1.02] transition-all active:scale-95 disabled:opacity-30 ${sourceMode === 'live' ? 'from-blue-600 to-indigo-600' : 'from-emerald-600 to-teal-600'}`}
+                                    disabled={!selectedSourceId || fetchLoading}
+                                    className="h-14 bg-gradient-to-r from-blue-600 to-indigo-600 th-text-primary font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl hover:scale-[1.02] transition-all active:scale-95 disabled:opacity-30"
                                 >
                                     {fetchLoading ? t('cloner.decoding') : t('cloner.decode')}
                                 </button>

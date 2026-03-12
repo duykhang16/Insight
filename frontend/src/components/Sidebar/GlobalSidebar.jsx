@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
     Home, Sliders, Shield, Layers, Link2, Users,
-    Building2, ScrollText, ChevronDown, Copy, Trash2
+    Building2, ScrollText, ChevronDown, Copy, Trash2, RefreshCw, Settings, Layout
 } from 'lucide-react';
 import UserWidget from './UserWidget';
 import ThemeLanguageToggle from '../ThemeLanguageToggle';
@@ -30,38 +30,37 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
     };
 
     // Permission flags
-    const canSeeCloneSync = rolePermissions.full_clone === true || rolePermissions.smart_sync === true;
-    const canSeeBatchProvision = rolePermissions.batch_provision === true;
+    const canSeeCloneConfig = rolePermissions.full_clone === true;
+    const canSeeCloneSite = rolePermissions.batch_provision === true;
+    const canSeeClone = canSeeCloneConfig || canSeeCloneSite;
+    const canSeeSmartSync = rolePermissions.smart_sync === true;
+    const canSeeUpdate = canSeeSmartSync;
     const canSeeBatchAccess = rolePermissions.batch_access === true;
     const canSeeBatchDelete = rolePermissions.batch_delete === true;
+    const canSeeBatchOps = canSeeBatchAccess || canSeeBatchDelete;
     const canSeeConfig = (userRole !== 'viewer' || isZoneAdmin) &&
-        (canSeeCloneSync || canSeeBatchProvision || canSeeBatchAccess || canSeeBatchDelete);
+        (canSeeClone || canSeeUpdate || canSeeBatchOps);
 
     // Sub-items for Configuration accordion
     const configSubItems = [
-        canSeeCloneSync && {
+        { key: 'templates', label: t('config.tabs.templates') || 'Templates', icon: <Layout size={14} />, help: '' },
+        canSeeClone && {
             key: 'clone',
-            label: t('config.tabs.clone_sync'),
+            label: t('config.tabs.clone') || 'Clone',
             icon: <Copy size={14} />,
-            help: t('config.help.clone_sync'),
+            help: t('config.help.clone'),
         },
-        canSeeBatchProvision && {
-            key: 'batch_provision',
-            label: t('config.tabs.batch_provision'),
-            icon: <Layers size={14} />,
-            help: t('config.help.batch_provision'),
+        canSeeUpdate && {
+            key: 'update',
+            label: t('config.tabs.update') || 'Update',
+            icon: <RefreshCw size={14} />,
+            help: t('config.help.update'),
         },
-        canSeeBatchAccess && {
-            key: 'batch_access',
-            label: t('config.tabs.batch_access'),
-            icon: <Users size={14} />,
-            help: t('config.help.batch_access'),
-        },
-        canSeeBatchDelete && {
-            key: 'batch_delete',
-            label: t('config.tabs.batch_delete'),
-            icon: <Trash2 size={14} />,
-            help: t('config.help.batch_delete'),
+        canSeeBatchOps && {
+            key: 'batch_ops',
+            label: t('config.tabs.batch_ops') || 'Batch Operations',
+            icon: <Settings size={14} />,
+            help: t('config.help.batch_ops'),
         },
     ].filter(Boolean);
 

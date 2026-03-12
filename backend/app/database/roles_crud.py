@@ -7,6 +7,7 @@ DEFAULT_PERMISSIONS = {
         "smart_sync": True,
         "batch_provision": True,
         "batch_access": True,
+        "delete_ssid": True,
         "batch_delete": True,
     },
     "tenant_admin": {
@@ -14,6 +15,7 @@ DEFAULT_PERMISSIONS = {
         "smart_sync": True,
         "batch_provision": True,
         "batch_access": True,
+        "delete_ssid": True,
         "batch_delete": True,
     },
     "manager": {
@@ -21,6 +23,7 @@ DEFAULT_PERMISSIONS = {
         "smart_sync": True,
         "batch_provision": False,
         "batch_access": False,
+        "delete_ssid": False,
         "batch_delete": False,
     },
     "viewer": {
@@ -28,6 +31,7 @@ DEFAULT_PERMISSIONS = {
         "smart_sync": False,
         "batch_provision": False,
         "batch_access": False,
+        "delete_ssid": False,
         "batch_delete": False,
     }
 }
@@ -58,10 +62,13 @@ async def get_all_roles_permissions() -> List[Dict[str, Any]]:
 
 async def get_role_permissions(role: str) -> Dict[str, bool]:
     db = get_database()
+    defaults = DEFAULT_PERMISSIONS.get(role, {})
     doc = await db.role_permissions.find_one({"role": role})
     if doc and "permissions" in doc:
-        return doc["permissions"]
-    return DEFAULT_PERMISSIONS.get(role, {})
+        # Merge: defaults first, then stored values override
+        merged = {**defaults, **doc["permissions"]}
+        return merged
+    return defaults
 
 async def update_role_permissions(role: str, permissions: Dict[str, bool]) -> bool:
     db = get_database()

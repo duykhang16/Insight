@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import apiClient from '../../api/apiClient';
-import { useLanguage } from '../../context/LanguageContext';
+import apiClient from '../../../api/apiClient';
+import { useLanguage } from '../../../context/LanguageContext';
 import { toast } from 'sonner';
 import {
     Layers, Play, Square, AlertTriangle, CheckCircle,
-    XCircle, ChevronRight, Globe, Clock, Hash, Tag, Map, RefreshCw, CheckSquare, Square as SquareIcon, Rocket, Layout
+    XCircle, ChevronRight, Globe, Clock, Hash, Tag, Map, RefreshCw, CheckSquare, Square as SquareIcon, Rocket, Layout, Search
 } from 'lucide-react';
 
 const TIMEZONES = [
@@ -40,6 +40,8 @@ const BatchProvision = () => {
     // Config State
     const [sites, setSites] = useState([]);
     const [selectedSourceId, setSelectedSourceId] = useState('');
+    const [sourceZoneFilter, setSourceZoneFilter] = useState('all');
+    const [sourceSearchTerm, setSourceSearchTerm] = useState('');
     const [prefix, setPrefix] = useState('');
     const [cloneCount, setCloneCount] = useState(5);
     const [regDomain, setRegDomain] = useState('VN');
@@ -86,7 +88,7 @@ const BatchProvision = () => {
     useEffect(() => {
         apiClient.get('/overview/sites').then(res => {
             const list = Array.isArray(res.data) ? res.data : (res.data?.sites || []);
-            setSites(list);
+            setSites(list.sort((a, b) => (a.siteName || '').localeCompare(b.siteName || '')));
         }).catch(() => setSites([]));
 
         apiClient.get('/templates').then(res => {
@@ -232,22 +234,107 @@ const BatchProvision = () => {
 
                         <div className="flex flex-col gap-1.5">
                             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{t('batch_provision.template_site')}</label>
-                            <select
-                                value={selectedSourceId}
-                                onChange={e => setSelectedSourceId(e.target.value)}
-                                disabled={isRunning}
-                                className="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 dark:text-white appearance-none focus:outline-none focus:border-violet-500/50 disabled:opacity-50"
-                            >
-                                <option value="">{t('batch_provision.select_template')}</option>
-                                {adminTemplateSites.map(s => (
-                                    <option key={s.siteId || s.id} value={s.siteId || s.id} className="bg-white dark:bg-slate-900">
-                                        {s.siteName}
-                                    </option>
-                                ))}
-                            </select>
+
+                            {/* Zone filter + Search */}
+                            <div className="flex gap-1.5">
+                                <select
+                                    value={sourceZoneFilter}
+                                    onChange={e => setSourceZoneFilter(e.target.value)}
+                                    disabled={isRunning}
+                                    className="h-8 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-lg px-2 text-slate-800 dark:text-white text-[10px] font-bold focus:outline-none min-w-[100px] appearance-none disabled:opacity-50"
+                                >
+                                    <option value="all">All Zones</option>
+                                    {zones.map(z => (
+                                        <option key={z.id || z._id} value={z.id || z._id}>{z.name}</option>
+                                    ))}
+                                </select>
+                                <div className="relative flex-1">
+                                    <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                                        <Search size={11} className="text-slate-400" />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="Search..."
+                                        value={sourceSearchTerm}
+                                        onChange={e => setSourceSearchTerm(e.target.value)}
+                                        disabled={isRunning}
+                                        className="w-full h-8 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-lg pl-7 pr-3 text-slate-800 dark:text-white text-[10px] font-medium focus:outline-none focus:border-violet-500/50 disabled:opacity-50"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Site list */}
+                            <div className="bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-xl overflow-hidden max-h-[180px] overflow-y-auto custom-scrollbar">
+                                {(() => {
+                                    const filtered = adminTemplateSites.filter(site => {
+                                        const matchesSearch = (site.siteName || '').toLowerCase().includes(sourceSearchTerm.toLowerCase());
+                                        let matchesZone = true;
+                                        if (sourceZoneFilter !== 'all') {
+                                            const zoneObj = zones.find(z => String(z.id || z._id) === sourceZoneFilter);
+                                            matchesZone = zoneObj ? (zoneObj.site_ids || []).includes(site.siteId || site.id) : false;
+                                        }
+                                        return matchesSearch && matchesZone;
+                                    }).sort((a, b) => (a.siteName || '').localeCompare(b.siteName || ''));
+                                    if (filtered.length === 0) {
+                                        return (
+                                            <div className="p-4 text-center text-slate-400 dark:text-slate-600 text-[10px]">
+                                                No admin sites found
+                                            </div>
+                                        );
+                                    }
+                                    return filtered.map(site => {
+                                        const isSelected = selectedSourceId === (site.siteId || site.id);
+                                        const tpl = site.template;
+                                        const roleBadge = getRoleBadgeInfo(site.role);
+                                        return (
+                                            <div
+                                                key={site.siteId || site.id}
+                                                onClick={() => !isRunning && setSelectedSourceId(site.siteId || site.id)}
+                                                className={`flex items-center justify-between px-3 py-2.5 cursor-pointer transition-all border-b border-slate-100 dark:border-white/5 last:border-b-0 ${
+                                                    isRunning ? 'opacity-50 cursor-not-allowed' : ''
+                                                } ${
+                                                    isSelected
+                                                        ? 'bg-violet-50 dark:bg-violet-500/10'
+                                                        : 'hover:bg-slate-100 dark:hover:bg-white/5'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                                        isSelected ? 'bg-violet-500' : 'bg-slate-300 dark:bg-slate-600'
+                                                    }`} />
+                                                    <span className={`text-xs font-semibold truncate ${
+                                                        isSelected ? 'text-violet-700 dark:text-violet-300' : 'text-slate-700 dark:text-slate-200'
+                                                    }`}>
+                                                        {site.siteName}
+                                                    </span>
+                                                    {tpl && (
+                                                        <span
+                                                            className="shrink-0 px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border"
+                                                            style={{
+                                                                borderColor: `${tpl.color || '#8b5cf6'}30`,
+                                                                backgroundColor: `${tpl.color || '#8b5cf6'}10`,
+                                                                color: tpl.color || '#8b5cf6'
+                                                            }}
+                                                        >
+                                                            {tpl.name}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {isSelected && <CheckCircle size={13} className="text-violet-500 shrink-0" />}
+                                            </div>
+                                        );
+                                    });
+                                })()}
+                            </div>
+
+                            {/* Selected indicator */}
                             {selectedSite && (
-                                <div className="flex items-center gap-2 mt-1">
-                                    <span className={`px-2 py-0.5 rounded border text-[9px] font-black uppercase tracking-widest ${getRoleBadgeInfo(selectedSite.role).classes}`}>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                    <CheckCircle size={11} className="text-violet-500" />
+                                    <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400 truncate">
+                                        {selectedSite.siteName}
+                                    </span>
+                                    <span className={`px-1.5 py-0.5 rounded border text-[8px] font-black uppercase tracking-widest ${getRoleBadgeInfo(selectedSite.role).classes}`}>
                                         {getRoleBadgeInfo(selectedSite.role).text}
                                     </span>
                                 </div>

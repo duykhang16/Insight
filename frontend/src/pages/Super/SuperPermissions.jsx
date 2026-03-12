@@ -13,6 +13,7 @@ const SuperPermissions = () => {
         { key: 'smart_sync', label: t('super.permissions.feature_smart_sync') },
         { key: 'batch_provision', label: t('super.permissions.feature_batch_provision') },
         { key: 'batch_access', label: t('super.permissions.feature_batch_access') },
+        { key: 'delete_ssid', label: 'Delete SSID' },
         { key: 'batch_delete', label: t('super.permissions.feature_batch_delete') },
     ];
 
@@ -129,7 +130,7 @@ const SuperPermissions = () => {
                                 </button>
                             )}
                         </div>
-                        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 ${role === 'super_admin' ? 'opacity-60 pointer-events-none grayscale' : ''}`}>
+                        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 ${role === 'super_admin' ? 'opacity-60 pointer-events-none grayscale' : ''}`}>
                             {FEATURES.map(feat => {
                                 const isEnabled = permissions[role]?.[feat.key] || false;
                                 return (

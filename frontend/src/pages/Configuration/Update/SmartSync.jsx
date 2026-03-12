@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import apiClient from '../../api/apiClient';
-import styles from './Cloner.module.css';
-import { useLanguage } from '../../context/LanguageContext';
+import apiClient from '../../../api/apiClient';
+import styles from './Update.module.css';
+import { useLanguage } from '../../../context/LanguageContext';
 import { toast } from 'sonner';
 import {
     Activity, Shield, Rocket, Server, Sliders, CheckCircle, Wifi, Search, XCircle, Lock, Network, RotateCcw, Layers, Database, ChevronRight, AlertCircle, ArrowLeft
 } from 'lucide-react';
+import SSIDSelector from './SSIDSelector';
 
 const SmartSync = () => {
     const { t } = useLanguage();
@@ -214,8 +215,6 @@ const SmartSync = () => {
         } else if (selectedAction === 'update_ssid_config') {
             if (!selectedSSIDName) { toast.error('Vui lòng chọn một SSID.'); return; }
             if (!selectedSourceSiteId) { toast.error('Vui lòng chọn Origin Site.'); return; }
-        } else if (selectedAction === 'delete_ssid') {
-            if (!selectedSSIDName) { toast.error('Vui lòng chọn một SSID.'); return; }
         }
 
         setConfirmReady(false);
@@ -274,11 +273,6 @@ const SmartSync = () => {
                     } else if (selectedAction === 'update_ssid_config') {
                         res = await apiClient.post('/cloner/sync-config', {
                             source_site_id: selectedSourceSiteId,
-                            source_network_name: selectedSSIDName,
-                            target_site_ids: singleSiteRef
-                        });
-                    } else if (selectedAction === 'delete_ssid') {
-                        res = await apiClient.post('/cloner/sync-delete', {
                             source_network_name: selectedSSIDName,
                             target_site_ids: singleSiteRef
                         });
@@ -444,7 +438,6 @@ const SmartSync = () => {
                                             {[
                                                 { id: 'update_ssid_password', label: 'Update Wireless PSK', icon: Lock, color: 'text-emerald-500' },
                                                 { id: 'update_ssid_config', label: 'Clone Deep Config', icon: RotateCcw, color: 'text-blue-500' },
-                                                { id: 'delete_ssid', label: 'Bulk Delete SSID', icon: XCircle, color: 'text-rose-500' }
                                             ].map(action => (
                                                 <button
                                                     key={action.id}
@@ -581,18 +574,11 @@ const SmartSync = () => {
                                         {/* SSID Selector */}
                                         <div className="space-y-3">
                                             <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500">Target SSID</label>
-                                            <select
+                                            <SSIDSelector
+                                                compiledSSIDs={compiledSSIDs}
                                                 value={selectedSSIDName}
-                                                onChange={e => setSelectedSSIDName(e.target.value)}
-                                                className="w-full h-14 bg-slate-50 dark:bg-black/60 border border-slate-200 dark:border-white/10 rounded-2xl px-6 text-sm font-bold focus:border-emerald-500/50 outline-none"
-                                            >
-                                                <option value="">-- Choose Network --</option>
-                                                {compiledSSIDs.map(ssid => (
-                                                    <option key={ssid.networkName} value={ssid.networkName}>
-                                                        {ssid.networkName} ({ssid.foundInSites} sites)
-                                                    </option>
-                                                ))}
-                                            </select>
+                                                onChange={setSelectedSSIDName}
+                                            />
                                         </div>
 
                                         {/* Source Site for Clone */}
@@ -642,23 +628,12 @@ const SmartSync = () => {
                                             </div>
                                         )}
 
-                                        {selectedAction === 'delete_ssid' && (
-                                            <div className="p-6 bg-rose-500/10 border border-rose-500/20 rounded-3xl flex items-start gap-4">
-                                                <AlertCircle className="text-rose-500 mt-1" size={20} />
-                                                <div>
-                                                    <h4 className="text-sm font-black text-rose-700 dark:text-rose-400 uppercase tracking-widest mb-1">Warning</h4>
-                                                    <p className="text-[11px] text-rose-600 dark:text-rose-500/80 leading-relaxed">
-                                                        Hành động xóa SSID sẽ gỡ bỏ hoàn toàn mạng này khỏi các site mục tiêu. Kết nối người dùng sẽ bị ngắt lập tức.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        )}
+
 
                                         <button
                                             onClick={handleProceedToExecution}
                                             disabled={
                                                 selectedAction === 'update_ssid_password' ? (!selectedSSIDName || !newPassword || newPassword.length < 8) : 
-                                                selectedAction === 'delete_ssid' ? !selectedSSIDName : 
                                                 (!selectedSSIDName || !selectedSourceSiteId)
                                             }
                                             className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 th-text-primary font-black uppercase tracking-widest rounded-2xl shadow-xl hover:scale-[1.02] active:scale-98 transition-all disabled:opacity-30 flex items-center justify-center gap-2 mt-4"
@@ -753,7 +728,7 @@ const SmartSync = () => {
                                             </div>
                                             <div className="grid grid-cols-1 gap-3">
                                                 {[
-                                                    { label: 'Action', value: selectedAction === 'update_ssid_password' ? 'Update Wireless PSK' : selectedAction === 'update_ssid_config' ? 'Clone Deep Config' : 'Bulk Delete SSID' },
+                                                    { label: 'Action', value: selectedAction === 'update_ssid_password' ? 'Update Wireless PSK' : 'Clone Deep Config' },
                                                     { label: 'Target SSID', value: selectedSSIDName || '—' },
                                                     { label: 'Sites affected', value: `${selectedTargetIds.size} sites` },
                                                 ].map(row => (
@@ -763,18 +738,59 @@ const SmartSync = () => {
                                                     </div>
                                                 ))}
                                             </div>
-                                            {selectedAction === 'delete_ssid' && (
-                                                <div className="flex items-start gap-3 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20">
-                                                    <AlertCircle size={18} className="text-rose-500 shrink-0 mt-0.5" />
-                                                    <p className="text-[11px] text-rose-600 dark:text-rose-400 leading-relaxed font-medium">⚠️ CẢNH BÁO: Xóa SSID sẽ gỡ bỏ hoàn toàn mạng này và ngắt kết nối người dùng ngay lập tức. Hành động không thể hoàn tác.</p>
-                                                </div>
-                                            )}
-                                            {selectedAction !== 'delete_ssid' && (
-                                                <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                                                    <AlertCircle size={16} className="text-amber-500 shrink-0 mt-0.5" />
-                                                    <p className="text-[11px] text-amber-600 dark:text-amber-400 leading-relaxed">Sites không có SSID này sẽ tự động bỏ qua (SKIPPED).</p>
-                                                </div>
-                                            )}
+
+                                            {/* ── Site execution list ── */}
+                                            {selectedSSIDName && (() => {
+                                                const ssidEntry = compiledSSIDs.find(s => s.networkName === selectedSSIDName);
+                                                const matchSiteIds = ssidEntry ? ssidEntry.foundInSiteIds : [];
+                                                const targetArr = Array.from(selectedTargetIds);
+                                                const matchSites = targetArr.filter(id => matchSiteIds.includes(id));
+                                                const skipSites = targetArr.filter(id => !matchSiteIds.includes(id));
+
+                                                return (
+                                                    <div className="rounded-xl border border-slate-200 dark:border-white/5 overflow-hidden">
+                                                        <div className="px-4 py-2.5 bg-slate-100/80 dark:bg-white/[0.03] border-b border-slate-200 dark:border-white/5 flex items-center justify-between">
+                                                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Target Sites Detail</span>
+                                                            <div className="flex items-center gap-3 text-[9px] font-black">
+                                                                <span className="flex items-center gap-1 text-emerald-500">
+                                                                    <CheckCircle size={10} /> {matchSites.length} Execute
+                                                                </span>
+                                                                {skipSites.length > 0 && (
+                                                                    <span className="flex items-center gap-1 text-slate-400">
+                                                                        <XCircle size={10} /> {skipSites.length} Skip
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        <div className="max-h-[200px] overflow-y-auto custom-scrollbar divide-y divide-slate-100 dark:divide-white/5">
+                                                            {matchSites.map(siteId => {
+                                                                const site = liveSites.find(s => s.siteId === siteId);
+                                                                return (
+                                                                    <div key={siteId} className="flex items-center gap-3 px-4 py-2 bg-emerald-500/[0.03]">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                                                                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate flex-1">{site?.siteName || siteId}</span>
+                                                                        <span className="text-[8px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/15">EXECUTE</span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                            {skipSites.map(siteId => {
+                                                                const site = liveSites.find(s => s.siteId === siteId);
+                                                                return (
+                                                                    <div key={siteId} className="flex items-center gap-3 px-4 py-2 opacity-50">
+                                                                        <div className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0" />
+                                                                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-500 truncate flex-1">{site?.siteName || siteId}</span>
+                                                                        <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 bg-slate-500/10 px-1.5 py-0.5 rounded border border-slate-500/10">SKIP</span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
+                                            <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                                                <AlertCircle size={16} className="text-amber-500 shrink-0 mt-0.5" />
+                                                <p className="text-[11px] text-amber-600 dark:text-amber-400 leading-relaxed">Sites không có SSID này sẽ tự động bỏ qua (SKIPPED).</p>
+                                            </div>
                                             <div className="flex gap-4 pt-2">
                                                 <button
                                                     onClick={() => setCurrentStep(2)}
@@ -784,11 +800,7 @@ const SmartSync = () => {
                                                 </button>
                                                 <button
                                                     onClick={() => setConfirmReady(true)}
-                                                    className={`flex-1 h-12 rounded-2xl font-black uppercase tracking-widest text-sm th-text-primary transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 shadow-lg ${
-                                                        selectedAction === 'delete_ssid'
-                                                            ? 'bg-gradient-to-r from-rose-600 to-red-600 shadow-rose-500/20'
-                                                            : 'bg-gradient-to-r from-emerald-600 to-teal-600 shadow-emerald-500/20'
-                                                    }`}
+                                                    className="flex-1 h-12 rounded-2xl font-black uppercase tracking-widest text-sm th-text-primary transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 shadow-lg bg-gradient-to-r from-emerald-600 to-teal-600 shadow-emerald-500/20"
                                                 >
                                                     <Rocket size={16} /> Xác nhận thực thi
                                                 </button>
