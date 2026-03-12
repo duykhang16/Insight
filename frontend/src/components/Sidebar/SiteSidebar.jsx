@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, Sliders, ArrowLeft, Activity, Bell, Users, Wifi, Monitor, Box, ChevronDown, Search, Server, Check } from 'lucide-react';
+import { Home, ArrowLeft, Activity, Bell, Users, Wifi, Monitor, Box, ChevronDown, Search, Server, Check } from 'lucide-react';
 import UserWidget from './UserWidget';
 import { useSite } from '../../context/SiteContext';
 
@@ -23,8 +23,9 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    // Fetch zones eagerly on mount so we can resolve the parent zone for back-navigation
     useEffect(() => {
-        if (isSwitcherOpen && zones.length === 0) {
+        if (zones.length === 0) {
             const endpoint = userRole === 'admin' ? '/zones' : '/zones/my';
             import('../../api/apiClient').then(({ default: apiClient }) => {
                 apiClient.get(endpoint).then(res => {
@@ -32,7 +33,12 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
                 }).catch(err => console.error(err));
             });
         }
-    }, [isSwitcherOpen, zones.length]);
+    }, [zones.length]);
+
+    // Resolve the parent zone that contains the current site
+    const parentZone = zones.find(z =>
+        (z.site_ids || []).map(String).includes(String(siteId))
+    );
 
     const handleSiteSelect = (id) => {
         if (setSelectedSiteId) setSelectedSiteId(id);
@@ -116,14 +122,14 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
                 </div>
             </div>
 
-            {/* Back to Zones */}
+            {/* Back to parent Zone */}
             <div className="px-3 pt-3 pb-1">
                 <button
-                    onClick={() => navigate('/zones')}
+                    onClick={() => navigate(parentZone ? `/zones/${parentZone.id || parentZone._id}/sites` : '/zones')}
                     className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold th-text-muted hover:th-text-primary hover:th-bg-surface-alt rounded-md transition-colors"
                 >
                     <ArrowLeft size={14} />
-                    Zones
+                    {parentZone ? parentZone.name : 'Zones'}
                 </button>
             </div>
 
@@ -224,10 +230,6 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
                 <NavLink to={`/site/${siteId}/applications`} className={getNavLinkClass}>
                     <Box className="w-5 h-5 mr-3" />
                     Applications
-                </NavLink>
-                <NavLink to={`/site/${siteId}/cloner`} className={getNavLinkClass}>
-                    <Sliders className="w-5 h-5 mr-3" />
-                    Configuration
                 </NavLink>
             </nav>
 

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, Search, X } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 import { formatAction } from '../../utils/logFormatter';
 import { useLanguage } from '../../context/LanguageContext';
+import { DataTable } from '@/components/ui/data-table';
 
 const METHOD_COLOR = {
   GET: 'text-emerald-400',
@@ -24,7 +25,6 @@ export default function SuperLogs() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 100;
 
@@ -45,16 +45,65 @@ export default function SuperLogs() {
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
-  const filtered = logs.filter(l => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
-      (l.actor_email || '').toLowerCase().includes(q) ||
-      (l.endpoint || '').toLowerCase().includes(q) ||
-      (l.action || '').toLowerCase().includes(q) ||
-      (l.insight_user_id || '').toLowerCase().includes(q)
-    );
-  });
+  const columns = [
+    {
+      key: 'timestamp',
+      label: t('super.logs.table_header_timestamp'),
+      sortable: true,
+      className: 'text-slate-400 whitespace-nowrap text-xs',
+    },
+    {
+      key: 'actor_email',
+      label: t('super.logs.table_header_actor'),
+      sortable: true,
+      className: 'th-text-secondary whitespace-nowrap max-w-[180px] truncate text-xs',
+      render: (log) => (
+        <span title={log.actor_email}>{log.actor_email || log.insight_user_id || '—'}</span>
+      ),
+    },
+    {
+      key: 'method',
+      label: t('super.logs.table_header_method'),
+      sortable: true,
+      render: (log) => (
+        <span className={`font-bold whitespace-nowrap text-xs ${METHOD_COLOR[log.method] || 'text-slate-400'}`}>
+          {log.method}
+        </span>
+      ),
+    },
+    {
+      key: 'endpoint',
+      label: t('super.logs.table_header_endpoint'),
+      className: 'text-slate-400 font-mono max-w-[260px] truncate text-xs',
+      render: (log) => <span title={log.endpoint}>{log.endpoint}</span>,
+    },
+    {
+      key: 'statusCode',
+      label: t('super.logs.table_header_status'),
+      sortable: true,
+      render: (log) => (
+        <span className={`font-semibold whitespace-nowrap text-xs ${STATUS_COLOR(log.statusCode)}`}>
+          {log.statusCode || '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'action',
+      label: t('super.logs.table_header_action'),
+      className: 'text-slate-400 max-w-[160px] truncate text-xs',
+      render: (log) => (
+        <span title={formatAction(log.method, log.endpoint, log.action, log.payload)}>
+          {formatAction(log.method, log.endpoint, log.action, log.payload)}
+        </span>
+      ),
+    },
+    {
+      key: 'ip_address',
+      label: t('super.logs.table_header_ip'),
+      className: 'text-slate-500 whitespace-nowrap text-xs',
+      render: (log) => log.ip_address || '—',
+    },
+  ];
 
   return (
     <div className="p-6 space-y-5">
@@ -74,96 +123,28 @@ export default function SuperLogs() {
         </button>
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-        <input
-          className="w-full th-bg-elevated border th-border rounded pl-9 pr-8 py-2 text-sm th-text-primary placeholder-slate-500 focus:outline-none focus:border-blue-500"
-          placeholder={t('super.logs.search_placeholder')}
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
-        {search && (
-          <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:th-text-primary">
-            <X className="w-3.5 h-3.5" />
-          </button>
-        )}
-      </div>
-
       {error && (
         <div className="bg-red-900/20 border border-red-800 text-red-400 text-sm px-4 py-3 rounded">
           {error}
         </div>
       )}
 
-      {/* Log table */}
-      <div className="th-bg-surface border th-border rounded-lg overflow-hidden">
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-500" />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-12 text-slate-500 text-sm">{t('super.logs.empty_state')}</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
-              <thead className="th-bg-surface-alt">
-                <tr>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">{t('super.logs.table_header_timestamp')}</th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">{t('super.logs.table_header_actor')}</th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">{t('super.logs.table_header_method')}</th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-400 uppercase tracking-wider">{t('super.logs.table_header_endpoint')}</th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">{t('super.logs.table_header_status')}</th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-400 uppercase tracking-wider">{t('super.logs.table_header_action')}</th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">{t('super.logs.table_header_ip')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(log => (
-                  <tr key={log.id} className="border-t th-border hover:bg-slate-800/30 transition-colors">
-                    <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{log.timestamp}</td>
-                    <td className="px-3 py-2 th-text-secondary whitespace-nowrap max-w-[180px] truncate" title={log.actor_email}>
-                      {log.actor_email || log.insight_user_id || '—'}
-                    </td>
-                    <td className={`px-3 py-2 font-bold whitespace-nowrap ${METHOD_COLOR[log.method] || 'text-slate-400'}`}>
-                      {log.method}
-                    </td>
-                    <td className="px-3 py-2 text-slate-400 font-mono max-w-[260px] truncate" title={log.endpoint}>
-                      {log.endpoint}
-                    </td>
-                    <td className={`px-3 py-2 font-semibold whitespace-nowrap ${STATUS_COLOR(log.statusCode)}`}>
-                      {log.statusCode || '—'}
-                    </td>
-                    <td className="px-3 py-2 text-slate-400 max-w-[160px] truncate" title={formatAction(log.method, log.endpoint, log.action, log.payload)}>
-                      {formatAction(log.method, log.endpoint, log.action, log.payload)}
-                    </td>
-                    <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{log.ip_address || '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Pagination */}
-      <div className="flex items-center gap-3 justify-end">
-        <button
-          disabled={page === 0 || loading}
-          onClick={() => setPage(p => p - 1)}
-          className="px-3 py-1.5 th-bg-elevated hover:bg-slate-700 disabled:opacity-40 th-text-secondary text-sm rounded transition-colors"
-        >
-          {t('super.logs.pagination_previous')}
-        </button>
-        <span className="text-sm text-slate-500">{t('super.logs.pagination_page_label')} {page + 1}</span>
-        <button
-          disabled={logs.length < PAGE_SIZE || loading}
-          onClick={() => setPage(p => p + 1)}
-          className="px-3 py-1.5 th-bg-elevated hover:bg-slate-700 disabled:opacity-40 th-text-secondary text-sm rounded transition-colors"
-        >
-          {t('super.logs.pagination_next')}
-        </button>
-      </div>
+      <DataTable
+        columns={columns}
+        data={logs}
+        keyExtractor={log => log.id}
+        emptyMessage={t('super.logs.empty_state')}
+        loading={loading}
+        searchable
+        searchKeys={['actor_email', 'endpoint', 'action', 'insight_user_id']}
+        searchPlaceholder={t('super.logs.search_placeholder')}
+        stickyHeader
+        pagination={{
+          page,
+          pageSize: PAGE_SIZE,
+          onPageChange: setPage,
+        }}
+      />
     </div>
   );
 }

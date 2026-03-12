@@ -1,70 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Pencil, Trash2, UserCheck, AlertTriangle, X, Check, ChevronDown } from 'lucide-react';
+import { Plus, Pencil, Trash2, UserCheck, AlertTriangle, X, Check } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 import { useLanguage } from '../../context/LanguageContext';
-
-// ── helpers ──────────────────────────────────────────────────────────────────
-
-const badge = (text, color) => (
-  <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold ${color}`}>
-    {text}
-  </span>
-);
+import { DataTable } from '@/components/ui/data-table';
+import { Badge } from '@/components/ui/badge';
 
 // ── sub-components ────────────────────────────────────────────────────────────
-
-function TenantRow({ tenant, allUsers, onEdit, onDelete, onAssignAdmin, refreshing }) {
-  const { t } = useLanguage();
-  const admin = allUsers.find(u => u.email === tenant.admin_email);
-
-  return (
-    <tr className="border-t th-border hover:th-bg-surface-alt transition-colors">
-      <td className="px-4 py-3 font-medium th-text-primary">{tenant.name}</td>
-      <td className="px-4 py-3 text-slate-400 text-sm">{tenant.note || '—'}</td>
-      <td className="px-4 py-3">
-        {tenant.admin_email ? (
-          <div>
-            <div className="text-sm text-blue-400">{tenant.admin_email}</div>
-            {admin && <div className="text-xs text-slate-500">{admin.isApproved ? t('super.tenants.status_approved') : t('super.tenants.status_pending')}</div>}
-          </div>
-        ) : (
-          badge(t('super.tenants.no_admin_badge'), 'bg-yellow-900/40 text-yellow-400')
-        )}
-      </td>
-      <td className="px-4 py-3 text-slate-400 text-sm">{tenant.user_count ?? 0}</td>
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => onAssignAdmin(tenant)}
-            className="p-1.5 rounded text-slate-400 hover:text-blue-400 hover:bg-slate-700 transition-colors"
-            title={t('super.tenants.button_tooltip_assign')}
-          >
-            <UserCheck className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => onEdit(tenant)}
-            className="p-1.5 rounded text-slate-400 hover:th-text-primary hover:bg-slate-700 transition-colors"
-            title={t('super.tenants.button_tooltip_edit')}
-          >
-            <Pencil className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => onDelete(tenant)}
-            className="p-1.5 rounded text-slate-400 hover:text-red-400 hover:bg-slate-700 transition-colors"
-            title={t('super.tenants.button_tooltip_delete')}
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      </td>
-    </tr>
-  );
-}
 
 function Modal({ title, onClose, children }) {
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="th-bg-surface border th-border rounded-lg w-full max-w-md shadow-xl">
+      <div className="th-bg-surface border th-border rounded-lg w-full max-w-md shadow-xl mx-4">
         <div className="flex items-center justify-between px-5 py-4 border-b th-border">
           <h2 className="text-sm font-semibold th-text-primary">{title}</h2>
           <button onClick={onClose} className="text-slate-400 hover:th-text-primary transition-colors">
@@ -197,7 +143,6 @@ export default function TenantManagement() {
   };
 
   const confirmAssignDespiteWarning = async () => {
-    // user acknowledged the warning — force assign
     setSubmitting(true);
     try {
       await apiClient.post(`/super/tenants/${assignTarget.id}/assign-admin`, { admin_email: assignEmail });
@@ -211,6 +156,76 @@ export default function TenantManagement() {
       setSubmitting(false);
     }
   };
+
+  // ── column definitions ──
+  const columns = [
+    {
+      key: 'name',
+      label: t('super.tenants.table_header_name'),
+      sortable: true,
+      className: 'font-medium th-text-primary',
+    },
+    {
+      key: 'note',
+      label: t('super.tenants.table_header_notes'),
+      className: 'text-slate-400 text-sm',
+      render: (tenant) => tenant.note || '—',
+    },
+    {
+      key: 'admin_email',
+      label: t('super.tenants.table_header_admin'),
+      sortable: true,
+      render: (tenant) => {
+        const admin = allUsers.find(u => u.email === tenant.admin_email);
+        if (tenant.admin_email) {
+          return (
+            <div>
+              <div className="text-sm text-blue-400">{tenant.admin_email}</div>
+              {admin && (
+                <div className="text-xs text-slate-500">
+                  {admin.isApproved ? t('super.tenants.status_approved') : t('super.tenants.status_pending')}
+                </div>
+              )}
+            </div>
+          );
+        }
+        return <Badge variant="outline" className="bg-yellow-900/40 text-yellow-400 border-yellow-500/30">{t('super.tenants.no_admin_badge')}</Badge>;
+      },
+    },
+    {
+      key: 'user_count',
+      label: t('super.tenants.table_header_users'),
+      sortable: true,
+      className: 'text-slate-400 text-sm',
+      render: (tenant) => tenant.user_count ?? 0,
+    },
+  ];
+
+  const renderActions = (tenant) => (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => openAssign(tenant)}
+        className="p-1.5 rounded text-slate-400 hover:text-blue-400 hover:bg-slate-700 transition-colors"
+        title={t('super.tenants.button_tooltip_assign')}
+      >
+        <UserCheck className="w-4 h-4" />
+      </button>
+      <button
+        onClick={() => openEdit(tenant)}
+        className="p-1.5 rounded text-slate-400 hover:th-text-primary hover:bg-slate-700 transition-colors"
+        title={t('super.tenants.button_tooltip_edit')}
+      >
+        <Pencil className="w-4 h-4" />
+      </button>
+      <button
+        onClick={() => setDeleteTarget(tenant)}
+        className="p-1.5 rounded text-slate-400 hover:text-red-400 hover:bg-slate-700 transition-colors"
+        title={t('super.tenants.button_tooltip_delete')}
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
+    </div>
+  );
 
   // ── render ────────────────────────────────────────────────────────────────
 
@@ -248,39 +263,17 @@ export default function TenantManagement() {
       )}
 
       {/* Table */}
-      <div className="th-bg-surface border th-border rounded-lg overflow-hidden">
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-500" />
-          </div>
-        ) : tenants.length === 0 ? (
-          <div className="text-center py-12 text-slate-500 text-sm">{t('super.tenants.empty_state')}</div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="th-bg-surface-alt">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('super.tenants.table_header_name')}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('super.tenants.table_header_notes')}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('super.tenants.table_header_admin')}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('super.tenants.table_header_users')}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('super.tenants.table_header_actions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tenants.map(tenant => (
-                <TenantRow
-                  key={tenant.id}
-                  tenant={tenant}
-                  allUsers={allUsers}
-                  onEdit={openEdit}
-                  onDelete={setDeleteTarget}
-                  onAssignAdmin={openAssign}
-                />
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <DataTable
+        columns={columns}
+        data={tenants}
+        keyExtractor={t => t.id}
+        emptyMessage={t('super.tenants.empty_state')}
+        loading={loading}
+        searchable
+        searchKeys={['name', 'admin_email', 'note']}
+        searchPlaceholder={`${t('super.tenants.table_header_name')}, ${t('super.tenants.table_header_admin')}...`}
+        actions={renderActions}
+      />
 
       {/* Create modal */}
       {createModal && (

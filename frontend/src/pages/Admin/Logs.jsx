@@ -3,8 +3,10 @@ import { Shield, AlertCircle, Clock } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 import { formatAction } from '../../utils/logFormatter';
 import { useLanguage } from '../../context/LanguageContext';
+import { DataTable } from '@/components/ui/data-table';
+import { Badge } from '@/components/ui/badge';
 
-const METHOD_STYLE = {
+const METHOD_VARIANT = {
     GET: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
     POST: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
     PUT: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
@@ -35,6 +37,68 @@ const AdminPage = () => {
 
     useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
+    const columns = [
+        {
+            key: 'timestamp',
+            label: t('admin.logs.table_timestamp'),
+            sortable: true,
+            className: 'font-mono text-slate-400 text-[10px]',
+            render: (log) => (
+                <div className="flex items-center gap-1.5">
+                    <Clock size={10} className="text-slate-600 shrink-0" />
+                    {log.timestamp}
+                </div>
+            ),
+        },
+        {
+            key: 'actor_email',
+            label: t('admin.logs.table_actor'),
+            sortable: true,
+            className: 'font-bold th-text-primary text-[11px]',
+            render: (log) => log.actor_email || '—',
+        },
+        {
+            key: 'action',
+            label: t('admin.logs.table_action'),
+            render: (log) => (
+                <span
+                    className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded text-[9px] font-black uppercase tracking-widest text-wrap max-w-[150px] inline-block"
+                    title={formatAction(log.method, log.endpoint, log.action, log.payload)}
+                >
+                    {formatAction(log.method, log.endpoint, log.action, log.payload)}
+                </span>
+            ),
+        },
+        {
+            key: 'method',
+            label: t('admin.logs.table_method'),
+            sortable: true,
+            render: (log) => (
+                <span className={`px-2 py-0.5 rounded border text-[9px] font-black uppercase tracking-widest ${METHOD_VARIANT[log.method] || 'bg-slate-700 text-slate-400 border-white/5'}`}>
+                    {log.method}
+                </span>
+            ),
+        },
+        {
+            key: 'endpoint',
+            label: t('admin.logs.table_endpoint'),
+            className: 'font-mono text-slate-400 text-[10px] max-w-[280px] truncate',
+            render: (log) => (
+                <span title={log.endpoint}>{log.endpoint}</span>
+            ),
+        },
+        {
+            key: 'statusCode',
+            label: t('admin.logs.table_status'),
+            sortable: true,
+            render: (log) => (
+                <span className={`font-black text-xs ${log.statusCode >= 400 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                    {log.statusCode}
+                </span>
+            ),
+        },
+    ];
+
     return (
         <div className="p-8 pb-32 min-h-screen th-bg-base">
             {/* Header */}
@@ -62,62 +126,17 @@ const AdminPage = () => {
                 </div>
             )}
 
-            {loading ? (
-                <div className="flex items-center justify-center py-24">
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500" />
-                </div>
-            ) : (
-                <div className="th-bg-surface rounded-2xl border border-white/5 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full min-w-[900px] text-left text-xs whitespace-nowrap">
-                            <thead className="th-bg-surface-alt border-b border-white/5 sticky top-0 z-10">
-                                <tr>
-                                    {[t('admin.logs.table_timestamp'), t('admin.logs.table_actor'), t('admin.logs.table_action'), t('admin.logs.table_method'), t('admin.logs.table_endpoint'), t('admin.logs.table_status')].map(h => (
-                                        <th key={h} className="px-5 py-4 font-black uppercase tracking-widest text-[9px] text-slate-400">{h}</th>
-                                    ))}
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-white/[0.04] th-text-secondary">
-                                {logs.length > 0 ? logs.map(log => (
-                                    <tr key={log.id} className="hover:bg-white/[0.02] transition-colors">
-                                        <td className="px-5 py-3.5 font-mono text-slate-400 text-[10px]">
-                                            <div className="flex items-center gap-1.5">
-                                                <Clock size={10} className="text-slate-600 shrink-0" />
-                                                {log.timestamp}
-                                            </div>
-                                        </td>
-                                        <td className="px-5 py-3.5 font-bold th-text-primary text-[11px]">{log.actor_email || '—'}</td>
-                                        <td className="px-5 py-3.5">
-                                            <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded text-[9px] font-black uppercase tracking-widest text-wrap max-w-[150px] inline-block" title={formatAction(log.method, log.endpoint, log.action, log.payload)}>
-                                                {formatAction(log.method, log.endpoint, log.action, log.payload)}
-                                            </span>
-                                        </td>
-                                        <td className="px-5 py-3.5">
-                                            <span className={`px-2 py-0.5 rounded border text-[9px] font-black uppercase tracking-widest ${METHOD_STYLE[log.method] || 'bg-slate-700 text-slate-400 border-white/5'}`}>
-                                                {log.method}
-                                            </span>
-                                        </td>
-                                        <td className="px-5 py-3.5 font-mono text-slate-400 text-[10px] max-w-[280px] truncate" title={log.endpoint}>
-                                            {log.endpoint}
-                                        </td>
-                                        <td className="px-5 py-3.5">
-                                            <span className={`font-black text-xs ${log.statusCode >= 400 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                                                {log.statusCode}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                )) : (
-                                    <tr>
-                                        <td colSpan={6} className="px-6 py-16 text-center">
-                                            <p className="text-sm font-black text-slate-600 uppercase tracking-widest">{t('admin.logs.no_logs')}</p>
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            )}
+            <DataTable
+                columns={columns}
+                data={logs}
+                keyExtractor={log => log.id}
+                emptyMessage={t('admin.logs.no_logs')}
+                loading={loading}
+                searchable
+                searchKeys={['actor_email', 'endpoint', 'action', 'method']}
+                searchPlaceholder={`${t('admin.logs.table_actor')}, ${t('admin.logs.table_endpoint')}...`}
+                stickyHeader
+            />
         </div>
     );
 };

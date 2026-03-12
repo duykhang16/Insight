@@ -28,7 +28,7 @@ const Networks = () => {
     }, []);
 
     useEffect(() => {
-        setNetworksData([]);
+        setBeResponse({ wired: [], wireless: [], stats: {} });
         if (selectedSiteId) fetchNetworks(selectedSiteId);
     }, [selectedSiteId]);
 

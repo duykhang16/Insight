@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Activity, Bell, Users, Wifi, Monitor, AlertCircle, ChevronLeft } from 'lucide-react';
+import { Activity, Bell, Users, Wifi, Monitor, AlertCircle } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 import { useSite } from '../../context/SiteContext';
 import useIntervalFetch from '../../hooks/useIntervalFetch';
@@ -179,16 +179,9 @@ const SiteDetail = () => {
 
     return (
         <div className="p-8 pb-32">
-            {/* Back + Header */}
+            {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
-                    <button
-                        onClick={() => navigate('/overview')}
-                        className="flex items-center gap-1 text-sm th-text-muted hover:th-text-primary mb-2 transition-colors"
-                    >
-                        <ChevronLeft size={16} />
-                        {t('site.dashboard.button_back')}
-                    </button>
                     <div className="flex items-center gap-3">
                         <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">
                             {siteName}

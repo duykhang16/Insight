@@ -1,16 +1,25 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Plus, Pencil, Trash2, KeyRound, Check, AlertTriangle, X, ChevronDown, ChevronRight } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 import { useLanguage } from '../../context/LanguageContext';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 
 // ── constants ─────────────────────────────────────────────────────────────────
 
 const VALID_ROLES = ['super_admin', 'tenant_admin', 'manager', 'viewer'];
-const ROLE_BADGE_COLOR = {
-  super_admin: 'bg-purple-900/40 text-purple-300',
-  tenant_admin: 'bg-blue-900/40 text-blue-300',
-  manager: 'bg-emerald-900/40 text-emerald-300',
-  viewer: 'bg-slate-700 th-text-secondary',
+const ROLE_BADGE_VARIANT = {
+  super_admin: 'bg-purple-900/40 text-purple-300 border-purple-500/30',
+  tenant_admin: 'bg-blue-900/40 text-blue-300 border-blue-500/30',
+  manager: 'bg-emerald-900/40 text-emerald-300 border-emerald-500/30',
+  viewer: 'bg-slate-700 th-text-secondary border-slate-600',
 };
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -29,7 +38,7 @@ function RoleBadge({ role }) {
     viewer: t('super.users.role_viewer'),
   };
   return (
-    <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold ${ROLE_BADGE_COLOR[role] || 'bg-slate-700 th-text-secondary'}`}>
+    <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold border ${ROLE_BADGE_VARIANT[role] || 'bg-slate-700 th-text-secondary'}`}>
       {ROLE_LABEL[role] || role}
     </span>
   );
@@ -97,7 +106,7 @@ function EmailInput({ value, onChange, existingEmails, placeholder }) {
 function Modal({ title, onClose, children }) {
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="th-bg-surface border th-border rounded-lg w-full max-w-md shadow-xl">
+      <div className="th-bg-surface border th-border rounded-lg w-full max-w-md shadow-xl mx-4">
         <div className="flex items-center justify-between px-5 py-4 border-b th-border">
           <h2 className="text-sm font-semibold th-text-primary">{title}</h2>
           <button onClick={onClose} className="text-slate-400 hover:th-text-primary"><X className="w-4 h-4" /></button>
@@ -117,6 +126,7 @@ export default function SuperUserManagement() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [toast, setToast] = useState(null);
+  const [search, setSearch] = useState('');
 
   const [createModal, setCreateModal] = useState(false);
   const [editTarget, setEditTarget] = useState(null);
@@ -165,14 +175,6 @@ export default function SuperUserManagement() {
   const allEmails = users.map(u => u.email);
   const tenantAdmins = users.filter(u => u.role === 'tenant_admin');
   const tenantMap = Object.fromEntries(tenants.map(tenant => [tenant.admin_email, tenant.name]));
-
-  // Count sub-accounts per tenant_admin
-  const subCountMap = {};
-  users.forEach(u => {
-    if (u.parent_admin_id) {
-      subCountMap[u.parent_admin_id] = (subCountMap[u.parent_admin_id] || 0) + 1;
-    }
-  });
 
   // Collapsed state for tenant_admin rows (email → bool)
   const [collapsed, setCollapsed] = useState({});
@@ -252,6 +254,95 @@ export default function SuperUserManagement() {
     }
   };
 
+  // ── Filter users by search
+  const filteredUsers = useMemo(() => {
+    if (!search.trim()) return users;
+    const q = search.toLowerCase();
+    return users.filter(u =>
+      u.email.toLowerCase().includes(q) ||
+      (u.role || '').toLowerCase().includes(q)
+    );
+  }, [users, search]);
+
+  // ── Build tree data
+  const rows = useMemo(() => {
+    const emailSet = new Set(filteredUsers.map(u => u.email));
+    const topLevel = filteredUsers.filter(u => !u.parent_admin_id || !emailSet.has(u.parent_admin_id));
+    const childrenOf = {};
+    filteredUsers.forEach(u => {
+      if (u.parent_admin_id && emailSet.has(u.parent_admin_id)) {
+        if (!childrenOf[u.parent_admin_id]) childrenOf[u.parent_admin_id] = [];
+        childrenOf[u.parent_admin_id].push(u);
+      }
+    });
+    return { topLevel, childrenOf };
+  }, [filteredUsers]);
+
+  const ActionButtons = ({ u }) => {
+    const isSelf = u.email === currentEmail;
+    if (isSelf) return null;
+    return (
+      <div className="flex items-center gap-2">
+        <button onClick={() => openEdit(u)} className="p-1.5 rounded text-slate-400 hover:th-text-primary hover:bg-slate-700 transition-colors" title={t('super.users.button_tooltip_edit')}>
+          <Pencil className="w-3.5 h-3.5" />
+        </button>
+        <button onClick={() => setResetTarget(u)} className="p-1.5 rounded text-slate-400 hover:text-amber-400 hover:bg-slate-700 transition-colors" title={t('super.users.button_tooltip_reset_password')}>
+          <KeyRound className="w-3.5 h-3.5" />
+        </button>
+        <button onClick={() => setDeleteTarget(u)} className="p-1.5 rounded text-slate-400 hover:text-red-400 hover:bg-slate-700 transition-colors" title={t('super.users.button_tooltip_delete')}>
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    );
+  };
+
+  // ── Card view for mobile ──
+  const renderMobileCard = (u, isChild = false) => {
+    const isSelf = u.email === currentEmail;
+    const tenantName = u.role === 'tenant_admin' ? tenantMap[u.email] : null;
+    const children = rows.childrenOf[u.email] || [];
+
+    return (
+      <div key={u.id} className={`th-bg-surface border th-border rounded-xl p-4 space-y-3 ${isSelf ? 'opacity-40' : ''} ${isChild ? 'ml-4 border-l-2 border-l-blue-500/30' : ''}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="th-text-primary font-mono text-xs">{u.email}</span>
+            {u.must_set_password && (
+              <span className="text-[10px] bg-yellow-900/40 text-yellow-400 px-1.5 py-0.5 rounded">{t('super.users.password_not_set_badge')}</span>
+            )}
+            {children.length > 0 && (
+              <Badge variant="secondary" className="text-[10px]">
+                {children.length} {t('super.users.sub_accounts_badge')}
+              </Badge>
+            )}
+          </div>
+          <ActionButtons u={u} />
+        </div>
+        <div className="flex items-center gap-3 flex-wrap">
+          <RoleBadge role={u.role} />
+          {tenantName && <span className="text-xs text-slate-400">{tenantName}</span>}
+          {u.isApproved
+            ? <span className="text-xs text-emerald-400">{t('super.users.status_active')}</span>
+            : <span className="text-xs text-yellow-400">{t('super.users.status_pending')}</span>}
+        </div>
+        {/* Show children */}
+        {children.length > 0 && !collapsed[u.email] && (
+          <div className="space-y-2 mt-2">
+            {children.map(c => renderMobileCard(c, true))}
+          </div>
+        )}
+        {children.length > 0 && (
+          <button
+            onClick={() => toggleCollapse(u.email)}
+            className="text-xs text-blue-400 hover:text-blue-300"
+          >
+            {collapsed[u.email] ? `▸ ${t('super.users.sub_accounts_badge')} (${children.length})` : `▾ ${t('super.users.sub_accounts_badge')}`}
+          </button>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="p-6 space-y-5">
       {/* Header */}
@@ -280,132 +371,133 @@ export default function SuperUserManagement() {
 
       {error && <div className="bg-red-900/20 border border-red-800 text-red-400 text-sm px-4 py-3 rounded">{error}</div>}
 
-      {/* Table */}
-      <div className="th-bg-surface border th-border rounded-lg overflow-hidden">
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <input
+          className="w-full th-bg-elevated border th-border rounded-lg pl-3 pr-8 py-2 text-sm th-text-primary placeholder-slate-500 focus:outline-none focus:border-blue-500"
+          placeholder={`${t('super.users.table_header_email')}, ${t('super.users.table_header_role')}...`}
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        {search && (
+          <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:th-text-primary">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="md:hidden space-y-3">
         {loading ? (
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-500" />
           </div>
+        ) : rows.topLevel.length === 0 ? (
+          <div className="text-center py-12 text-slate-500 text-sm">No users</div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="th-bg-surface-alt">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('super.users.table_header_email')}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('super.users.table_header_role')}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('super.users.table_header_tenant')}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('super.users.table_header_status')}</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('super.users.table_header_actions')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(() => {
-                // Build tree: top-level users (no parent or parent not in list), then sub-accounts grouped under tenant_admin
-                const emailSet = new Set(users.map(u => u.email));
-                const topLevel = users.filter(u => !u.parent_admin_id || !emailSet.has(u.parent_admin_id));
-                const childrenOf = {};
-                users.forEach(u => {
-                  if (u.parent_admin_id && emailSet.has(u.parent_admin_id)) {
-                    if (!childrenOf[u.parent_admin_id]) childrenOf[u.parent_admin_id] = [];
-                    childrenOf[u.parent_admin_id].push(u);
-                  }
-                });
-
-                const ActionButtons = ({ u }) => {
-                  const isSelf = u.email === currentEmail;
-                  if (isSelf) return null;
-                  return (
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => openEdit(u)} className="p-1.5 rounded text-slate-400 hover:th-text-primary hover:bg-slate-700 transition-colors" title={t('super.users.button_tooltip_edit')}>
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                      <button onClick={() => setResetTarget(u)} className="p-1.5 rounded text-slate-400 hover:text-amber-400 hover:bg-slate-700 transition-colors" title={t('super.users.button_tooltip_reset_password')}>
-                        <KeyRound className="w-3.5 h-3.5" />
-                      </button>
-                      <button onClick={() => setDeleteTarget(u)} className="p-1.5 rounded text-slate-400 hover:text-red-400 hover:bg-slate-700 transition-colors" title={t('super.users.button_tooltip_delete')}>
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  );
-                };
-
-                const rows = [];
-                topLevel.forEach(u => {
-                  const isSelf = u.email === currentEmail;
-                  const children = childrenOf[u.email] || [];
-                  const isCollapsed = collapsed[u.email];
-                  const tenantName = u.role === 'tenant_admin' ? tenantMap[u.email] : null;
-
-                  // Parent row
-                  rows.push(
-                    <tr key={u.id} className={`border-t th-border transition-colors ${isSelf ? 'opacity-40' : 'hover:th-bg-surface-alt'}`}>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5">
-                          {children.length > 0 ? (
-                            <button
-                              onClick={() => toggleCollapse(u.email)}
-                              className="text-slate-500 hover:th-text-secondary transition-colors flex-shrink-0"
-                            >
-                              {isCollapsed
-                                ? <ChevronRight className="w-3.5 h-3.5" />
-                                : <ChevronDown className="w-3.5 h-3.5" />
-                              }
-                            </button>
-                          ) : <span className="w-5 inline-block" />}
-                          <span className="th-text-primary font-mono text-xs">{u.email}</span>
-                          {u.must_set_password && (
-                            <span className="text-[10px] bg-yellow-900/40 text-yellow-400 px-1.5 py-0.5 rounded">{t('super.users.password_not_set_badge')}</span>
-                          )}
-                          {children.length > 0 && (
-                            <span className="text-[10px] bg-blue-900/30 text-blue-400 px-1.5 py-0.5 rounded">
-                              {children.length} {t('super.users.sub_accounts_badge')}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3"><RoleBadge role={u.role} /></td>
-                      <td className="px-4 py-3 text-slate-400 text-xs">{tenantName || '—'}</td>
-                      <td className="px-4 py-3">
-                        {u.isApproved
-                          ? <span className="text-xs text-emerald-400">{t('super.users.status_active')}</span>
-                          : <span className="text-xs text-yellow-400">{t('super.users.status_pending')}</span>}
-                      </td>
-                      <td className="px-4 py-3"><ActionButtons u={u} /></td>
-                    </tr>
-                  );
-
-                  // Child rows
-                  if (!isCollapsed && children.length > 0) {
-                    children.forEach(c => {
-                      const cSelf = c.email === currentEmail;
-                      rows.push(
-                        <tr key={c.id} className={`border-t border-slate-800/50 transition-colors ${cSelf ? 'opacity-40' : 'hover:bg-slate-800/30'} bg-slate-900/30`}>
-                          <td className="py-2.5 pr-4" style={{ paddingLeft: '2.5rem' }}>
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-slate-600 mr-1">└</span>
-                              <span className="th-text-secondary font-mono text-xs">{c.email}</span>
-                              {c.must_set_password && (
-                                <span className="text-[10px] bg-yellow-900/40 text-yellow-400 px-1.5 py-0.5 rounded">{t('super.users.password_not_set_badge')}</span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-4 py-2.5"><RoleBadge role={c.role} /></td>
-                          <td className="px-4 py-2.5 text-slate-500 text-xs">{tenantName || u.email}</td>
-                          <td className="px-4 py-2.5">
-                            {c.isApproved
-                              ? <span className="text-xs text-emerald-400">{t('super.users.status_active')}</span>
-                              : <span className="text-xs text-yellow-400">{t('super.users.status_pending')}</span>}
-                          </td>
-                          <td className="px-4 py-2.5"><ActionButtons u={c} /></td>
-                        </tr>
-                      );
-                    });
-                  }
-                });
-                return rows;
-              })()}
-            </tbody>
-          </table>
+          rows.topLevel.map(u => renderMobileCard(u))
         )}
+      </div>
+
+      {/* Desktop Table */}
+      <div className="hidden md:block">
+        <div className="th-bg-surface border th-border rounded-xl overflow-hidden">
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-500" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="th-bg-surface-alt hover:bg-transparent">
+                  <TableHead className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('super.users.table_header_email')}</TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('super.users.table_header_role')}</TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('super.users.table_header_tenant')}</TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('super.users.table_header_status')}</TableHead>
+                  <TableHead className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">{t('super.users.table_header_actions')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(() => {
+                  const tableRows = [];
+                  rows.topLevel.forEach(u => {
+                    const isSelf = u.email === currentEmail;
+                    const children = rows.childrenOf[u.email] || [];
+                    const isCollapsed = collapsed[u.email];
+                    const tenantName = u.role === 'tenant_admin' ? tenantMap[u.email] : null;
+
+                    // Parent row
+                    tableRows.push(
+                      <TableRow key={u.id} className={`transition-colors ${isSelf ? 'opacity-40' : ''}`}>
+                        <TableCell className="px-4 py-3">
+                          <div className="flex items-center gap-1.5">
+                            {children.length > 0 ? (
+                              <button
+                                onClick={() => toggleCollapse(u.email)}
+                                className="text-slate-500 hover:th-text-secondary transition-colors flex-shrink-0"
+                              >
+                                {isCollapsed
+                                  ? <ChevronRight className="w-3.5 h-3.5" />
+                                  : <ChevronDown className="w-3.5 h-3.5" />
+                                }
+                              </button>
+                            ) : <span className="w-5 inline-block" />}
+                            <span className="th-text-primary font-mono text-xs">{u.email}</span>
+                            {u.must_set_password && (
+                              <span className="text-[10px] bg-yellow-900/40 text-yellow-400 px-1.5 py-0.5 rounded">{t('super.users.password_not_set_badge')}</span>
+                            )}
+                            {children.length > 0 && (
+                              <Badge variant="secondary" className="text-[10px]">
+                                {children.length} {t('super.users.sub_accounts_badge')}
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-4 py-3"><RoleBadge role={u.role} /></TableCell>
+                        <TableCell className="px-4 py-3 text-slate-400 text-xs">{tenantName || '—'}</TableCell>
+                        <TableCell className="px-4 py-3">
+                          {u.isApproved
+                            ? <span className="text-xs text-emerald-400">{t('super.users.status_active')}</span>
+                            : <span className="text-xs text-yellow-400">{t('super.users.status_pending')}</span>}
+                        </TableCell>
+                        <TableCell className="px-4 py-3"><ActionButtons u={u} /></TableCell>
+                      </TableRow>
+                    );
+
+                    // Child rows
+                    if (!isCollapsed && children.length > 0) {
+                      children.forEach(c => {
+                        const cSelf = c.email === currentEmail;
+                        tableRows.push(
+                          <TableRow key={c.id} className={`transition-colors ${cSelf ? 'opacity-40' : ''} bg-slate-900/30`}>
+                            <TableCell className="py-2.5 pr-4" style={{ paddingLeft: '2.5rem' }}>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-slate-600 mr-1">└</span>
+                                <span className="th-text-secondary font-mono text-xs">{c.email}</span>
+                                {c.must_set_password && (
+                                  <span className="text-[10px] bg-yellow-900/40 text-yellow-400 px-1.5 py-0.5 rounded">{t('super.users.password_not_set_badge')}</span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="px-4 py-2.5"><RoleBadge role={c.role} /></TableCell>
+                            <TableCell className="px-4 py-2.5 text-slate-500 text-xs">{tenantName || u.email}</TableCell>
+                            <TableCell className="px-4 py-2.5">
+                              {c.isApproved
+                                ? <span className="text-xs text-emerald-400">{t('super.users.status_active')}</span>
+                                : <span className="text-xs text-yellow-400">{t('super.users.status_pending')}</span>}
+                            </TableCell>
+                            <TableCell className="px-4 py-2.5"><ActionButtons u={c} /></TableCell>
+                          </TableRow>
+                        );
+                      });
+                    }
+                  });
+                  return tableRows;
+                })()}
+              </TableBody>
+            </Table>
+          )}
+        </div>
       </div>
 
       {/* Create modal */}
