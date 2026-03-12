@@ -5,6 +5,7 @@ venv/
 .env
 *.log
 *.txt
+!requirements.txt
 *.bak
 Dockerfile
 .dockerignore
