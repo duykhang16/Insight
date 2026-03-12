@@ -38,7 +38,7 @@ const Detail = () => {
         else if (code < 400) color = 'bg-blue-600';
         else if (code < 500) color = 'bg-orange-600';
         else color = 'bg-red-600';
-        return <span className={`px-2 py-1 rounded text-xs font-bold text-white ${color}`}>{code}</span>;
+        return <span className={`px-2 py-1 rounded text-xs font-bold th-text-primary ${color}`}>{code}</span>;
     };
 
     const MethodBadge = ({ method }) => {
@@ -46,7 +46,7 @@ const Detail = () => {
         return <span className={`font-black tracking-tighter ${colors[method] || 'text-gray-400'}`}>{method}</span>;
     };
 
-    if (loading) return <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">Loading...</div>;
+    if (loading) return <div className="min-h-screen bg-gray-900 th-text-primary flex items-center justify-center">Loading...</div>;
     if (error) return <div className="min-h-screen bg-gray-900 text-red-500 flex items-center justify-center font-bold">{error}</div>;
 
     return (
@@ -93,11 +93,11 @@ const Detail = () => {
                         <section className="bg-gray-800/50 border border-gray-700 rounded-xl overflow-hidden">
                             <div className="px-4 py-3 bg-gray-900/50 border-b border-gray-700 flex justify-between items-center">
                                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Request Headers</h3>
-                                <button onClick={() => copyToClipboard(log.request_headers)} className="text-gray-500 hover:text-white"><Copy size={12} /></button>
+                                <button onClick={() => copyToClipboard(log.request_headers)} className="text-gray-500 hover:th-text-primary"><Copy size={12} /></button>
                             </div>
                             <div className="p-4 text-xs font-mono text-gray-400 space-y-1 overflow-x-auto">
                                 {Object.entries(log.request_headers || {}).map(([k, v]) => (
-                                    <div key={k}><span className="text-indigo-400/70">{k}:</span> <span className="text-gray-300">{v}</span></div>
+                                    <div key={k}><span className="text-indigo-400/70">{k}:</span> <span className="th-text-secondary">{v}</span></div>
                                 ))}
                             </div>
                         </section>
@@ -105,7 +105,7 @@ const Detail = () => {
                         <section className="bg-gray-800/50 border border-gray-700 rounded-xl overflow-hidden h-full">
                             <div className="px-4 py-3 bg-gray-900/50 border-b border-gray-700 flex justify-between items-center">
                                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Request Body</h3>
-                                <button onClick={() => copyToClipboard(log.request_body)} className="text-gray-500 hover:text-white"><Copy size={12} /></button>
+                                <button onClick={() => copyToClipboard(log.request_body)} className="text-gray-500 hover:th-text-primary"><Copy size={12} /></button>
                             </div>
                             <pre className="p-4 text-xs font-mono text-indigo-300 whitespace-pre-wrap break-all max-h-[400px] overflow-y-auto">
                                 {typeof log.request_body === 'object' ? JSON.stringify(log.request_body, null, 2) : (log.request_body || 'No Body')}
@@ -118,11 +118,11 @@ const Detail = () => {
                         <section className="bg-gray-800/50 border border-gray-700 rounded-xl overflow-hidden">
                             <div className="px-4 py-3 bg-gray-900/50 border-b border-gray-700 flex justify-between items-center">
                                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Response Headers</h3>
-                                <button onClick={() => copyToClipboard(log.response_headers)} className="text-gray-500 hover:text-white"><Copy size={12} /></button>
+                                <button onClick={() => copyToClipboard(log.response_headers)} className="text-gray-500 hover:th-text-primary"><Copy size={12} /></button>
                             </div>
                             <div className="p-4 text-xs font-mono text-gray-400 space-y-1 overflow-x-auto">
                                 {Object.entries(log.response_headers || {}).map(([k, v]) => (
-                                    <div key={k}><span className="text-indigo-400/70">{k}:</span> <span className="text-gray-300">{v}</span></div>
+                                    <div key={k}><span className="text-indigo-400/70">{k}:</span> <span className="th-text-secondary">{v}</span></div>
                                 ))}
                             </div>
                         </section>
@@ -132,14 +132,14 @@ const Detail = () => {
                                 <div className="flex h-full">
                                     <button
                                         onClick={() => setActiveTab('response')}
-                                        className={`px-3 text-xs font-bold uppercase tracking-widest h-full border-b-2 transition-colors ${activeTab === 'response' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-gray-500 hover:text-white'}`}
+                                        className={`px-3 text-xs font-bold uppercase tracking-widest h-full border-b-2 transition-colors ${activeTab === 'response' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-gray-500 hover:th-text-primary'}`}
                                     >Response</button>
                                     <button
                                         onClick={() => setActiveTab('filtered')}
-                                        className={`px-3 text-xs font-bold uppercase tracking-widest h-full border-b-2 transition-colors ${activeTab === 'filtered' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-500 hover:text-white'}`}
+                                        className={`px-3 text-xs font-bold uppercase tracking-widest h-full border-b-2 transition-colors ${activeTab === 'filtered' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-gray-500 hover:th-text-primary'}`}
                                     >Parsed</button>
                                 </div>
-                                <button onClick={() => copyToClipboard(log.response_body)} className="text-gray-500 hover:text-white"><Copy size={12} /></button>
+                                <button onClick={() => copyToClipboard(log.response_body)} className="text-gray-500 hover:th-text-primary"><Copy size={12} /></button>
                             </div>
 
                             <div className="flex-1 max-h-[600px] overflow-y-auto p-4">

@@ -6,15 +6,14 @@ import { useSite } from '../../context/SiteContext';
 import useIntervalFetch from '../../hooks/useIntervalFetch';
 import { useSettings } from '../../context/SettingsContext';
 import { useLanguage } from '../../context/LanguageContext';
-import SyncIndicator from '../../components/SyncIndicator';
 import ApplicationSummaryCard from './Applications/ApplicationSummaryCard';
 
-const HEALTH_BADGE = {
-    good: { label: 'Good', cls: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
-    warning: { label: 'Warning', cls: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
-    poor: { label: 'Poor', cls: 'bg-rose-500/10 text-rose-400 border-rose-500/20' },
-    up: { label: 'Online', cls: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
-    down: { label: 'Offline', cls: 'bg-slate-500/10 text-slate-400 border-slate-500/20' },
+const HEALTH_BADGE_CLS = {
+    good: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    warning: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+    poor: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+    up: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+    down: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
 };
 
 const SiteDetail = () => {
@@ -22,7 +21,7 @@ const SiteDetail = () => {
     const navigate = useNavigate();
     const { t } = useLanguage();
     const { isAutoRefreshEnabled } = useSettings();
-    const { sites, setSelectedSiteId, fetchSites } = useSite();
+    const { sites, setSelectedSiteId, fetchSites, siteCache, updateSiteCache } = useSite();
 
     const [data, setData] = useState(null);
     const [siteInfo, setSiteInfo] = useState(null);
@@ -43,6 +42,16 @@ const SiteDetail = () => {
 
     // Parallel fetch: site info (header) + dashboard metrics (cards)
     const fetchAll = async (silent = false) => {
+        // Use preloaded data if available and fresh (< 60s)
+        const cached = siteCache[siteId];
+        if (cached && !silent && Date.now() - cached.timestamp < 60000) {
+            if (cached.info) setSiteInfo(cached.info);
+            if (cached.dashboard) setData(cached.dashboard);
+            setLoading(false);
+            setLastUpdated(new Date(cached.timestamp));
+            return;
+        }
+
         if (!silent) setLoading(true);
         else setIsRefreshing(true);
         setError('');
@@ -54,6 +63,12 @@ const SiteDetail = () => {
             setSiteInfo(infoRes.data);
             setData(dashRes.data);
             setLastUpdated(new Date());
+
+            // Update cache with fresh data
+            updateSiteCache(siteId, {
+                info: infoRes.data,
+                dashboard: dashRes.data
+            });
         } catch (err) {
             console.error('Fetch error:', err);
             if (!silent) setError(t('dashboard.error_fetch'));
@@ -90,25 +105,27 @@ const SiteDetail = () => {
         (data?.devicesOverview?.gateways?.online || 0);
 
     // Sub-metric derivations
-    const majorAlerts  = data?.alertsOverview?.activeMajorAlertsCount || 0;
-    const minorAlerts  = data?.alertsOverview?.activeMinorAlertsCount || 0;
-    const infoAlerts   = data?.alertsOverview?.activeInfoAlertsCount  || 0;
+    const majorAlerts = data?.alertsOverview?.activeMajorAlertsCount || 0;
+    const minorAlerts = data?.alertsOverview?.activeMinorAlertsCount || 0;
+    const infoAlerts = data?.alertsOverview?.activeInfoAlertsCount || 0;
 
-    const goodClients  = data?.clientsOverview?.totalClient?.goodCount || 0;
-    const fairClients  = data?.clientsOverview?.totalClient?.fairCount || 0;
-    const poorClients  = data?.clientsOverview?.totalClient?.poorCount || 0;
+    const goodClients = data?.clientsOverview?.totalClient?.goodCount || 0;
+    const fairClients = data?.clientsOverview?.totalClient?.fairCount || 0;
+    const poorClients = data?.clientsOverview?.totalClient?.poorCount || 0;
+    const wiredClients = data?.clientsOverview?.wiredClient?.total || 0;
+    const wirelessClients = data?.clientsOverview?.wirelessClient?.total || 0;
 
-    const inactiveWireless   = data?.networksOverview?.inactiveWirelessNetworks || 0;
-    const inactiveWired      = data?.networksOverview?.inactiveWiredNetworks    || 0;
-    const inactiveNetworks   = inactiveWireless + inactiveWired;
+    const inactiveWireless = data?.networksOverview?.inactiveWirelessNetworks || 0;
+    const inactiveWired = data?.networksOverview?.inactiveWiredNetworks || 0;
+    const inactiveNetworks = inactiveWireless + inactiveWired;
     const activeNetworkCount = activeNetworks - inactiveNetworks;
 
-    const apTotal      = data?.devicesOverview?.accessPoints?.total || 0;
-    const swTotal      = data?.devicesOverview?.switches?.total     || 0;
-    const stTotal      = data?.devicesOverview?.stacks?.total       || 0;
-    const wrTotal      = data?.devicesOverview?.wifiRouters?.total  || 0;
-    const gwTotal      = data?.devicesOverview?.gateways?.total     || 0;
-    const totalDevices   = apTotal + swTotal + stTotal + wrTotal + gwTotal;
+    const apTotal = data?.devicesOverview?.accessPoints?.total || 0;
+    const swTotal = data?.devicesOverview?.switches?.total || 0;
+    const stTotal = data?.devicesOverview?.stacks?.total || 0;
+    const wrTotal = data?.devicesOverview?.wifiRouters?.total || 0;
+    const gwTotal = data?.devicesOverview?.gateways?.total || 0;
+    const totalDevices = apTotal + swTotal + stTotal + wrTotal + gwTotal;
     const offlineDevices = Math.max(0, totalDevices - onlineDevices);
 
     const healthConditions = data?.healthOverview?.currentScore?.conditionsCount || 0;
@@ -116,15 +133,16 @@ const SiteDetail = () => {
     const cards = [
         {
             key: 'health',
-            label: t('dashboard.network_health'),
+            label: t('site.dashboard.card_health_label'),
             icon: <Activity className="text-emerald-500" size={24} />,
             value: healthScore,
             sub: data ? `Conditions: ${healthConditions}` : '',
             route: `/site/${siteId}/health`,
+            displayValue: (loading && !data) ? '...' : (typeof healthScore === 'number' ? `${Math.round(healthScore)}%` : healthScore)
         },
         {
             key: 'alerts',
-            label: t('dashboard.active_alerts'),
+            label: t('site.dashboard.card_alerts_label'),
             icon: <Bell className="text-rose-500" size={24} />,
             value: activeAlerts,
             sub: data ? `Major: ${majorAlerts} / Minor: ${minorAlerts} / Info: ${infoAlerts}` : '',
@@ -132,7 +150,7 @@ const SiteDetail = () => {
         },
         {
             key: 'clients',
-            label: t('dashboard.connected_clients'),
+            label: t('site.dashboard.card_clients_label'),
             icon: <Users className="text-blue-500" size={24} />,
             value: connectedClients,
             sub: data ? `Good: ${goodClients} / Fair: ${fairClients} / Poor: ${poorClients}` : '',
@@ -140,7 +158,7 @@ const SiteDetail = () => {
         },
         {
             key: 'networks',
-            label: t('dashboard.total_networks'),
+            label: t('site.dashboard.card_networks_label'),
             icon: <Wifi className="text-indigo-500" size={24} />,
             value: activeNetworks,
             sub: data ? `Active: ${activeNetworkCount} / Inactive: ${inactiveNetworks}` : '',
@@ -148,7 +166,7 @@ const SiteDetail = () => {
         },
         {
             key: 'devices',
-            label: t('dashboard.online_devices'),
+            label: t('site.dashboard.card_devices_label'),
             icon: <Monitor className="text-purple-500" size={24} />,
             value: onlineDevices,
             sub: data ? `Online: ${onlineDevices} / Offline: ${offlineDevices}` : '',
@@ -156,8 +174,26 @@ const SiteDetail = () => {
         },
     ];
 
-    const healthKey = siteInfo?.health || siteInfo?.status;
-    const badge = HEALTH_BADGE[healthKey] || null;
+    const HEALTH_BADGE_LABEL = {
+        good: t('site.dashboard.health_badge_good'),
+        warning: t('site.dashboard.health_badge_warning'),
+        poor: t('site.dashboard.health_badge_poor'),
+        up: t('site.dashboard.health_badge_up'),
+        down: t('site.dashboard.health_badge_down'),
+    };
+    // Derived health status from numeric score for consistency
+    let healthKey = siteInfo?.health || siteInfo?.status;
+    const numericScore = typeof healthScore === 'number' ? healthScore : (site?.healthScore ? site.healthScore : null);
+    
+    if (numericScore !== null) {
+        if (numericScore >= 67) healthKey = 'good';
+        else if (numericScore >= 34) healthKey = 'warning';
+        else healthKey = 'poor';
+    }
+
+    const badge = healthKey && HEALTH_BADGE_CLS[healthKey]
+        ? { label: HEALTH_BADGE_LABEL[healthKey], cls: HEALTH_BADGE_CLS[healthKey] }
+        : null;
 
     return (
         <div className="p-8 pb-32">
@@ -166,10 +202,10 @@ const SiteDetail = () => {
                 <div>
                     <button
                         onClick={() => navigate('/overview')}
-                        className="flex items-center gap-1 text-sm text-slate-400 hover:text-white mb-2 transition-colors"
+                        className="flex items-center gap-1 text-sm th-text-muted hover:th-text-primary mb-2 transition-colors"
                     >
                         <ChevronLeft size={16} />
-                        Back to Sites
+                        {t('site.dashboard.button_back')}
                     </button>
                     <div className="flex items-center gap-3">
                         <h1 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">
@@ -182,11 +218,9 @@ const SiteDetail = () => {
                         )}
                     </div>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                        {t('dashboard.subtitle')}
+                        {t('site.dashboard.subtitle')}
                     </p>
                 </div>
-
-                <SyncIndicator isSyncing={loading || isRefreshing} lastUpdated={lastUpdated} />
             </div>
 
             {error && (
@@ -217,13 +251,27 @@ const SiteDetail = () => {
                         </div>
                         <div className="mt-2 flex items-baseline gap-2">
                             <span className="text-4xl font-black text-slate-800 dark:text-white tracking-tighter transition-all">
-                                {loading && !data ? '...' : card.value}
+                                {card.displayValue || (loading && !data ? '...' : card.value)}
                             </span>
                         </div>
                         {card.sub && (
-                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 font-medium tracking-wide">
-                                {card.sub}
-                            </div>
+                            card.key === 'clients' ? (
+                                <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5 font-medium tracking-wide flex flex-col gap-1">
+                                    <div className="flex items-center gap-1">
+                                        <span onClick={(e) => { e.stopPropagation(); navigate(`/site/${siteId}/clients?type=wired`); }} className="hover:text-emerald-500 transition-colors cursor-pointer">Wired: {wiredClients}</span> /
+                                        <span onClick={(e) => { e.stopPropagation(); navigate(`/site/${siteId}/clients?type=wireless`); }} className="hover:text-blue-500 transition-colors cursor-pointer ml-1">Wireless: {wirelessClients}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <span onClick={(e) => { e.stopPropagation(); navigate(`/site/${siteId}/clients?health=good`); }} className="hover:text-emerald-500 transition-colors cursor-pointer">Good: {goodClients}</span> /
+                                        <span onClick={(e) => { e.stopPropagation(); navigate(`/site/${siteId}/clients?health=fair`); }} className="hover:text-amber-500 transition-colors cursor-pointer ml-1">Fair: {fairClients}</span> /
+                                        <span onClick={(e) => { e.stopPropagation(); navigate(`/site/${siteId}/clients?health=poor`); }} className="hover:text-rose-500 transition-colors cursor-pointer ml-1">Poor: {poorClients}</span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="text-xs text-slate-500 dark:text-slate-400 mt-1.5 font-medium tracking-wide">
+                                    {card.sub}
+                                </div>
+                            )
                         )}
                     </div>
                 ))}

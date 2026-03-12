@@ -14,7 +14,8 @@ async def get_live_account_sites(aruba_token: str) -> List[Dict[str, Any]]:
         res = await aruba_service.call_api(
             method="GET",
             endpoint="/api/sites",
-            aruba_token=aruba_token
+            aruba_token=aruba_token,
+            use_master_auto=True
         )
 
         if res.status_code in [401, 403]:
@@ -22,7 +23,8 @@ async def get_live_account_sites(aruba_token: str) -> List[Dict[str, Any]]:
             res = await aruba_service.call_api(
                 method="GET",
                 endpoint="/api/v1/sites",
-                aruba_token=aruba_token
+                aruba_token=aruba_token,
+                use_master_auto=True
             )
 
         if res.status_code in [401, 403]:
@@ -60,7 +62,8 @@ async def fetch_site_config_live(site_id: str, aruba_token: str) -> Dict[str, An
         res_nets = await aruba_service.call_api(
             method="GET",
             endpoint=f"/api/sites/{site_id}/networksSummary",
-            aruba_token=aruba_token
+            aruba_token=aruba_token,
+            use_master_auto=True
         )
 
         if res_nets.status_code in [401, 403]:
@@ -68,7 +71,8 @@ async def fetch_site_config_live(site_id: str, aruba_token: str) -> Dict[str, An
             res_nets = await aruba_service.call_api(
                 method="GET",
                 endpoint=f"/api/v1/sites/{site_id}/networksSummary",
-                aruba_token=aruba_token
+                aruba_token=aruba_token,
+                use_master_auto=True
             )
 
         if res_nets.status_code in [401, 403]:
@@ -80,7 +84,8 @@ async def fetch_site_config_live(site_id: str, aruba_token: str) -> Dict[str, An
         res_guest = await aruba_service.call_api(
             method="GET",
             endpoint=f"/api/sites/{site_id}/guestPortalSettings",
-            aruba_token=aruba_token
+            aruba_token=aruba_token,
+            use_master_auto=True
         )
 
         # Safe JSON parsing
@@ -1024,7 +1029,8 @@ async def batch_site_provision(
     configured_location: dict,
     target_zone_ids: List[str],
     master_token: str,
-    actor_email: str = "anonymous"
+    actor_email: str = "anonymous",
+    template_id: Optional[str] = None,
 ) -> List[Dict]:
     import asyncio
     from app.database.auth_crud import insert_audit_log
@@ -1050,6 +1056,7 @@ async def batch_site_provision(
             }
             
             status_text = "ERROR"
+            new_site_id = None
             try:
                 res = await client.post(url, headers=api_headers, json=payload, timeout=30.0)
                 if res.status_code in [200, 201]:
@@ -1062,6 +1069,14 @@ async def batch_site_provision(
                     if new_site_id and target_zone_ids:
                         for zone_id in target_zone_ids:
                             await add_sites_to_zone(zone_id, [new_site_id])
+
+                    # Assign template badge if template_id is provided
+                    if new_site_id and template_id:
+                        try:
+                            from app.features.templates.service import assign_site_to_template
+                            await assign_site_to_template(actor_email, new_site_id, template_id)
+                        except Exception as tpl_err:
+                            print(f"[PROVISION] Template badge assignment failed for {new_site_id}: {tpl_err}")
                 else:
                     data = res.json() if res.content else res.text
                     results.append({"target": site_name, "status": "ERROR", "detail": data})
@@ -1076,7 +1091,7 @@ async def batch_site_provision(
                 "action": "Batch Site Provision",
                 "site_id": new_site_id if status_text == "SUCCESS" else None,
                 "status": status_text,
-                "detail": f"Provisioned: {site_name}"
+                "detail": f"Provisioned: {site_name}" + (f" | Template: {template_id}" if template_id else "")
             })
 
             await asyncio.sleep(2.0)

@@ -35,6 +35,45 @@ async def get_site_detail(
     return response.json()
 
 
+@router.get("/sites/{site_id}/clients")
+async def get_site_clients(
+    site_id: str,
+    user: Dict[str, Any] = Depends(get_current_insight_user),
+    master_token: str = Depends(require_master_token),
+):
+    """
+    Smarter clients endpoint that tries multiple Aruba sub-paths (clients, clientSummary, dashboard).
+    This prevents 'shotgun' 404s in the frontend and console.
+    """
+    # Optimized order: dashboard often contains everything, but /clients is more specific if supported
+    trials = [
+        f"/api/sites/{site_id}/clients",
+        f"/api/v1/sites/{site_id}/clients",
+        f"/api/sites/{site_id}/clientSummary",
+        f"/api/sites/{site_id}/clientsSummary",
+        f"/api/sites/{site_id}/dashboard"
+    ]
+
+    for endpoint in trials:
+        try:
+            response = await aruba_service.call_api(
+                method="GET",
+                endpoint=endpoint,
+                aruba_token=master_token,
+            )
+            if response.status_code == 200:
+                return response.json()
+            if response.status_code == 401:
+                 raise HTTPException(status_code=401, detail="Phiên làm việc Aruba đã hết hạn.")
+        except HTTPException as e:
+            if e.status_code == 401: raise e
+            continue
+        except Exception:
+            continue
+
+    raise HTTPException(status_code=404, detail="Could not find clients endpoint for this site.")
+
+
 @router.get("/sites/{site_id}/{sub_path:path}")
 async def proxy_site_endpoint(
     site_id: str,

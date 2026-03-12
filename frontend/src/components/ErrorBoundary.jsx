@@ -44,7 +44,7 @@ class ErrorBoundary extends Component {
 
                         <button
                             onClick={() => window.location.reload()}
-                            className="bg-rose-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-rose-700 active:scale-95 transition-all w-full flex items-center justify-center gap-2"
+                            className="bg-rose-600 th-text-primary px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-rose-700 active:scale-95 transition-all w-full flex items-center justify-center gap-2"
                         >
                             <RefreshCw size={16} /> Reload Application
                         </button>

@@ -12,6 +12,7 @@ import { useDraggable } from '@dnd-kit/core';
 import { GripVertical, Plus, RefreshCw, Layers } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 import ZoneCard from '../../components/Zones/ZoneCard';
+import { useLanguage } from '../../context/LanguageContext';
 
 // ── Draggable unassigned site item ──────────────────────────────────────────
 const DraggableSite = ({ site }) => {
@@ -25,7 +26,7 @@ const DraggableSite = ({ site }) => {
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className={`flex items-center gap-2 px-3 py-2 rounded bg-slate-800 border border-slate-700 cursor-grab active:cursor-grabbing text-sm text-slate-300 transition-opacity ${isDragging ? 'opacity-40' : 'hover:border-slate-500 hover:text-white'
+      className={`flex items-center gap-2 px-3 py-2 rounded th-bg-elevated border th-border cursor-grab active:cursor-grabbing text-sm th-text-secondary transition-opacity ${isDragging ? 'opacity-40' : 'hover:border-slate-500 hover:th-text-primary'
         }`}
     >
       <GripVertical className="w-4 h-4 text-slate-500 shrink-0" />
@@ -36,6 +37,7 @@ const DraggableSite = ({ site }) => {
 
 // ── Create Zone Modal ────────────────────────────────────────────────────────
 const CreateZoneModal = ({ onCreated, onClose }) => {
+  const { t } = useLanguage();
   const [form, setForm] = useState({ name: '', description: '', color: '#3B82F6' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -44,14 +46,14 @@ const CreateZoneModal = ({ onCreated, onClose }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name.trim()) { setError('Tên zone không được để trống.'); return; }
+    if (!form.name.trim()) { setError(t('admin.zones.zone_name_empty')); return; }
     setSaving(true);
     setError('');
     try {
       await apiClient.post('/zones', { name: form.name.trim(), description: form.description || null, color: form.color });
       onCreated();
     } catch (err) {
-      setError(err.response?.data?.detail || 'Tạo zone thất bại.');
+      setError(err.response?.data?.detail || t('admin.zones.create_failed'));
     } finally {
       setSaving(false);
     }
@@ -59,31 +61,31 @@ const CreateZoneModal = ({ onCreated, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-[#0F172A] border border-slate-700 rounded-xl w-full max-w-md mx-4 p-6">
-        <h2 className="text-base font-semibold text-white mb-4">Tạo Zone mới</h2>
+      <div className="th-bg-surface border th-border rounded-xl w-full max-w-md mx-4 p-6">
+        <h2 className="text-base font-semibold th-text-primary mb-4">{t('admin.zones.create_zone_title')}</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Tên Zone <span className="text-rose-400">*</span></label>
+            <label className="block text-xs text-slate-400 mb-1">{t('admin.zones.zone_name_label')} <span className="text-rose-400">*</span></label>
             <input
               type="text"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="Chi nhánh Miền Nam"
-              className="w-full bg-slate-800 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              placeholder={t('admin.zones.zone_name_placeholder')}
+              className="w-full th-bg-elevated border border-slate-600 th-text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
             />
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Mô tả</label>
+            <label className="block text-xs text-slate-400 mb-1">{t('admin.zones.description_label')}</label>
             <input
               type="text"
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="Tuỳ chọn"
-              className="w-full bg-slate-800 border border-slate-600 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              placeholder={t('admin.zones.description_placeholder')}
+              className="w-full th-bg-elevated border border-slate-600 th-text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
             />
           </div>
           <div>
-            <label className="block text-xs text-slate-400 mb-2">Màu</label>
+            <label className="block text-xs text-slate-400 mb-2">{t('admin.zones.color_label')}</label>
             <div className="flex gap-2 flex-wrap">
               {PRESET_COLORS.map((c) => (
                 <button
@@ -101,16 +103,16 @@ const CreateZoneModal = ({ onCreated, onClose }) => {
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-sm py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 th-text-primary text-sm py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
             >
-              {saving ? 'Đang tạo...' : 'Tạo Zone'}
+              {saving ? t('admin.zones.creating_button') : t('admin.zones.create_button')}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm py-2 rounded-lg transition-colors"
+              className="flex-1 bg-slate-700 hover:bg-slate-600 th-text-primary text-sm py-2 rounded-lg transition-colors"
             >
-              Hủy
+              {t('admin.zones.cancel')}
             </button>
           </div>
         </form>
@@ -121,6 +123,7 @@ const CreateZoneModal = ({ onCreated, onClose }) => {
 
 // ── Main Page ────────────────────────────────────────────────────────────────
 const ZoneManagement = () => {
+  const { t } = useLanguage();
   const [zones, setZones] = useState([]);
   const [allSites, setAllSites] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
@@ -225,12 +228,12 @@ const ZoneManagement = () => {
   };
 
   const handleDeleteZone = async (zoneId) => {
-    if (!confirm('Xóa zone này? Các site sẽ trở thành chưa phân vùng.')) return;
+    if (!confirm(t('admin.zones.delete_confirm'))) return;
     try {
       await apiClient.delete(`/zones/${zoneId}`);
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Xóa thất bại.');
+      alert(err.response?.data?.detail || t('admin.zones.delete_failed'));
     }
   };
 
@@ -248,23 +251,23 @@ const ZoneManagement = () => {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <Layers className="w-5 h-5 text-blue-400" />
-          <h1 className="text-lg font-semibold text-white">Zone Management</h1>
-          <span className="text-xs text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">
-            {zones.length} zones · {allSites.length} unassigned
+          <h1 className="text-lg font-semibold th-text-primary">{t('admin.zones.title')}</h1>
+          <span className="text-xs text-slate-500 th-bg-elevated px-2 py-0.5 rounded-full">
+            {zones.length} {t('admin.zones.zones_count')} · {allSites.length} {t('admin.zones.unassigned_count')}
           </span>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={fetchData}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:text-white border border-slate-700 hover:border-slate-500 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:th-text-primary border th-border hover:border-slate-500 rounded-lg transition-colors"
           >
-            <RefreshCw className="w-3.5 h-3.5" /> Refresh
+            <RefreshCw className="w-3.5 h-3.5" /> {t('admin.zones.refresh')}
           </button>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 th-text-primary rounded-lg transition-colors font-medium"
           >
-            <Plus className="w-3.5 h-3.5" /> New Zone
+            <Plus className="w-3.5 h-3.5" /> {t('admin.zones.new_zone')}
           </button>
         </div>
       </div>
@@ -286,7 +289,7 @@ const ZoneManagement = () => {
             {zones.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-slate-500">
                 <Layers className="w-10 h-10 mb-3 opacity-30" />
-                <p className="text-sm">Chưa có Zone nào. Tạo Zone đầu tiên!</p>
+                <p className="text-sm">{t('admin.zones.no_zones')}</p>
               </div>
             ) : (
               zones.map((zone) => (
@@ -305,7 +308,7 @@ const ZoneManagement = () => {
 
         <DragOverlay>
           {activeDrag && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded bg-blue-700 border border-blue-500 text-sm text-white shadow-xl opacity-90 cursor-grabbing">
+            <div className="flex items-center gap-2 px-3 py-2 rounded bg-blue-700 border border-blue-500 text-sm th-text-primary shadow-xl opacity-90 cursor-grabbing">
               <GripVertical className="w-4 h-4 shrink-0" />
               <span>{activeDrag.siteName || activeDrag.siteId}</span>
             </div>
@@ -325,6 +328,7 @@ const ZoneManagement = () => {
 
 // ── Unassigned Sites Droppable ───────────────────────────────────────────────
 const UnassignedSitesArea = ({ sites }) => {
+  const { t } = useLanguage();
   const { setNodeRef, isOver } = useDroppable({
     id: 'unassigned',
   });
@@ -332,16 +336,16 @@ const UnassignedSitesArea = ({ sites }) => {
   return (
     <div className="sticky top-0">
       <h2 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3 px-1">
-        Unassigned Sites ({sites.length})
+        {t('admin.zones.unassigned_sites')} ({sites.length})
       </h2>
       <div
         ref={setNodeRef}
-        className={`space-y-1.5 min-h-[150px] p-2 rounded-lg border border-dashed transition-colors ${isOver ? 'border-blue-500 bg-blue-900/10' : 'border-slate-700 bg-slate-900/30'
+        className={`space-y-1.5 min-h-[150px] p-2 rounded-lg border border-dashed transition-colors ${isOver ? 'border-blue-500 bg-blue-900/10' : 'th-border bg-slate-900/30'
           }`}
       >
         {sites.length === 0 ? (
           <p className="text-xs text-slate-600 text-center py-4">
-            Tất cả site đã được phân vùng
+            {t('admin.zones.all_sites_assigned')}
           </p>
         ) : (
           sites.map((site) => (

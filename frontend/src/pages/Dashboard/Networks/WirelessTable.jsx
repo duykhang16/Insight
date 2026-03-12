@@ -14,7 +14,7 @@ const getHealth = (h) => HEALTH_CONFIG[h?.toLowerCase()] || HEALTH_CONFIG.none;
 const USAGE_CONFIG = {
     employee:   { label: 'Employee', color: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' },
     guest:      { label: 'Guest',    color: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
-    management: { label: 'Mgmt',     color: 'bg-slate-700 text-slate-300 border-white/10' },
+    management: { label: 'Mgmt',     color: 'bg-slate-700 th-text-secondary border-white/10' },
 };
 const getUsage = (u) =>
     USAGE_CONFIG[u?.toLowerCase()] || { label: u || 'Employee', color: 'bg-slate-700 text-slate-400 border-white/5' };
@@ -53,18 +53,18 @@ const WirelessTable = ({ data, loading }) => {
     };
 
     return (
-        <div className="bg-slate-900 rounded-[2.5rem] shadow-2xl border border-white/5 overflow-hidden w-full">
+        <div className="th-bg-surface rounded-[2.5rem] shadow-2xl border border-white/5 overflow-hidden w-full">
             <div className="max-h-[calc(100vh-400px)] overflow-auto custom-scrollbar">
                 <table className="w-full min-w-[900px] text-left text-sm whitespace-nowrap">
-                    <thead className="text-slate-500 border-b border-white/5 sticky top-0 z-10 bg-slate-900">
+                    <thead className="text-slate-500 border-b border-white/5 sticky top-0 z-10 th-bg-surface">
                         <tr>
-                            <th onClick={() => handleSort('name')} className="px-8 py-5 font-black uppercase tracking-widest text-[10px] cursor-pointer hover:text-white transition-colors min-w-[220px]">
+                            <th onClick={() => handleSort('name')} className="px-8 py-5 font-black uppercase tracking-widest text-[10px] cursor-pointer hover:th-text-primary transition-colors min-w-[220px]">
                                 Network <SortIcon column="name" />
                             </th>
                             <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] min-w-[90px]">
                                 State
                             </th>
-                            <th onClick={() => handleSort('health')} className="px-6 py-5 font-black uppercase tracking-widest text-[10px] cursor-pointer hover:text-white transition-colors min-w-[100px]">
+                            <th onClick={() => handleSort('health')} className="px-6 py-5 font-black uppercase tracking-widest text-[10px] cursor-pointer hover:th-text-primary transition-colors min-w-[100px]">
                                 Health <SortIcon column="health" />
                             </th>
                             <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] min-w-[110px]">
@@ -76,29 +76,29 @@ const WirelessTable = ({ data, loading }) => {
                             <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] min-w-[100px]">
                                 Security
                             </th>
-                            <th onClick={() => handleSort('vlan')} className="px-6 py-5 font-black uppercase tracking-widest text-[10px] cursor-pointer hover:text-white transition-colors min-w-[90px]">
+                            <th onClick={() => handleSort('vlan')} className="px-6 py-5 font-black uppercase tracking-widest text-[10px] cursor-pointer hover:th-text-primary transition-colors min-w-[90px]">
                                 VLAN <SortIcon column="vlan" />
                             </th>
                             <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] min-w-[120px]">
                                 24h Usage
                             </th>
-                            <th onClick={() => handleSort('clients')} className="px-6 py-5 font-black uppercase tracking-widest text-[10px] cursor-pointer hover:text-white transition-colors text-right min-w-[100px]">
+                            <th onClick={() => handleSort('clients')} className="px-6 py-5 font-black uppercase tracking-widest text-[10px] cursor-pointer hover:th-text-primary transition-colors text-right min-w-[100px]">
                                 Clients <SortIcon column="clients" />
                             </th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5 text-slate-300">
+                    <tbody className="divide-y divide-white/5 th-text-secondary">
                         {loading && Array.from({ length: 4 }).map((_, i) => (
                             <tr key={`wskel-${i}`} className="animate-pulse">
-                                <td className="px-8 py-5"><div className="h-4 bg-slate-800 rounded w-40" /></td>
-                                <td className="px-6 py-5"><div className="h-4 bg-slate-800 rounded w-16" /></td>
-                                <td className="px-6 py-5"><div className="h-4 bg-slate-800 rounded w-16" /></td>
-                                <td className="px-6 py-5"><div className="h-4 bg-slate-800 rounded w-20" /></td>
-                                <td className="px-6 py-5"><div className="h-4 bg-slate-800 rounded w-24" /></td>
-                                <td className="px-6 py-5"><div className="h-4 bg-slate-800 rounded w-16" /></td>
-                                <td className="px-6 py-5"><div className="h-4 bg-slate-800 rounded w-12" /></td>
-                                <td className="px-6 py-5"><div className="h-4 bg-slate-800 rounded w-16" /></td>
-                                <td className="px-6 py-5 text-right"><div className="h-4 bg-slate-800 rounded w-10 ml-auto" /></td>
+                                <td className="px-8 py-5"><div className="h-4 th-bg-elevated rounded w-40" /></td>
+                                <td className="px-6 py-5"><div className="h-4 th-bg-elevated rounded w-16" /></td>
+                                <td className="px-6 py-5"><div className="h-4 th-bg-elevated rounded w-16" /></td>
+                                <td className="px-6 py-5"><div className="h-4 th-bg-elevated rounded w-20" /></td>
+                                <td className="px-6 py-5"><div className="h-4 th-bg-elevated rounded w-24" /></td>
+                                <td className="px-6 py-5"><div className="h-4 th-bg-elevated rounded w-16" /></td>
+                                <td className="px-6 py-5"><div className="h-4 th-bg-elevated rounded w-12" /></td>
+                                <td className="px-6 py-5"><div className="h-4 th-bg-elevated rounded w-16" /></td>
+                                <td className="px-6 py-5 text-right"><div className="h-4 th-bg-elevated rounded w-10 ml-auto" /></td>
                             </tr>
                         ))}
 
@@ -113,7 +113,7 @@ const WirelessTable = ({ data, loading }) => {
                                             <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex-shrink-0">
                                                 <Wifi size={14} />
                                             </div>
-                                            <p className="text-white font-black text-sm tracking-tight italic uppercase truncate max-w-[180px]" title={ssid.name}>
+                                            <p className="th-text-primary font-black text-sm tracking-tight italic uppercase truncate max-w-[180px]" title={ssid.name}>
                                                 {ssid.name}
                                             </p>
                                         </div>
@@ -154,7 +154,7 @@ const WirelessTable = ({ data, loading }) => {
 
                                     {/* Band */}
                                     <td className="px-6 py-5">
-                                        <span className="text-xs font-bold text-slate-300">
+                                        <span className="text-xs font-bold th-text-secondary">
                                             {ssid.band || '—'}
                                         </span>
                                     </td>
@@ -184,11 +184,11 @@ const WirelessTable = ({ data, loading }) => {
                                     <td className="px-6 py-5 text-right">
                                         <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl border transition-all ${
                                             ssid.clients > 0
-                                                ? 'bg-slate-800 border-indigo-500/20 group-hover:border-indigo-500/40'
-                                                : 'bg-slate-900 border-white/5 opacity-50'
+                                                ? 'th-bg-elevated border-indigo-500/20 group-hover:border-indigo-500/40'
+                                                : 'th-bg-surface border-white/5 opacity-50'
                                         }`}>
                                             <Users size={12} className={ssid.clients > 0 ? 'text-indigo-400' : 'text-slate-600'} />
-                                            <span className={`font-black text-sm ${ssid.clients > 0 ? 'text-white' : 'text-slate-600'}`}>
+                                            <span className={`font-black text-sm ${ssid.clients > 0 ? 'th-text-primary' : 'text-slate-600'}`}>
                                                 {ssid.clients}
                                             </span>
                                         </div>
@@ -201,7 +201,7 @@ const WirelessTable = ({ data, loading }) => {
                             <tr>
                                 <td colSpan="9" className="px-6 py-16 text-center text-slate-500">
                                     <div className="flex flex-col items-center">
-                                        <div className="p-6 bg-slate-800 rounded-3xl mb-4 opacity-20">
+                                        <div className="p-6 th-bg-elevated rounded-3xl mb-4 opacity-20">
                                             <Wifi size={48} className="text-slate-400" />
                                         </div>
                                         <p className="text-lg font-black text-slate-700 uppercase tracking-[0.2em]">No Wireless Networks</p>

@@ -1,12 +1,50 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Users, Search, RefreshCw, AlertCircle, Smartphone, Laptop, Monitor, Globe, Wifi, Circle, Radio, ArrowDown, ArrowUp, Database } from 'lucide-react';
+import { Users, Search, RefreshCw, AlertCircle, Smartphone, Laptop, Monitor, Globe, Wifi, Circle, Radio, ArrowDown, ArrowUp, Database, GripVertical } from 'lucide-react';
 import apiClient, { formatBytes } from '../../../api/apiClient';
 import { useSite } from '../../../context/SiteContext';
 import { useSettings } from '../../../context/SettingsContext';
 import useIntervalFetch from '../../../hooks/useIntervalFetch';
-import SyncIndicator from '../../../components/SyncIndicator';
+import { useLanguage } from '../../../context/LanguageContext';
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, horizontalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+const SortableHeader = ({ id, content, onSort, sortIcon, minWidth }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+    const style = {
+        transform: CSS.Translate.toString(transform),
+        transition,
+        opacity: 1,
+        zIndex: isDragging ? 100 : 'auto',
+        position: 'relative',
+        minWidth: `${minWidth}px`
+    };
+
+    return (
+        <th
+            ref={setNodeRef}
+            style={style}
+            className={`px-6 py-5 font-black uppercase tracking-widest text-[10px] transition-colors group ${isDragging ? "bg-slate-800/80 shadow-xl" : "hover:th-text-primary"}`}
+        >
+            <div className="flex items-center gap-2">
+                <div
+                    {...attributes}
+                    {...listeners}
+                    className="cursor-grab active:cursor-grabbing text-slate-600 hover:text-slate-400 p-1 -ml-2 rounded"
+                    title="Drag to reorder"
+                >
+                    <GripVertical size={14} />
+                </div>
+                <div onClick={onSort} className={`flex items-center ${onSort ? 'cursor-pointer' : ''}`}>
+                    {content} {sortIcon && <span className="ml-1">{sortIcon}</span>}
+                </div>
+            </div>
+        </th>
+    );
+};
 
 const Clients = () => {
+    const { t } = useLanguage();
     const [clients, setClients] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -19,10 +57,92 @@ const Clients = () => {
     const { selectedSiteId, sites, fetchSites } = useSite();
     const { isAutoRefreshEnabled } = useSettings();
 
+    // Part Number to Model Name mapping (Task 1)
+    const PART_NUMBER_MAP = {
+        'JL678A': '6200F',
+        'JL439A': '2930F',
+        'R2X11A': 'AP-505',
+        'R2H28A': 'AP-515',
+        'JZ336A': 'AP-535',
+        'Q9H62A': 'AP-515',
+        'R4H16A': 'AP-565',
+        'Q9H59A': 'AP-514',
+        'JL807A': '1930 8G',
+        'JL681A': '1930 8G PoE',
+        'JL682A': '1930 24G PoE',
+        'S0G14A': 'AP-22',
+        'R2X01A': 'AP-11',
+        'R2X06A': 'AP-15',
+    };
+
+    // Default 11-column sequence (Task 1)
+    const DEFAULT_COLUMNS = [
+        { id: 'client', labelKey: 'site.clients.table_header_client', minWidth: 250, sortable: true },
+        { id: 'network', labelKey: 'site.clients.table_header_network', minWidth: 150, sortable: true },
+        { id: 'usage', labelKey: 'site.clients.table_header_usage', minWidth: 120, sortable: true },
+        { id: 'health', labelKey: 'site.clients.table_header_health', minWidth: 100, sortable: true },
+        { id: 'state', labelKey: 'site.clients.table_header_state', minWidth: 100, sortable: false },
+        { id: 'duration', labelKey: 'site.clients.table_header_duration', minWidth: 100, sortable: true },
+        { id: 'type', labelKey: 'site.clients.table_header_type', minWidth: 100, sortable: false },
+        { id: 'ip', labelKey: 'site.clients.table_header_ip', minWidth: 120, sortable: false },
+        { id: 'device', labelKey: 'site.clients.table_header_device', minWidth: 150, sortable: false },
+        { id: 'interface', labelKey: 'site.clients.table_header_interface', minWidth: 150, sortable: false },
+    ];
+
+    const [columns, setColumns] = useState(() => {
+        const saved = localStorage.getItem('client_table_layout');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                // Validate parsed contains all required IDs
+                const defaultIds = DEFAULT_COLUMNS.map(c => c.id);
+                if (parsed.length === DEFAULT_COLUMNS.length && parsed.every(c => defaultIds.includes(c.id))) {
+                    // Re-attach metadata from default columns to saved IDs
+                    return parsed.map(p => ({
+                        ...DEFAULT_COLUMNS.find(d => d.id === p.id),
+                        ...p
+                    }));
+                }
+            } catch (e) {
+                console.error("Invalid column data in localStorage");
+            }
+        }
+        return DEFAULT_COLUMNS;
+    });
+
+    const resetColumns = () => {
+        setColumns(DEFAULT_COLUMNS);
+        localStorage.removeItem('client_table_layout');
+    };
+
+    // Sensor for Drag and Drop
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(KeyboardSensor)
+    );
+
+    const handleDragEnd = (event) => {
+        const { active, over } = event;
+        if (active.id !== over.id) {
+            setColumns((items) => {
+                const oldIndex = items.findIndex((i) => i.id === active.id);
+                const newIndex = items.findIndex((i) => i.id === over.id);
+                const newArray = arrayMove(items, oldIndex, newIndex);
+                localStorage.setItem('client_table_layout', JSON.stringify(newArray));
+                return newArray;
+            });
+        }
+    };
+
     useEffect(() => {
         if (sites.length === 0) {
             fetchSites();
         }
+
+        // Read URL parameters for initial filters (Task 2 Dashboard linking)
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('health')) setHealthFilter(params.get('health'));
+        if (params.has('type')) setTypeFilter(params.get('type'));
     }, []);
 
     useEffect(() => {
@@ -35,28 +155,11 @@ const Clients = () => {
         if (!silent) setLoading(true);
         setError('');
         try {
-            let res;
-            const endpoints = [
-                `/overview/sites/${siteId}/clientSummary`,
-                `/overview/sites/${siteId}/clientsSummary`,
-                `/overview/sites/${siteId}/clients`,
-                `/overview/sites/${siteId}/clients`,
-                `/overview/sites/${siteId}/dashboard`
-            ];
+            // Updated: Call the centralized backend 'clients' endpoint which handles discovery trials.
+            // This prevents console 404 spam.
+            const res = await apiClient.get(`/overview/sites/${siteId}/clients`);
 
-            for (const url of endpoints) {
-                try {
-                    const tempRes = await apiClient.get(url);
-                    if (tempRes.data && (Array.isArray(tempRes.data) || tempRes.data.elements || tempRes.data.clients || (tempRes.data.clientsOverview && tempRes.data.clientsOverview.clients))) {
-                        res = tempRes;
-                        break;
-                    }
-                } catch (e) {
-                    if (e.response?.status !== 401) console.warn(`Failed endpoint: ${url}`);
-                }
-            }
-
-            if (!res) throw new Error("Could not find clients endpoint or no data available.");
+            if (!res.data) throw new Error("No data available.");
 
             const data = res.data;
             let extracted = [];
@@ -70,7 +173,7 @@ const Clients = () => {
         } catch (err) {
             console.error("Clients fetch error:", err);
             if (err.response?.status !== 401 && !silent) {
-                setError("Failed to fetch client list. Ensure you are logged in.");
+                setError(t('site.clients.error_fetch'));
             }
         } finally {
             if (!silent) setLoading(false);
@@ -83,31 +186,44 @@ const Clients = () => {
         }
     }, isAutoRefreshEnabled ? 60000 : null, [selectedSiteId, loading, isAutoRefreshEnabled]);
 
-    const formatDuration = (seconds) => {
-        if (!seconds || seconds < 0) return '0 min';
-        const days = Math.floor(seconds / (24 * 3600));
-        const hours = Math.floor((seconds % (24 * 3600)) / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-
+    const formatDuration = (item) => {
+        const rawSeconds = item?.stateDurationInSeconds ?? item?.connectionDurationInSeconds ?? 0;
+        if (rawSeconds <= 0) return '';
+        
+        const days = Math.floor(rawSeconds / 86400);
+        const hours = Math.floor((rawSeconds % 86400) / 3600);
+        const minutes = Math.floor((rawSeconds % 3600) / 60);
+        
         let parts = [];
-        if (days > 0) parts.push(`${days} day${days > 1 ? 's' : ''}`);
-        if (hours > 0) parts.push(`${hours} hour${hours > 1 ? 's' : ''}`);
-        if (days === 0 && hours === 0 && minutes >= 0) parts.push(`${minutes} minute${minutes !== 1 ? 's' : ''}`);
-        else if (minutes > 0 && parts.length < 2) parts.push(`${minutes} minute${minutes !== 1 ? 's' : ''}`);
-
-        return parts.slice(0, 2).join(' ') || '0 min';
+        if (days > 0) parts.push(`${days}d`);
+        if (hours > 0) parts.push(`${hours}h`);
+        if (minutes > 0 || parts.length === 0) parts.push(`${minutes}m`);
+        
+        return parts.join(' ');
     };
 
-    const formatInterface = (client) => {
-        const isWired = client.clientType === 'wired';
+    const formatInterface = (item) => {
+        if (!item) return '';
+        const isWired = item.clientType?.toLowerCase() === 'wired';
         if (isWired) {
-            const port = client.connectedToPorts?.[0]?.portNumber;
-            return port ? `(Port ${port})` : 'Wired';
+            // Priority: root portNumber -> root portId -> nested connectedToPorts
+            const port = item.portNumber ||
+                item.portId ||
+                item.connectedToPorts?.[0]?.portNumber ||
+                '';
+            return port ? `Port ${port}` : '';
         }
-        if (client.wirelessBand) {
-            return client.wirelessBand.toLowerCase().replace('ghz', ' GHz');
+        // Wireless: Map from item.wirelessBand
+        const band = item.wirelessBand || item.radioBand || '';
+        if (band) {
+            return band.toLowerCase().replace('ghz', ' GHz');
         }
-        return '-';
+        return '';
+    };
+
+    const capitalize = (str) => {
+        if (!str) return '';
+        return str.charAt(0).toUpperCase() + str.slice(1);
     };
 
     const getHealthColor = (health) => {
@@ -169,6 +285,11 @@ const Clients = () => {
                     valA = a.connectionDurationInSeconds || 0;
                     valB = b.connectionDurationInSeconds || 0;
                     break;
+                case 'network':
+                    // Task 1: Sort by SSID
+                    valA = (a.wirelessNetworkName || a.accessedWiredNetworks?.[0]?.networkName || '').toLowerCase();
+                    valB = (b.wirelessNetworkName || b.accessedWiredNetworks?.[0]?.networkName || '').toLowerCase();
+                    break;
                 case 'usage':
                     valA = a.downstreamDataTransferredInBytes || 0;
                     valB = b.downstreamDataTransferredInBytes || 0;
@@ -186,24 +307,30 @@ const Clients = () => {
     }, [clients, searchTerm, typeFilter, healthFilter, sortConfig]);
 
     const SortIcon = ({ column }) => {
-        if (sortConfig.key !== column) return <ArrowDown size={12} className="opacity-20 ml-1 inline" />;
+        if (sortConfig.key !== column) return <ArrowDown size={12} className="opacity-20 inline" />;
         return sortConfig.direction === 'asc' ?
-            <ArrowUp size={12} className="text-blue-500 ml-1 inline" /> :
-            <ArrowDown size={12} className="text-blue-500 ml-1 inline" />;
+            <ArrowUp size={12} className="text-blue-500 inline" /> :
+            <ArrowDown size={12} className="text-blue-500 inline" />;
     };
 
     return (
-        <div className="p-8 pb-32 min-h-screen bg-slate-950">
+        <div className="p-8 pb-32 min-h-screen th-bg-base">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
-                    <h1 className="text-2xl font-black text-white tracking-tight">Connected Clients</h1>
+                    <h1 className="text-2xl font-black th-text-primary tracking-tight">{t('site.clients.title')}</h1>
                     <p className="text-sm text-slate-400 mt-1">
-                        Active sessions at {sites.find(s => s.siteId === selectedSiteId)?.siteName || 'current site'}
+                        {t('site.clients.subtitle')} {sites.find(s => s.siteId === selectedSiteId)?.siteName || 'current site'}
                     </p>
                 </div>
 
                 <div className="flex items-center gap-4 w-full md:w-auto">
-                    <SyncIndicator isSyncing={loading} lastUpdated={lastUpdated} />
+                    <button
+                        onClick={resetColumns}
+                        className="flex items-center gap-2 px-4 py-2 th-bg-elevated hover:bg-slate-700 th-text-primary text-xs font-bold rounded-lg border border-white/10 transition-colors"
+                    >
+                        <RefreshCw size={14} />
+                        {t('site.clients.reset_columns') || 'Đặt lại giao diện'}
+                    </button>
                 </div>
             </div>
 
@@ -213,38 +340,38 @@ const Clients = () => {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                     <input
                         type="text"
-                        placeholder="Search by name, MAC, or IP address..."
+                        placeholder={t('site.clients.search_placeholder')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full h-14 pl-12 pr-4 bg-slate-900 border border-white/5 rounded-2xl text-white text-sm focus:outline-none focus:border-blue-500/50 shadow-inner"
+                        className="w-full h-14 pl-12 pr-4 th-bg-surface border border-white/5 rounded-2xl th-text-primary text-sm focus:outline-none focus:border-blue-500/50 shadow-inner"
                     />
                 </div>
 
                 <div className="flex items-center gap-3">
                     <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-black uppercase text-slate-500 ml-1 tracking-widest">Type</label>
+                        <label className="text-[10px] font-black uppercase text-slate-500 ml-1 tracking-widest">{t('site.clients.filter_type_label')}</label>
                         <select
                             value={typeFilter}
                             onChange={(e) => setTypeFilter(e.target.value)}
-                            className="h-14 bg-slate-900 border border-white/5 rounded-2xl px-5 text-white text-sm font-bold focus:outline-none focus:border-blue-500/50 min-w-[140px] appearance-none"
+                            className="h-14 th-bg-surface border border-white/5 rounded-2xl px-5 th-text-primary text-sm font-bold focus:outline-none focus:border-blue-500/50 min-w-[140px] appearance-none"
                         >
-                            <option value="all">All Types</option>
-                            <option value="wired">Wired</option>
-                            <option value="wireless">Wireless</option>
+                            <option value="all">{t('site.clients.filter_type_all')}</option>
+                            <option value="wired">{t('site.clients.filter_type_wired')}</option>
+                            <option value="wireless">{t('site.clients.filter_type_wireless')}</option>
                         </select>
                     </div>
 
                     <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-black uppercase text-slate-500 ml-1 tracking-widest">Health</label>
+                        <label className="text-[10px] font-black uppercase text-slate-500 ml-1 tracking-widest">{t('site.clients.filter_health_label')}</label>
                         <select
                             value={healthFilter}
                             onChange={(e) => setHealthFilter(e.target.value)}
-                            className="h-14 bg-slate-900 border border-white/5 rounded-2xl px-5 text-white text-sm font-bold focus:outline-none focus:border-blue-500/50 min-w-[140px] appearance-none"
+                            className="h-14 th-bg-surface border border-white/5 rounded-2xl px-5 th-text-primary text-sm font-bold focus:outline-none focus:border-blue-500/50 min-w-[140px] appearance-none"
                         >
-                            <option value="all">All Health</option>
-                            <option value="good">Good</option>
-                            <option value="fair">Fair</option>
-                            <option value="poor">Poor</option>
+                            <option value="all">{t('site.clients.filter_health_all')}</option>
+                            <option value="good">{t('site.clients.filter_health_good')}</option>
+                            <option value="fair">{t('site.clients.filter_health_fair')}</option>
+                            <option value="poor">{t('site.clients.filter_health_poor')}</option>
                         </select>
                     </div>
                 </div>
@@ -257,107 +384,185 @@ const Clients = () => {
                 </div>
             )}
 
-            <div className="bg-slate-900 rounded-3xl shadow-2xl border border-white/5 overflow-hidden w-full">
+            <div className="th-bg-surface rounded-3xl shadow-2xl border border-white/5 overflow-hidden w-full">
                 <div className="max-h-[calc(100vh-250px)] overflow-auto custom-scrollbar">
-                    <table className="w-full min-w-[1200px] text-left text-sm whitespace-nowrap block md:table">
-                        <thead className="bg-slate-900/50 text-slate-500 border-b border-white/5 table-header-sticky">
-                            <tr>
-                                <th onClick={() => handleSort('client')} className="px-6 py-5 font-black uppercase tracking-widest text-[10px] cursor-pointer hover:text-white transition-colors group table-col-sticky table-header-sticky resizable-col min-w-[250px]">
-                                    Client <SortIcon column="client" />
-                                </th>
-                                <th onClick={() => handleSort('health')} className="px-6 py-5 font-black uppercase tracking-widest text-[10px] cursor-pointer hover:text-white transition-colors group resizable-col min-w-[100px]">
-                                    Health <SortIcon column="health" />
-                                </th>
-                                <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] resizable-col min-w-[100px]">State</th>
-                                <th onClick={() => handleSort('duration')} className="px-6 py-5 font-black uppercase tracking-widest text-[10px] cursor-pointer hover:text-white transition-colors group text-right resizable-col min-w-[100px]">
-                                    Duration <SortIcon column="duration" />
-                                </th>
-                                <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] resizable-col min-w-[150px]">Network & Interface</th>
-                                <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] resizable-col min-w-[100px]">Type</th>
-                                <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] resizable-col min-w-[150px]">Addressing</th>
-                                <th onClick={() => handleSort('usage')} className="px-6 py-5 font-black uppercase tracking-widest text-[10px] cursor-pointer hover:text-white transition-colors group text-right resizable-col min-w-[120px]">
-                                    Usage <SortIcon column="usage" />
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5 text-slate-300">
-                            {processedClients.map((client) => {
-                                const isWired = client.clientType === 'wired';
-                                const clientName = client.name || client.hostName || client.macAddress;
-                                const isUp = (client.status || "").toLowerCase() === 'up';
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                        <table className="w-full min-w-[1200px] text-left text-sm whitespace-nowrap block md:table">
+                            <thead className="th-bg-surface text-slate-500 border-b border-white/5 table-header-sticky">
+                                <tr>
+                                    <SortableContext items={columns.map(c => c.id)} strategy={horizontalListSortingStrategy}>
+                                        {columns.map(col => (
+                                            <SortableHeader
+                                                key={col.id}
+                                                id={col.id}
+                                                content={t(col.labelKey)}
+                                                onSort={col.sortable ? () => handleSort(col.id) : null}
+                                                sortIcon={col.sortable ? <SortIcon column={col.id} /> : null}
+                                                minWidth={col.minWidth}
+                                            />
+                                        ))}
+                                    </SortableContext>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5 th-text-secondary">
+                                {processedClients.map((item) => {
+                                    const isWired = item.clientType?.toLowerCase() === 'wired';
 
-                                // Network Mapping logic
-                                const networkDisplay = isWired
-                                    ? (client.accessedWiredNetworks?.[0]?.networkName || `VLAN ${client.vlanId || '-'}`)
-                                    : (client.wirelessNetworkName || '-');
+                                    // Rule: Client: Use item.name. If name is null or same as mac, fallback to item.hostName or item.macAddress.
+                                    const clientName = (item.name && item.name !== item.macAddress)
+                                        ? item.name
+                                        : (item.hostName || item.macAddress || '');
 
-                                return (
-                                    <tr key={client.id || client.macAddress} className="hover:bg-white/[0.02] transition-colors group border-b border-white/5 last:border-0 hover:-translate-y-0.5">
-                                        <td className="px-6 py-4 table-col-sticky border-r border-white/5 z-10 bg-slate-900 group-hover:bg-white/[0.03]">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-blue-400 border border-white/5 group-hover:border-blue-500/30 transition-colors">
-                                                    <Laptop size={18} />
-                                                </div>
-                                                <div>
-                                                    <div className="text-white font-bold tracking-tight text-sm truncate max-w-[180px]" title={clientName}>{clientName}</div>
-                                                    <div className="text-[10px] text-slate-500 font-mono uppercase">{client.macAddress}</div>
-                                                </div>
+                                    const isUp = (item.status || "").toLowerCase() === 'up';
+
+                                    // Rule: Network: Smart deep search (Wireless -> Wired -> Connected Ports -> VLAN)
+                                    const networkDisplay = item.wirelessNetworkName ||
+                                        item.wiredNetworkName ||
+                                        item.connectedToPorts?.[0]?.accessedWiredNetworks?.[0]?.networkName ||
+                                        (item.vlanId ? `VLAN ${item.vlanId}` : '');
+
+                                    // Rule: Device (AP/Switch Name): Prioritize infrastructure names
+                                    const candidateDeviceName = item.apName ||
+                                                                item.switchName ||
+                                                                item.associatedToDeviceName ||
+                                                                item.associatedDeviceName ||
+                                                                item.connectedToPorts?.[0]?.deviceName ||
+                                                                item.deviceName || '';
+
+                                    // Defensive: If the device name is same as client name, it's likely just showing the client's own metadata
+                                    const deviceDisplayName = (candidateDeviceName && candidateDeviceName !== clientName)
+                                        ? candidateDeviceName
+                                        : (item.apName || item.switchName || item.associatedDeviceName || '');
+                                    // Device Model Mapping: Use only the associated device's part number
+                                    const devicePartNumber = item.associatedDevicePartNumber || '';
+                                    const modelName = PART_NUMBER_MAP[devicePartNumber] || '';
+
+                                    const renderCell = (colId) => {
+                                        switch (colId) {
+                                            case 'client':
+                                                return (
+                                                    <td key={colId} className="px-6 py-4 th-bg-surface group-hover:bg-white/[0.03] transition-colors">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 th-bg-elevated rounded-xl flex items-center justify-center text-blue-400 border border-white/5 group-hover:border-blue-500/30 transition-colors">
+                                                                <Laptop size={18} />
+                                                            </div>
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="th-text-primary font-bold tracking-tight text-sm truncate max-w-[180px]" title={clientName}>{clientName}</div>
+                                                                <div className="text-[10px] text-slate-500 font-mono uppercase truncate max-w-[180px] flex items-center gap-1">
+                                                                    <span>{item.macAddress || ''}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                );
+                                            case 'health':
+                                                return (
+                                                    <td key={colId} className="px-6 py-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className={`w-2 h-2 rounded-full ${getHealthColor(item.health)} shadow-[0_0_8px] shadow-current`}></div>
+                                                            <span className={`text-[10px] font-black uppercase tracking-widest ${getHealthTextClass(item.health)}`}>
+                                                                {capitalize(item.health)}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                );
+                                            case 'state':
+                                                return (
+                                                    <td key={colId} className="px-6 py-4">
+                                                        <div className="flex items-center gap-1.5 px-2.5 py-1 th-bg-elevated rounded-full w-fit border border-white/5">
+                                                            <Circle size={8} className={isUp ? "fill-emerald-500 text-emerald-500" : "text-slate-600"} />
+                                                            <span className="text-[10px] font-bold uppercase">{isUp ? t('site.clients.state_online') : t('site.clients.state_offline')}</span>
+                                                        </div>
+                                                    </td>
+                                                );
+                                            case 'type':
+                                                return (
+                                                    <td key={colId} className="px-6 py-4">
+                                                        <div className="flex items-center gap-2 text-xs font-bold">
+                                                            {isWired ? <Globe size={14} className="text-emerald-500" /> : <Wifi size={14} className="text-blue-500" />}
+                                                            <span className="th-text-primary">{capitalize(item.clientType)}</span>
+                                                        </div>
+                                                    </td>
+                                                );
+                                            case 'network':
+                                                return (
+                                                    <td key={colId} className="px-6 py-4">
+                                                        <div className="text-xs font-bold th-text-primary">{networkDisplay}</div>
+                                                    </td>
+                                                );
+                                            case 'interface':
+                                                return (
+                                                    <td key={colId} className="px-6 py-4">
+                                                        <div className="text-xs font-bold th-text-primary font-mono">{formatInterface(item)}</div>
+                                                    </td>
+                                                );
+                                            case 'mac':
+                                                return (
+                                                    <td key={colId} className="px-6 py-4">
+                                                        <div className="text-xs font-black th-text-primary font-mono">
+                                                            {item.macAddress || '-'}
+                                                        </div>
+                                                    </td>
+                                                );
+                                            case 'ip':
+                                                return (
+                                                    <td key={colId} className="px-6 py-4">
+                                                        <div className="text-xs font-black th-text-primary font-mono">
+                                                            {item.ipAddress || ''}
+                                                        </div>
+                                                    </td>
+                                                );
+                                            case 'device':
+                                                return (
+                                                    <td key={colId} className="px-6 py-4">
+                                                        <div className="text-xs font-bold th-text-primary uppercase tracking-tight">
+                                                            {deviceDisplayName}
+                                                        </div>
+                                                        <div className="text-[9px] text-slate-500 font-bold">
+                                                            {modelName !== '' ? modelName : (devicePartNumber || '')}
+                                                        </div>
+                                                    </td>
+                                                );
+                                            case 'usage':
+                                                const totalBytes = (item.downstreamDataTransferredInBytes || 0) + (item.upstreamDataTransferredInBytes || 0);
+                                                return (
+                                                    <td key={colId} className="px-6 py-4 text-right">
+                                                        <div className="th-text-primary font-black text-xs tracking-tighter">
+                                                            {formatBytes(totalBytes)}
+                                                        </div>
+                                                        <div className="text-[9px] text-slate-500 font-bold uppercase">{t('site.clients.usage_total')}</div>
+                                                    </td>
+                                                );
+                                            case 'duration':
+                                                return (
+                                                    <td key={colId} className="px-6 py-4 text-xs font-bold text-slate-400">
+                                                        {formatDuration(item)}
+                                                    </td>
+                                                );
+                                            default: return <td key={colId}></td>;
+                                        }
+                                    };
+
+                                    return (
+                                        <tr key={item.id || item.macAddress} className="hover:bg-white/[0.02] transition-colors group border-b border-white/5 last:border-0 hover:-translate-y-0.5">
+                                            {columns.map(col => renderCell(col.id))}
+                                        </tr>
+                                    );
+                                })}
+                                {!loading && processedClients.length === 0 && (
+                                    <tr>
+                                        <td colSpan={columns.length} className="px-6 py-20 text-center text-slate-500 bg-black/10">
+                                            <div className="flex flex-col items-center">
+                                                <Users size={48} className="mb-4 opacity-5" />
+                                                <p className="text-lg font-black text-slate-500 uppercase tracking-widest">{t('site.clients.empty_state_title')}</p>
+                                                <p className="text-xs text-slate-600 mt-2">{t('site.clients.empty_state_hint')}</p>
                                             </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
-                                                <div className={`w-2 h-2 rounded-full ${getHealthColor(client.health)} shadow-[0_0_8px] shadow-current`}></div>
-                                                <span className={`text-[10px] font-black uppercase tracking-widest ${getHealthTextClass(client.health)}`}>
-                                                    {client.health || 'Unknown'}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-800 rounded-full w-fit border border-white/5">
-                                                <Circle size={8} className={isUp ? "fill-emerald-500 text-emerald-500" : "text-slate-600"} />
-                                                <span className="text-[10px] font-bold uppercase">{isUp ? 'Online' : 'Offline'}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-right text-xs font-bold text-slate-400">
-                                            {formatDuration(client.connectionDurationInSeconds)}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="text-xs font-bold text-slate-200">{networkDisplay}</div>
-                                            <div className="text-[10px] text-slate-500 italic mt-0.5">{formatInterface(client)}</div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2 text-xs font-bold">
-                                                {isWired ? <Globe size={14} className="text-emerald-500" /> : <Wifi size={14} className="text-blue-500" />}
-                                                <span className="text-slate-200">{isWired ? 'Wired' : 'Wireless'}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="text-xs font-black text-slate-200 font-mono">
-                                                {client.ipAddress || client.reservedIpAddress || '-'}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="text-white font-black text-xs tracking-tighter">
-                                                {formatBytes(client.downstreamDataTransferredInBytes || 0)}
-                                            </div>
-                                            <div className="text-[9px] text-slate-500 font-bold uppercase">Downstream</div>
                                         </td>
                                     </tr>
-                                );
-                            })}
-                            {!loading && processedClients.length === 0 && (
-                                <tr>
-                                    <td colSpan="8" className="px-6 py-20 text-center text-slate-500 bg-black/10">
-                                        <div className="flex flex-col items-center">
-                                            <Users size={48} className="mb-4 opacity-5" />
-                                            <p className="text-lg font-black text-slate-500 uppercase tracking-widest">No clients found</p>
-                                            <p className="text-xs text-slate-600 mt-2">Adjust your filters or search term to see results</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+                                )}
+                            </tbody>
+                        </table>
+                    </DndContext>
                 </div>
             </div>
         </div>

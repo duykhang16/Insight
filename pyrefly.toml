@@ -1,0 +1,12 @@
+# Pyrefly configuration — tắt lỗi giả trong IDE
+# Docs: https://pyrefly.org/en/docs/configuration/
+
+python-interpreter-path = "d:/AITC/Insight/backend/venv/Scripts/python.exe"
+search-path = ["d:/AITC/Insight/backend"]
+
+# Tắt toàn bộ type errors hiện trong IDE (chỉ check khi dùng CLI)
+disable-type-errors-in-ide = true
+
+# Tắt missing-import errors
+[errors]
+missing-import = false

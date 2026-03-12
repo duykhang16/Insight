@@ -1,5 +1,6 @@
 """Business logic for master Aruba account management."""
 from datetime import datetime, timezone
+import asyncio
 from typing import Optional, List, Dict, Any
 from app.database.master_crud import (
     get_master_config,
@@ -16,6 +17,10 @@ from .schemas import (
     MasterScanResponse,
     SiteScanResult,
 )
+
+
+# Global lock to prevent concurrent refresh attempts (Avoids 429 Too Many Requests)
+_refresh_lock = asyncio.Lock()
 
 
 def _fmt_dt(dt) -> str:
@@ -180,23 +185,125 @@ async def unlink_account() -> dict:
 
 async def force_refresh() -> dict:
     """Manually trigger a token refresh."""
-    config = await get_master_config()
-    if not config or not config.get("is_active"):
-        raise ValueError("Không có Master Account nào đang được liên kết.")
+    ok, expires_at = await _refresh_token_silent()
+    if not ok:
+        raise ValueError(f"Refresh thất bại logic.")
 
-    from app.shared.encryption import decrypt_password
-    plain_pass = decrypt_password(config["encrypted_password"])
-    username = config["username"]
-    login_result = await replay_login(username, plain_pass)
-    if login_result.get("status") != "success":
-        raise ValueError(f"Refresh thất bại: {login_result.get('message')}")
-
-    new_token = login_result["data"].get("access_token", "")
-    expires_in = login_result.get("expires_in", 1799)
-    await update_master_token(new_token, expires_in)
-
-    config_updated = await get_master_config()
     return {
         "message": "Token đã được refresh thành công.",
-        "new_expires_at": _fmt_dt(config_updated.get("expires_at")),
+        "new_expires_at": _fmt_dt(expires_at),
     }
+
+
+async def refresh_token_locked() -> bool:
+    """
+    Public method to refresh the master token with locking and cool-down.
+    Returns True if refreshed successfully.
+    """
+    config = await get_master_config()
+    if not config or not config.get("is_active"):
+        return False
+
+    # Check cool-down
+    failed_at = config.get("last_refresh_failed_at")
+    if failed_at:
+        if isinstance(failed_at, str):
+            failed_at = datetime.fromisoformat(failed_at.replace("Z", "+00:00"))
+        elif failed_at.tzinfo is None:
+            failed_at = failed_at.replace(tzinfo=timezone.utc)
+        if (datetime.now(timezone.utc) - failed_at).total_seconds() < 120:
+            return False
+
+    async with _refresh_lock:
+        # Re-check expiry inside lock to avoid double refresh
+        config = await get_master_config()
+        if not config: return False
+        
+        # If token was refreshed by someone else while we waited for lock, just return True
+        exp = config.get("expires_at")
+        if exp:
+            if isinstance(exp, str): exp = datetime.fromisoformat(exp.replace("Z", "+00:00"))
+            elif exp.tzinfo is None: exp = exp.replace(tzinfo=timezone.utc)
+            if (exp - datetime.now(timezone.utc)).total_seconds() >= 300:
+                return True
+
+        ok, _ = await _refresh_token_silent()
+        return ok
+
+
+async def _refresh_token_silent() -> (bool, Optional[datetime]):
+    """Internal helper to refresh token based on stored credentials."""
+    config = await get_master_config()
+    if not config or not config.get("is_active"):
+        return False, None
+
+    from app.shared.encryption import decrypt_password
+    try:
+        plain_pass = decrypt_password(config["encrypted_password"])
+        username = config["username"]
+        login_result = await replay_login(username, plain_pass)
+
+        if login_result.get("status") == "success":
+            new_token = login_result["data"].get("access_token", "")
+            expires_in = login_result.get("expires_in", 1799)
+            updated_config = await update_master_token(new_token, expires_in)
+            return True, updated_config.get("expires_at")
+        else:
+            print(f"[MASTER SERVICE] Refresh failed: {login_result.get('message')}")
+            from app.database.master_crud import mark_refresh_failure
+            await mark_refresh_failure(login_result.get("message", "Unknown error"))
+    except Exception as e:
+        print(f"[MASTER SERVICE] Silent refresh error: {e}")
+        from app.database.master_crud import mark_refresh_failure
+        await mark_refresh_failure(str(e))
+
+    return False, None
+
+
+async def get_master_token_auto() -> Optional[str]:
+    """
+    Returns a valid master token.
+    If the current token is expired or missing, it silently refreshes using stored credentials.
+    Uses a lock to prevent concurrent requests from multiple workers/calls.
+    """
+    # 1. Quick check (Double-Checked Locking Part 1)
+    config = await get_master_config()
+    if not config or not config.get("is_active"):
+        return None
+
+    # Check for recent failures (Cool-down period: 2 minutes)
+    failed_at = config.get("last_refresh_failed_at")
+    if failed_at:
+        if isinstance(failed_at, str):
+            failed_at = datetime.fromisoformat(failed_at.replace("Z", "+00:00"))
+        elif failed_at.tzinfo is None:
+            failed_at = failed_at.replace(tzinfo=timezone.utc)
+        
+        # If we failed in the last 120 seconds, don't try again (Avoids drowning in 429s)
+        if (datetime.now(timezone.utc) - failed_at).total_seconds() < 120:
+            return config.get("access_token")  # Return old token during cool-down
+
+    token_cache = config.get("token_cache") or {}
+    token = config.get("access_token") # Use top-level field if possible
+    expires_at = config.get("expires_at")
+
+    def _needs_refresh(exp):
+        if not token or not exp:
+            return True
+        if isinstance(exp, str):
+            exp = datetime.fromisoformat(exp.replace("Z", "+00:00"))
+        elif exp.tzinfo is None:
+            exp = exp.replace(tzinfo=timezone.utc)
+        return (exp - datetime.now(timezone.utc)).total_seconds() < 300
+
+    if not _needs_refresh(expires_at):
+        return token
+
+    # 2. Refresh if needed
+    if _needs_refresh(expires_at):
+        await refresh_token_locked()
+        # Re-read after refresh effort
+        new_config = await get_master_config()
+        return new_config.get("access_token") if new_config else None
+
+    return token

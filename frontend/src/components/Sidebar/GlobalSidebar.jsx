@@ -1,64 +1,169 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { Home, Sliders, Shield, Layers, Link2, Users, Building2, ScrollText } from 'lucide-react';
+import React, { useState } from 'react';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import {
+    Home, Sliders, Shield, Layers, Link2, Users,
+    Building2, ScrollText, ChevronDown, Copy, Trash2, RefreshCw, Settings, Layout
+} from 'lucide-react';
 import UserWidget from './UserWidget';
+import ThemeLanguageToggle from '../ThemeLanguageToggle';
+import HelpTooltip from '../HelpTooltip';
+import { useLanguage } from '../../context/LanguageContext';
 
-const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false }) => {
+const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, rolePermissions = {} }) => {
+    const { t } = useLanguage();
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    // Accordion: auto-expand if currently on /config
+    const isOnConfig = location.pathname === '/config';
+    const [configOpen, setConfigOpen] = useState(isOnConfig);
+
     const getNavLinkClass = ({ isActive }) =>
-        `flex items-center px-4 py-3 text-sm font-medium transition-colors ${
-            isActive
-                ? 'bg-blue-600 text-white'
-                : 'text-gray-300 hover:bg-slate-800 hover:text-white'
+        `flex items-center px-4 py-3 text-sm font-medium transition-colors ${isActive
+            ? 'bg-blue-600 th-text-primary'
+            : 'th-text-secondary hover:th-bg-surface-alt hover:th-text-primary'
         }`;
 
+    // Navigate to /config and set tab via search param
+    const goToConfigTab = (tab) => {
+        navigate(`/config?tab=${tab}`);
+    };
+
+    // Permission flags
+    const canSeeCloneConfig = rolePermissions.full_clone === true;
+    const canSeeCloneSite = rolePermissions.batch_provision === true;
+    const canSeeClone = canSeeCloneConfig || canSeeCloneSite;
+    const canSeeSmartSync = rolePermissions.smart_sync === true;
+    const canSeeUpdate = canSeeSmartSync;
+    const canSeeBatchAccess = rolePermissions.batch_access === true;
+    const canSeeBatchDelete = rolePermissions.batch_delete === true;
+    const canSeeBatchOps = canSeeBatchAccess || canSeeBatchDelete;
+    const canSeeConfig = (userRole !== 'viewer' || isZoneAdmin) &&
+        (canSeeClone || canSeeUpdate || canSeeBatchOps);
+
+    // Sub-items for Configuration accordion
+    const configSubItems = [
+        { key: 'templates', label: t('config.tabs.templates') || 'Templates', icon: <Layout size={14} />, help: '' },
+        canSeeClone && {
+            key: 'clone',
+            label: t('config.tabs.clone') || 'Clone',
+            icon: <Copy size={14} />,
+            help: t('config.help.clone'),
+        },
+        canSeeUpdate && {
+            key: 'update',
+            label: t('config.tabs.update') || 'Update',
+            icon: <RefreshCw size={14} />,
+            help: t('config.help.update'),
+        },
+        canSeeBatchOps && {
+            key: 'batch_ops',
+            label: t('config.tabs.batch_ops') || 'Batch Operations',
+            icon: <Settings size={14} />,
+            help: t('config.help.batch_ops'),
+        },
+    ].filter(Boolean);
+
+    // Check if a config sub-tab is active
+    const currentTab = new URLSearchParams(location.search).get('tab');
+    const isConfigSubActive = (key) => isOnConfig && currentTab === key;
+
     return (
-        <div className="flex flex-col w-64 bg-[#0F172A] border-r border-slate-800 h-full">
+        <div className="flex flex-col w-64 th-bg-sidebar border-r th-border h-full transition-colors duration-200">
             {/* Brand header */}
-            <div className="flex items-center justify-between px-4 h-16 border-b border-slate-800 gap-3">
+            <div className="flex items-center justify-between px-4 h-16 border-b th-border gap-3">
                 <div className="flex items-center gap-3">
-                    <span className="text-xl font-black italic text-white tracking-widest uppercase">INSIGHT</span>
+                    <span className="text-xl font-black italic th-text-primary tracking-widest uppercase">INSIGHT</span>
                     <div className="relative flex items-center justify-center h-2 w-2" title="Live Sync">
                         <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50 animate-ping"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                     </div>
                 </div>
+                <ThemeLanguageToggle />
             </div>
 
             {/* Navigation */}
             <nav className="flex-1 overflow-y-auto pt-4 space-y-1">
                 <NavLink to="/zones" end className={getNavLinkClass}>
                     <Home className="w-5 h-5 mr-3" />
-                    Dashboard
+                    {t('sidebar.dashboard')}
                 </NavLink>
-                {/* Configuration — hidden for viewer UNLESS they are a Zone Admin */}
-                {(userRole !== 'viewer' || isZoneAdmin) && (
-                    <NavLink to="/config" className={getNavLinkClass}>
-                        <Sliders className="w-5 h-5 mr-3" />
-                        Configuration
-                    </NavLink>
+
+                {/* Configuration accordion */}
+                {canSeeConfig && (
+                    <div>
+                        {/* Accordion trigger */}
+                        <button
+                            onClick={() => setConfigOpen(v => !v)}
+                            className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium transition-colors ${
+                                isOnConfig
+                                    ? 'text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-600/10'
+                                    : 'th-text-secondary hover:th-bg-surface-alt hover:th-text-primary'
+                            }`}
+                        >
+                            <span className="flex items-center gap-3">
+                                <Sliders className="w-5 h-5" />
+                                {t('sidebar.configuration')}
+                            </span>
+                            <ChevronDown
+                                size={14}
+                                className={`transition-transform duration-200 ${configOpen ? 'rotate-180' : ''}`}
+                            />
+                        </button>
+
+                        {/* Sub-items */}
+                        {configOpen && (
+                            <div className="pl-4 pb-1 space-y-0.5">
+                                {configSubItems.map(item => (
+                                    <button
+                                        key={item.key}
+                                        onClick={() => goToConfigTab(item.key)}
+                                        className={`w-full flex items-center justify-between pl-5 pr-3 py-2.5 text-xs font-medium rounded-lg transition-colors group ${
+                                            isConfigSubActive(item.key)
+                                                ? 'bg-blue-600 th-text-primary'
+                                                : 'th-text-muted hover:th-bg-surface-alt hover:th-text-primary'
+                                        }`}
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <span className={`w-1 h-1 rounded-full ${isConfigSubActive(item.key) ? 'bg-white' : 'th-text-muted'}`} style={{ backgroundColor: isConfigSubActive(item.key) ? undefined : 'var(--color-text-muted)' }} />
+                                            {item.icon}
+                                            {item.label}
+                                        </span>
+                                        {item.help && (
+                                            <HelpTooltip
+                                                content={item.help}
+                                                variant="sidebar"
+                                                position="right"
+                                            />
+                                        )}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 )}
 
                 {/* Tenant Admin section */}
                 {userRole === 'tenant_admin' && (
                     <>
                         <div className="px-4 pt-4 pb-1">
-                            <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest">Admin</span>
+                            <span className="text-[10px] font-semibold th-text-muted uppercase tracking-widest">Admin</span>
                         </div>
                         <NavLink to="/admin/logs" className={getNavLinkClass}>
                             <Shield className="w-5 h-5 mr-3" />
-                            Admin Logs
+                            {t('admin.logs.title')}
                         </NavLink>
                         <NavLink to="/admin/zones" className={getNavLinkClass}>
                             <Layers className="w-5 h-5 mr-3" />
-                            Zone Management
+                            {t('admin.zones.title')}
                         </NavLink>
                         <NavLink to="/admin/users" className={getNavLinkClass}>
                             <Users className="w-5 h-5 mr-3" />
-                            User Management
+                            {t('admin.users.title')}
                         </NavLink>
                         <NavLink to="/admin/master" className={getNavLinkClass}>
                             <Link2 className="w-5 h-5 mr-3" />
-                            Master Account
+                            {t('admin.master.title')}
                         </NavLink>
                     </>
                 )}
@@ -67,19 +172,23 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false }) =>
                 {userRole === 'super_admin' && (
                     <>
                         <div className="px-4 pt-4 pb-1">
-                            <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-widest">Super Admin</span>
+                            <span className="text-[10px] font-semibold th-text-muted uppercase tracking-widest">Super Admin</span>
                         </div>
                         <NavLink to="/super/tenants" className={getNavLinkClass}>
                             <Building2 className="w-5 h-5 mr-3" />
-                            Tenant Management
+                            {t('super.tenants.title')}
                         </NavLink>
                         <NavLink to="/super/users" className={getNavLinkClass}>
                             <Users className="w-5 h-5 mr-3" />
-                            All Users
+                            {t('super.users.title')}
+                        </NavLink>
+                        <NavLink to="/super/permissions" className={getNavLinkClass}>
+                            <Shield className="w-5 h-5 mr-3" />
+                            {t('super.permissions.title')}
                         </NavLink>
                         <NavLink to="/super/logs" className={getNavLinkClass}>
                             <ScrollText className="w-5 h-5 mr-3" />
-                            System Logs
+                            {t('super.logs.title')}
                         </NavLink>
                     </>
                 )}

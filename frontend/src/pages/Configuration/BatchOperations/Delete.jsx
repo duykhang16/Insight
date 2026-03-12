@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import apiClient from '../../api/apiClient';
+import apiClient from '../../../api/apiClient';
+import { useLanguage } from '../../../context/LanguageContext';
+import { toast } from 'sonner';
 import {
     Trash2, Play, Square, AlertTriangle, CheckCircle,
     XCircle, ShieldAlert, List, RefreshCw, KeyRound, AlertOctagon, CheckSquare, Square as SquareIcon, Map, Search
@@ -9,6 +11,7 @@ const CHALLENGE_WORD = 'DELETE';
 const REQUIRED_PASSKEY = 'AITC-ADMIN';
 
 const BatchDelete = () => {
+    const { t } = useLanguage();
     const [zones, setZones] = useState([]);
     const [selectedZones, setSelectedZones] = useState(new Set());
     const [isLoadingZones, setIsLoadingZones] = useState(false);
@@ -32,7 +35,9 @@ const BatchDelete = () => {
 
     const [isRunning, setIsRunning] = useState(false);
     const [logs, setLogs] = useState([]);
+    const [progress, setProgress] = useState(0);
     const mountedRef = useRef(true);
+    const progressRef = useRef(null);
 
     const scanZones = async () => {
         setIsLoadingZones(true);
@@ -101,11 +106,15 @@ const BatchDelete = () => {
         setSelectedZones(newSet);
     };
 
-    const handleSelectAllSites = () => {
-        if (selectedSites.length === sites.length && sites.length > 0) {
-            setSelectedSites([]);
+    const handleSelectAllSites = (filteredSites) => {
+        const filteredIds = filteredSites.map(s => s.id);
+        const allFilteredSelected = filteredIds.every(id => selectedSites.includes(id)) && filteredIds.length > 0;
+        if (allFilteredSelected) {
+            // Deselect only the filtered ones (keep others)
+            setSelectedSites(prev => prev.filter(id => !filteredIds.includes(id)));
         } else {
-            setSelectedSites(sites.map(s => s.id));
+            // Add filtered ones (merge, no duplicates)
+            setSelectedSites(prev => Array.from(new Set([...prev, ...filteredIds])));
         }
     };
 
@@ -133,9 +142,28 @@ const BatchDelete = () => {
     const totalSitesSelected = targetZones.reduce((sum, z) => sum + (z.site_count || 0), 0);
     const totalExecutionSites = totalSitesSelected + selectedSites.length;
 
+    // Computed filtered sites for Select All + list render
+    const filteredSites = sites.filter(site => {
+        const matchesSearch = (site.siteName || '').toLowerCase().includes(searchTargetTerm.toLowerCase());
+        let matchesZone = true;
+        if (selectedZoneFilter !== 'all') {
+            const zoneObj = zones.find(z => String(z.id || z._id) === selectedZoneFilter);
+            matchesZone = zoneObj ? (zoneObj.site_ids || []).includes(site.id) : false;
+        }
+        return matchesSearch && matchesZone;
+    });
+    const filteredSiteIds = filteredSites.map(s => s.id);
+    const allFilteredSitesSelected = filteredSiteIds.length > 0 && filteredSiteIds.every(id => selectedSites.includes(id));
+
     const handleStart = async () => {
         setShowModal(false); // Close modal on start
         setIsRunning(true);
+        setProgress(0);
+
+        // Simulated progress
+        progressRef.current = setInterval(() => {
+            setProgress(p => p < 80 ? p + 4 : p);
+        }, 150);
 
         // --- Security Validation Phase ---
         const adminSiteIds = new Set(sites.map(s => s.id));
@@ -180,6 +208,9 @@ const BatchDelete = () => {
 
             if (res.data?.status === 'success') {
                 const results = res.data.results || [];
+                const successCount = results.filter(r => r.status === 'SUCCESS').length;
+                clearInterval(progressRef.current);
+                setProgress(100);
                 const formattedLogs = results.map((r, idx) => ({
                     id: `res-${idx}`,
                     status: r.status === 'SUCCESS' ? 'ok' : 'error',
@@ -190,17 +221,28 @@ const BatchDelete = () => {
                     { id: 'done', status: 'ok', msg: `Batch deletion completed. Processed ${results.length} sites.` },
                     ...formattedLogs
                 ]);
+                toast.error(`💥 ${successCount} sites đã bị xóa`, {
+                    description: 'Hành động này không thể hoàn tác. Kiểm tra log để biết chi tiết.',
+                    duration: 8000,
+                });
             } else {
+                clearInterval(progressRef.current);
+                setProgress(0);
                 setLogs([{ id: 'err', status: 'error', msg: `API returned unexpected status: ${res.data?.status}` }]);
+                toast.error('Batch deletion gặp lỗi.');
             }
         } catch (err) {
             if (!mountedRef.current) return;
-            setLogs([{ id: 'err-catch', status: 'error', msg: `Critical Error: ${err.response?.data?.detail || err.message}` }]);
+            clearInterval(progressRef.current);
+            setProgress(0);
+            const errMsg = err.response?.data?.detail || err.message;
+            setLogs([{ id: 'err-catch', status: 'error', msg: `Critical Error: ${errMsg}` }]);
+            toast.error(`Batch deletion thất bại: ${errMsg}`);
         } finally {
             if (mountedRef.current) {
                 setIsRunning(false);
-                scanZones(); // refresh list
-                scanSites(); // refresh list
+                scanZones();
+                scanSites();
             }
         }
     };
@@ -229,8 +271,8 @@ const BatchDelete = () => {
                         <KeyRound size={32} />
                     </div>
                     <div className="text-center">
-                        <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-wider">Restricted Area</h2>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Enter the admin passkey to access the Batch Deletion tool.</p>
+                        <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-wider">{t('batch_delete.restricted_area')}</h2>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">{t('batch_delete.passkey_prompt')}</p>
                     </div>
                     <div className="w-full relative">
                         <input
@@ -240,20 +282,20 @@ const BatchDelete = () => {
                                 setPasskeyInput(e.target.value);
                                 setPasskeyError(false);
                             }}
-                            placeholder="Enter Passkey"
+                            placeholder={t('batch_delete.enter_passkey')}
                             autoFocus
                             className={`w-full text-center bg-slate-50 dark:bg-black/50 border-2 rounded-xl px-4 py-3 text-lg font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none transition-colors ${passkeyError ? 'border-rose-500 dark:border-rose-500/80 animate-shake' : 'border-slate-200 dark:border-slate-800 focus:border-rose-500 dark:focus:border-rose-500'}`}
                         />
                         {passkeyError && (
-                            <p className="text-[10px] text-rose-500 font-bold text-center mt-2 absolute w-full -bottom-5">Incorrect Passkey</p>
+                            <p className="text-[10px] text-rose-500 font-bold text-center mt-2 absolute w-full -bottom-5">{t('batch_delete.incorrect_passkey')}</p>
                         )}
                     </div>
                     <button
                         type="submit"
                         disabled={!passkeyInput}
-                        className="w-full h-12 mt-2 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 disabled:from-slate-300 disabled:to-slate-300 dark:disabled:from-slate-800 dark:disabled:to-slate-800 text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-[0_10px_30px_rgba(225,29,72,0.2)] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-2"
+                        className="w-full h-12 mt-2 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 disabled:from-slate-300 disabled:to-slate-300 dark:disabled:from-slate-800 dark:disabled:to-slate-800 th-text-primary font-black uppercase tracking-widest text-xs rounded-xl shadow-[0_10px_30px_rgba(225,29,72,0.2)] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-2"
                     >
-                        Unlock Tool
+                        {t('batch_delete.unlock_tool')}
                     </button>
                 </form>
             </div>
@@ -274,20 +316,20 @@ const BatchDelete = () => {
                     </div>
                     <div>
                         <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                            Batch Site Deletion
-                            <span className="bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400 text-[9px] font-black uppercase px-2 py-0.5 rounded border border-rose-200 dark:border-rose-500/30">High Risk</span>
+                            {t('batch_delete.title')}
+                            <span className="bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-400 text-[9px] font-black uppercase px-2 py-0.5 rounded border border-rose-200 dark:border-rose-500/30">{t('batch_delete.high_risk')}</span>
                         </h2>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Permanently destroy multiple sites across selected Zones. This action cannot be undone.</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">{t('batch_delete.subtitle')}</p>
                     </div>
                 </div>
 
                 {/* Preview Summary */}
                 {(selectedZones.size > 0 || selectedSites.length > 0) && !isRunning && (
                     <div className="p-4 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/30 rounded-2xl mb-4 animate-fade-in">
-                        <h4 className="text-sm font-bold text-rose-800 dark:text-rose-300 mb-1">Execution Preview</h4>
+                        <h4 className="text-sm font-bold text-rose-800 dark:text-rose-300 mb-1">{t('batch_delete.execution_preview')}</h4>
                         <p className="text-xs text-rose-600 dark:text-rose-400 leading-relaxed">
-                            Tổng hợp: <strong className="text-rose-700 dark:text-rose-300">{selectedZones.size}</strong> Zone và <strong className="text-rose-700 dark:text-rose-300">{selectedSites.length}</strong> Site lẻ.
-                            Hệ thống sẽ xóa tổng cộng <strong className="text-rose-700 dark:text-rose-300">{totalExecutionSites}</strong> Site.
+                            {t('batch_delete.summary')} <strong className="text-rose-700 dark:text-rose-300">{selectedZones.size}</strong> {t('batch_delete.summary_zones')} <strong className="text-rose-700 dark:text-rose-300">{selectedSites.length}</strong> {t('batch_delete.summary_sites')}
+                            {t('batch_delete.system_delete_total')} <strong className="text-rose-700 dark:text-rose-300">{totalExecutionSites}</strong> {t('batch_delete.system_delete_total_sites')}
                         </p>
                         {(() => {
                             const adminSiteIds = new Set(sites.map(s => s.id));
@@ -302,7 +344,7 @@ const BatchDelete = () => {
                                     <div className="mt-2 flex items-start gap-2 p-2 bg-white dark:bg-black/20 rounded-lg border border-rose-200 dark:border-rose-500/20">
                                         <AlertTriangle size={14} className="text-amber-500 shrink-0 mt-0.5" />
                                         <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold">
-                                            Warning: Phát hiện {skippedViewerCount} Site trong Zone là "Viewer". Các site này sẽ tự động bị bỏ qua để bảo mật.
+                                            {t('batch_delete.warning_viewer_sites')} {skippedViewerCount} {t('batch_delete.warning_viewer_skipped')}
                                         </p>
                                     </div>
                                 );
@@ -318,7 +360,7 @@ const BatchDelete = () => {
                     <div className="backdrop-blur-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-3xl p-6 flex flex-col gap-5 shadow-xl dark:shadow-none min-h-[500px]">
                         <div className="flex items-center justify-between">
                             <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                                <Map size={14} className="text-rose-500" /> Source Targets
+                                <Map size={14} className="text-rose-500" /> {t('batch_delete.source_targets')}
                             </h3>
                             <button
                                 onClick={() => { scanZones(); scanSites(); }}
@@ -326,22 +368,22 @@ const BatchDelete = () => {
                                 className="flex items-center gap-1.5 text-[10px] font-bold uppercase hover:text-rose-500 text-slate-500 dark:text-slate-400 transition-colors disabled:opacity-50"
                             >
                                 <RefreshCw size={12} className={isLoadingZones || isLoadingSites ? 'animate-spin' : ''} />
-                                Refresh
+                                {t('batch_account.refresh')}
                             </button>
                         </div>
 
                         <div className="flex gap-2 p-1 bg-slate-100 dark:bg-black/40 rounded-xl relative">
                             <button
                                 onClick={() => setActiveTab('zones')}
-                                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'zones' ? 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 shadow-sm border border-slate-200 dark:border-white/10' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'zones' ? 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 shadow-sm border border-slate-200 dark:border-white/10' : 'text-slate-500 hover:text-slate-700 dark:hover:th-text-secondary'}`}
                             >
-                                Quản lý theo Zone
+                                {t('batch_delete.zones_tab')}
                             </button>
                             <button
                                 onClick={() => setActiveTab('sites')}
-                                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'sites' ? 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 shadow-sm border border-slate-200 dark:border-white/10' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${activeTab === 'sites' ? 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 shadow-sm border border-slate-200 dark:border-white/10' : 'text-slate-500 hover:text-slate-700 dark:hover:th-text-secondary'}`}
                             >
-                                Chọn Site lẻ
+                                {t('batch_delete.sites_tab')}
                             </button>
                         </div>
 
@@ -349,12 +391,12 @@ const BatchDelete = () => {
                             isLoadingZones ? (
                                 <div className="flex-1 flex flex-col items-center justify-center gap-3 text-slate-400 dark:text-slate-600">
                                     <RefreshCw size={36} strokeWidth={1} className="animate-spin" />
-                                    <p className="text-xs text-center">Loading zones...</p>
+                                    <p className="text-xs text-center">{t('batch_delete.loading_zones')}</p>
                                 </div>
                             ) : zones.length === 0 ? (
                                 <div className="flex-1 flex flex-col items-center justify-center gap-3 text-slate-400 dark:text-slate-600 px-4">
                                     <ShieldAlert size={36} strokeWidth={1} className="text-amber-500/50" />
-                                    <p className="text-xs text-center">You don't have access to any Zones.</p>
+                                    <p className="text-xs text-center">{t('batch_delete.you_dont_have_access')}</p>
                                 </div>
                             ) : (
                                 <>
@@ -365,9 +407,9 @@ const BatchDelete = () => {
                                             className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 transition-colors disabled:opacity-50"
                                         >
                                             {selectedZones.size === zones.length ? (
-                                                <><CheckSquare size={16} className="text-rose-500" /> Deselect All</>
+                                                <><CheckSquare size={16} className="text-rose-500" /> {t('batch_delete.deselect_all')}</>
                                             ) : (
-                                                <><SquareIcon size={16} className="text-slate-400" /> Select All</>
+                                                <><SquareIcon size={16} className="text-slate-400" /> {t('batch_delete.select_all')}</>
                                             )}
                                         </button>
                                         <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded font-mono text-[10px] font-bold">
@@ -388,12 +430,12 @@ const BatchDelete = () => {
                                                     {selectedZones.has(zone.id) ? (
                                                         <CheckSquare size={18} className="text-rose-600 dark:text-rose-400" />
                                                     ) : (
-                                                        <SquareIcon size={18} className="text-slate-300 dark:text-slate-600" />
+                                                        <SquareIcon size={18} className="th-text-secondary dark:text-slate-600" />
                                                     )}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">{zone.name}</p>
-                                                    <p className="text-[10px] font-mono text-slate-500 truncate">{zone.site_count || 0} Sites</p>
+                                                    <p className="text-[10px] font-mono text-slate-500 truncate">{zone.site_count || 0} {t('batch_delete.sites_count')}</p>
                                                 </div>
                                             </div>
                                         ))}
@@ -404,12 +446,12 @@ const BatchDelete = () => {
                             isLoadingSites ? (
                                 <div className="flex-1 flex flex-col items-center justify-center gap-3 text-slate-400 dark:text-slate-600">
                                     <RefreshCw size={36} strokeWidth={1} className="animate-spin" />
-                                    <p className="text-xs text-center">Loading sites...</p>
+                                    <p className="text-xs text-center">{t('batch_delete.loading_sites')}</p>
                                 </div>
                             ) : sites.length === 0 ? (
                                 <div className="flex-1 flex flex-col items-center justify-center gap-3 text-slate-400 dark:text-slate-600 px-4">
                                     <ShieldAlert size={36} strokeWidth={1} className="text-amber-500/50" />
-                                    <p className="text-xs text-center">No available sites found.</p>
+                                    <p className="text-xs text-center">{t('batch_delete.no_available_sites')}</p>
                                 </div>
                             ) : (
                                 <>
@@ -420,7 +462,7 @@ const BatchDelete = () => {
                                             </div>
                                             <input
                                                 type="text"
-                                                placeholder="Search sites..."
+                                                placeholder={t('batch_delete.search_sites')}
                                                 value={searchTargetTerm}
                                                 onChange={(e) => setSearchTargetTerm(e.target.value)}
                                                 className="w-full text-sm bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-xl py-3 pl-10 pr-4 text-slate-800 dark:text-white focus:outline-none focus:border-rose-500/50 focus:ring-1 focus:ring-rose-500/50 transition-all font-mono"
@@ -431,7 +473,7 @@ const BatchDelete = () => {
                                             onChange={(e) => setSelectedZoneFilter(e.target.value)}
                                             className="h-[46px] bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-xl px-4 text-slate-800 dark:text-white text-sm font-bold focus:outline-none min-w-[150px] md:max-w-[200px]"
                                         >
-                                            <option value="all">Tất cả Group (Zone)</option>
+                                            <option value="all">{t('batch_delete.all_groups')}</option>
                                             {zones.map(z => (
                                                 <option key={z.id || z._id} value={z.id || z._id}>{z.name}</option>
                                             ))}
@@ -439,50 +481,43 @@ const BatchDelete = () => {
                                     </div>
                                     <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-3">
                                         <button
-                                            onClick={handleSelectAllSites}
+                                            onClick={() => handleSelectAllSites(filteredSites)}
                                             disabled={isRunning}
                                             className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 transition-colors disabled:opacity-50"
                                         >
-                                            {selectedSites.length === sites.length && sites.length > 0 ? (
-                                                <><CheckSquare size={16} className="text-rose-500" /> Deselect All</>
+                                            {allFilteredSitesSelected ? (
+                                                <><CheckSquare size={16} className="text-rose-500" /> {t('batch_delete.deselect_all')}</>
                                             ) : (
-                                                <><SquareIcon size={16} className="text-slate-400" /> Select All</>
+                                                <><SquareIcon size={16} className="text-slate-400" /> {t('batch_delete.select_all')}</>
                                             )}
                                         </button>
                                         <span className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded font-mono text-[10px] font-bold">
-                                            <span className="text-rose-500">{selectedSites.length}</span> / {sites.length}
+                                            <span className="text-rose-500">{filteredSiteIds.filter(id => selectedSites.includes(id)).length}</span> / {filteredSites.length}
+                                            {filteredSites.length < sites.length && <span className="text-slate-400 ml-1">(filtered)</span>}
                                         </span>
                                     </div>
                                     <div className="flex-1 overflow-y-auto max-h-[360px] pr-2 space-y-2 custom-scrollbar">
-                                        {sites.filter(site => {
-                                            const matchesSearch = (site.siteName || '').toLowerCase().includes(searchTargetTerm.toLowerCase());
-                                            let matchesZone = true;
-                                            if (selectedZoneFilter !== 'all') {
-                                                const zoneObj = zones.find(z => String(z.id || z._id) === selectedZoneFilter);
-                                                matchesZone = zoneObj ? (zoneObj.site_ids || []).includes(site.id) : false;
-                                            }
-                                            return matchesSearch && matchesZone;
-                                        }).map(site => (
-                                            <div
-                                                key={site.id}
-                                                onClick={() => !isRunning && toggleSite(site.id)}
-                                                className={`p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-all ${selectedSites.includes(site.id)
-                                                    ? 'bg-rose-50/50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/30'
-                                                    : 'bg-white dark:bg-black/20 border-slate-100 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20'
-                                                    } ${isRunning ? 'opacity-50 pointer-events-none' : ''}`}
-                                            >
-                                                <div className="shrink-0 flex items-center justify-center">
-                                                    {selectedSites.includes(site.id) ? (
-                                                        <CheckSquare size={18} className="text-rose-600 dark:text-rose-400" />
-                                                    ) : (
-                                                        <SquareIcon size={18} className="text-slate-300 dark:text-slate-600" />
-                                                    )}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">{site.siteName}</p>
-                                                    <p className="text-[10px] font-mono text-slate-500 truncate">{site.id}</p>
-                                                </div>
+                                        {filteredSites.map(site => (
+                                        <div
+                                            key={site.id}
+                                            onClick={() => !isRunning && toggleSite(site.id)}
+                                            className={`p-3 rounded-xl border flex items-center gap-3 cursor-pointer transition-all ${selectedSites.includes(site.id)
+                                                ? 'bg-rose-50/50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/30'
+                                                : 'bg-white dark:bg-black/20 border-slate-100 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20'
+                                                } ${isRunning ? 'opacity-50 pointer-events-none' : ''}`}
+                                        >
+                                            <div className="shrink-0 flex items-center justify-center">
+                                                {selectedSites.includes(site.id) ? (
+                                                    <CheckSquare size={18} className="text-rose-600 dark:text-rose-400" />
+                                                ) : (
+                                                    <SquareIcon size={18} className="th-text-secondary dark:text-slate-600" />
+                                                )}
                                             </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-semibold text-slate-800 dark:text-white truncate">{site.siteName}</p>
+                                                <p className="text-[10px] font-mono text-slate-500 truncate">{site.id}</p>
+                                            </div>
+                                        </div>
                                         ))}
                                     </div>
                                 </>
@@ -492,9 +527,9 @@ const BatchDelete = () => {
                             <button
                                 onClick={handleOpenModal}
                                 disabled={(selectedZones.size === 0 && selectedSites.size === 0) || isRunning}
-                                className="w-full h-12 bg-gradient-to-r from-rose-600 to-red-600 text-white font-black uppercase tracking-[0.2em] text-xs rounded-2xl shadow-[0_10px_30px_rgba(225,29,72,0.2)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-25 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                className="w-full h-12 bg-gradient-to-r from-rose-600 to-red-600 th-text-primary font-black uppercase tracking-[0.2em] text-xs rounded-2xl shadow-[0_10px_30px_rgba(225,29,72,0.2)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-25 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
-                                <Trash2 size={16} /> Delete {totalExecutionSites} Sites
+                                <Trash2 size={16} /> {t('batch_delete.delete_sites')} {totalExecutionSites} {t('batch_delete.sites')}
                             </button>
                         </div>
                     </div>
@@ -502,14 +537,31 @@ const BatchDelete = () => {
                     {/* Panel 2: Execution Log */}
                     <div className="backdrop-blur-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-3xl p-6 flex flex-col gap-4 shadow-xl dark:shadow-none min-h-[500px]">
                         <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                            <Play size={14} className="text-rose-500" /> Execution Log
+                            <Play size={14} className="text-rose-500" /> {t('batch_delete.execution_log')}
                         </h3>
 
+                        {/* Progress Bar */}
+                        {(isRunning || progress > 0) && (
+                            <div className="space-y-2 py-1">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                                        {isRunning ? 'Deleting...' : 'Completed'}
+                                    </span>
+                                    <span className="text-sm font-mono font-black text-rose-500">{progress}%</span>
+                                </div>
+                                <div className="w-full h-3 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-rose-500 to-red-400 transition-all duration-300 shadow-[0_0_10px_rgba(244,63,94,0.5)]"
+                                        style={{ width: `${progress}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
                         <div className="flex-1 overflow-y-auto max-h-[380px] space-y-1.5 font-mono pr-1 custom-scrollbar">
                             {logs.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-400 dark:text-slate-600 py-12">
                                     <AlertOctagon size={28} strokeWidth={1} className="opacity-50" />
-                                    <p className="text-xs text-center font-sans">Ready for destructive sequence.</p>
+                                    <p className="text-xs text-center font-sans">{t('batch_delete.ready_for_destruction')}</p>
                                 </div>
                             ) : (
                                 logs.map((log) => (
@@ -556,21 +608,21 @@ const BatchDelete = () => {
                             <div className="w-12 h-12 bg-rose-100 dark:bg-rose-500/20 rounded-full flex items-center justify-center text-rose-600 dark:text-rose-400 mb-4 mx-auto shadow-[0_0_20px_rgba(225,29,72,0.3)]">
                                 <AlertTriangle size={24} />
                             </div>
-                            <h2 className="text-xl font-black text-center text-slate-900 dark:text-white mb-2">Confirm Destruction</h2>
+                            <h2 className="text-xl font-black text-center text-slate-900 dark:text-white mb-2">{t('batch_delete.confirm_destruction')}</h2>
                             <p className="text-sm text-center text-slate-600 dark:text-slate-400 mb-6">
-                                You are about to permanently delete <strong className="text-rose-600 dark:text-rose-400">{totalExecutionSites}</strong> selected site(s). This action cannot be undone.
+                                {t('batch_delete.about_to_delete')} <strong className="text-rose-600 dark:text-rose-400">{totalExecutionSites}</strong> {t('batch_delete.selected_sites')}
                             </p>
 
                             <div className="flex flex-col gap-2 mb-4">
                                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300 text-center">
-                                    Type <span className="font-mono bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300 px-1 py-0.5 rounded select-all">{CHALLENGE_WORD}</span> to proceed
+                                    {t('batch_delete.type_to_proceed')} <span className="font-mono bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300 px-1 py-0.5 rounded select-all">{CHALLENGE_WORD}</span> {t('batch_delete.to_proceed')}
                                 </label>
                                 <input
                                     type="text"
                                     value={challengeInput}
                                     onChange={e => setChallengeInput(e.target.value)}
                                     placeholder={CHALLENGE_WORD}
-                                    className="w-full text-center bg-white dark:bg-black/50 border-2 border-slate-300 dark:border-slate-700 focus:border-rose-500 dark:focus:border-rose-500 rounded-xl px-4 py-3 text-lg font-black tracking-widest text-slate-900 dark:text-rose-500 placeholder:text-slate-300 dark:placeholder:text-slate-700 focus:outline-none transition-colors"
+                                    className="w-full text-center bg-white dark:bg-black/50 border-2 border-slate-300 dark:border-slate-800 focus:border-rose-500 dark:focus:border-rose-500 rounded-xl px-4 py-3 text-lg font-black tracking-widest text-slate-900 dark:text-rose-500 placeholder:th-text-secondary dark:placeholder:text-slate-700 focus:outline-none transition-colors"
                                 />
                             </div>
                         </div>
@@ -580,14 +632,14 @@ const BatchDelete = () => {
                                 onClick={handleCloseModal}
                                 className="h-12 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 font-bold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 transition-all"
                             >
-                                Cancel
+                                {t('batch_delete.cancel')}
                             </button>
                             <button
                                 onClick={handleStart}
                                 disabled={!canConfirmDestruction}
-                                className="h-12 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                className="h-12 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 th-text-primary font-black uppercase tracking-widest text-xs rounded-xl shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
-                                <KeyRound size={16} className={canConfirmDestruction ? 'animate-pulse' : ''} /> Destroy
+                                <KeyRound size={16} className={canConfirmDestruction ? 'animate-pulse' : ''} /> {t('batch_delete.destroy')}
                             </button>
                         </div>
                     </div>

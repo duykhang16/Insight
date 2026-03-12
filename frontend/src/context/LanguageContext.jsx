@@ -9,7 +9,7 @@ const dictionaries = { en, vi };
 export const LanguageProvider = ({ children }) => {
     const [language, setLanguage] = useState(() => {
         const savedLang = localStorage.getItem('language');
-        return savedLang || 'en'; // default to English
+        return savedLang || 'vi'; // default to Vietnamese
     });
 
     useEffect(() => {

@@ -67,7 +67,23 @@ async def update_master_token(access_token: str, expires_in_seconds: int, refres
     result = await db.master_config.update_one(
         {"is_active": True},
         {
-            "$set": update_fields
+            "$set": update_fields,
+            "$unset": {"last_refresh_failed_at": "", "last_refresh_error": ""}
+        }
+    )
+    return result.modified_count > 0
+
+
+async def mark_refresh_failure(error_msg: str) -> bool:
+    """Record a failed refresh attempt for back-off logic."""
+    db = get_database()
+    result = await db.master_config.update_one(
+        {"is_active": True},
+        {
+            "$set": {
+                "last_refresh_failed_at": datetime.now(timezone.utc),
+                "last_refresh_error": error_msg
+            }
         }
     )
     return result.modified_count > 0

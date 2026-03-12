@@ -3,7 +3,7 @@ import '../../assets/recharts-custom.css';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { AlertCircle, ArrowRight, Users, Wifi, Monitor, X } from 'lucide-react';
 import {
-    LineChart, BarChart, Line, Bar, Cell, ReferenceLine,
+    LineChart, BarChart, ComposedChart, Line, Bar, Cell, ReferenceLine,
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import apiClient from '../../api/apiClient';
@@ -25,7 +25,7 @@ const SEVERITY_COLORS = {
 // Shared chart margins — both zones must use identical left/right margins
 // so their X-axis tick positions align perfectly into one continuous frame.
 const CHART_MARGIN_LEFT = 0;
-const CHART_MARGIN_RIGHT = 48;
+const CHART_MARGIN_RIGHT = 32;
 
 // ─── Pure helpers ─────────────────────────────────────────────────────────────
 
@@ -81,13 +81,13 @@ const ChartTooltip = ({ active, payload }) => {
     const isScore = payload[0]?.dataKey === 'score';
 
     return (
-        <div className="bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs shadow-xl pointer-events-none min-w-[140px]">
+        <div className="th-bg-base border th-border rounded-lg px-3 py-2 text-xs shadow-xl min-w-[140px]">
             <p className="text-slate-400 mb-2 font-mono text-[10px]">{formatVN(d.sampleTime)}</p>
             {isScore ? (
                 <p className="text-emerald-400 font-bold">Score: {d.score}%</p>
             ) : (
                 <>
-                    <p className="text-slate-300">
+                    <p className="th-text-secondary">
                         {d.count} {d.count === 1 ? 'condition' : 'conditions'}
                     </p>
                     {d.majorCount > 0 && <p className="text-rose-400">↑ Major: {d.majorCount}</p>}
@@ -246,9 +246,12 @@ const Health = () => {
 
     // ── UI helpers ────────────────────────────────────────────────────────────
 
-    const currentScore = data?.currentHealth?.healthScore?.score ?? 0;
-    const scoreColor = currentScore >= 80 ? 'text-emerald-500'
-        : currentScore >= 60 ? 'text-yellow-500'
+    const activeHealth = selectedEntry?.health || data?.currentHealth;
+    const currentScore = activeHealth?.healthScore?.score !== undefined && activeHealth?.healthScore?.score !== null 
+        ? Math.round(activeHealth.healthScore.score) 
+        : 0;
+    const scoreColor = currentScore >= 67 ? 'text-emerald-500'
+        : currentScore >= 34 ? 'text-amber-500'
             : 'text-rose-500';
 
     const maxCount = useMemo(() =>
@@ -264,7 +267,7 @@ const Health = () => {
                 <div className="text-2xl font-black text-slate-800 dark:text-white">{total}</div>
                 <div className="flex flex-wrap justify-center gap-3 mt-3 text-xs font-bold">
                     {poorCount > 0 && <span className="flex items-center gap-1 text-rose-500"><span className="w-2 h-2 rounded-full bg-rose-500 inline-block" />{poorCount} {t('health.severity_poor')}</span>}
-                    {fairCount > 0 && <span className="flex items-center gap-1 text-yellow-500"><span className="w-2 h-2 rounded-full bg-yellow-500 inline-block" />{fairCount} {t('health.severity_fair')}</span>}
+                    {fairCount > 0 && <span className="flex items-center gap-1 text-amber-500"><span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />{fairCount} {t('health.severity_fair')}</span>}
                     {goodCount > 0 && <span className="flex items-center gap-1 text-emerald-500"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />{goodCount} {t('health.severity_good')}</span>}
                     {noneCount > 0 && <span className="flex items-center gap-1 text-slate-400"><span className="w-2 h-2 rounded-full bg-slate-400 inline-block" />{noneCount} {t('health.severity_none')}</span>}
                 </div>
@@ -288,7 +291,7 @@ const Health = () => {
                     <button
                         onClick={handleRefresh}
                         disabled={loading}
-                        className="h-12 px-6 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition-all active:scale-95 disabled:opacity-50 whitespace-nowrap"
+                        className="h-12 px-6 bg-emerald-600 hover:bg-emerald-500 th-text-primary rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 transition-all active:scale-95 disabled:opacity-50 whitespace-nowrap"
                     >
                         {loading ? t('common.syncing') : t('common.refresh')}
                     </button>
@@ -347,9 +350,9 @@ const Health = () => {
                     <div className="flex flex-col cursor-crosshair select-none" style={{ gap: 0 }}>
 
                         {/* ── Zone A: Health Score Line Chart (70%) ── */}
-                        <div style={{ height: '224px' }}>
+                        <div style={{ height: '224px', marginBottom: '-30px', position: 'relative', zIndex: 10 }}>
                             <ResponsiveContainer width="100%" height="100%">
-                                <LineChart
+                                <ComposedChart
                                     data={unifiedData}
                                     syncId="healthSync"
                                     onClick={handleChartClick}
@@ -359,13 +362,16 @@ const Health = () => {
                                 >
                                     <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
 
-                                    {/* Hidden X-axis — keeps the axis space so bars align,
-                                        but no labels (labels only shown in Zone B) */}
+                                    {/* X-axis: Categorical scale='band' is crucial for Bar-Line alignment */}
                                     <XAxis
                                         dataKey="label"
-                                        hide={true}
+                                        height={30}
                                         axisLine={false}
                                         tickLine={false}
+                                        tick={false}
+                                        interval="preserveStartEnd"
+                                        padding={{ left: 0, right: 0 }}
+                                        scale="band"
                                     />
 
                                     <YAxis
@@ -375,12 +381,12 @@ const Health = () => {
                                         axisLine={false}
                                         tickFormatter={v => `${v}%`}
                                         domain={[0, 100]}
-                                        width={36}
+                                        width={60}
                                     />
 
                                     <Tooltip
                                         content={<ChartTooltip />}
-                                        cursor={{ stroke: '#334155', strokeWidth: 1, strokeDasharray: '4 3' }}
+                                        cursor={{ stroke: '#334155', strokeWidth: 1 }}
                                     />
 
                                     {/* Cyan vertical marker at selected time slice */}
@@ -402,7 +408,10 @@ const Health = () => {
                                         activeDot={{ r: 5, fill: '#10b981', stroke: '#ecfdf5', strokeWidth: 2 }}
                                         isAnimationActive={false}
                                     />
-                                </LineChart>
+
+                                    {/* Dummy Bar to force identical band-offset as bottom chart */}
+                                    <Bar dataKey="count" hide isAnimationActive={false} />
+                                </ComposedChart>
                             </ResponsiveContainer>
                         </div>
 
@@ -410,20 +419,21 @@ const Health = () => {
                         <div className="h-px bg-white/5" />
 
                         {/* ── Zone B: Alert Density Bar Chart (30%) ── */}
-                        <div style={{ height: '96px' }}>
+                        <div style={{ height: '96px', position: 'relative', zIndex: 5 }}>
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart
+                                <ComposedChart
                                     data={unifiedData}
                                     syncId="healthSync"
                                     onClick={handleChartClick}
-                                    margin={{ top: 0, right: CHART_MARGIN_RIGHT, left: CHART_MARGIN_LEFT, bottom: 4 }}
+                                    margin={{ top: 0, right: CHART_MARGIN_RIGHT, left: CHART_MARGIN_LEFT, bottom: 0 }}
                                     barCategoryGap="20%"
                                     style={{ outline: 'none' }}
                                     tabIndex={-1}
                                 >
-                                    {/* X-axis with labels — only rendered here in Zone B */}
+                                    {/* X-axis with labels — Identical padding & scale as top chart */}
                                     <XAxis
                                         dataKey="label"
+                                        height={30}
                                         stroke="#475569"
                                         fontSize={11}
                                         tickLine={false}
@@ -431,6 +441,8 @@ const Health = () => {
                                         tickMargin={8}
                                         interval="preserveStartEnd"
                                         tick={DayBoundaryTick}
+                                        padding={{ left: 0, right: 0 }}
+                                        scale="band"
                                     />
 
                                     <YAxis
@@ -440,7 +452,7 @@ const Health = () => {
                                         axisLine={false}
                                         allowDecimals={false}
                                         domain={[0, maxCount + 1]}
-                                        width={36}
+                                        width={60}
                                         tickFormatter={v => v === 0 ? '' : v}
                                     />
 
@@ -459,6 +471,9 @@ const Health = () => {
                                         />
                                     )}
 
+                                    {/* Dummy Line to force identical coordinate calc as top chart */}
+                                    <Line dataKey="score" hide isAnimationActive={false} />
+
                                     <Bar
                                         dataKey="count"
                                         radius={[3, 3, 0, 0]}
@@ -470,7 +485,7 @@ const Health = () => {
                                             selectedIndex={selectedIndex}
                                         />
                                     </Bar>
-                                </BarChart>
+                                </ComposedChart>
                             </ResponsiveContainer>
                         </div>
 
@@ -482,9 +497,9 @@ const Health = () => {
 
             {/* Counter Boxes */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                {getCounterBox(t('sidebar.clients'), data?.currentHealth?.clients?.counters)}
-                {getCounterBox(t('sidebar.networks'), data?.currentHealth?.networks?.counters)}
-                {getCounterBox(t('sidebar.devices'), data?.currentHealth?.devices?.counters)}
+                {getCounterBox(t('sidebar.clients'), activeHealth?.clients?.counters)}
+                {getCounterBox(t('sidebar.networks'), activeHealth?.networks?.counters)}
+                {getCounterBox(t('sidebar.devices'), activeHealth?.devices?.counters)}
             </div>
 
             {/* Conditions Table */}
@@ -498,7 +513,7 @@ const Health = () => {
                             {t('health.filter_active')}: {formatVN(selectedEntry.sampleTime)}
                             <button
                                 onClick={() => setSelectedIndex(null)}
-                                className="hover:text-white transition-colors ml-1"
+                                className="hover:th-text-primary transition-colors ml-1"
                                 title={t('health.clear_filter')}
                             >
                                 <X size={12} />
@@ -523,7 +538,7 @@ const Health = () => {
                                 const isMajor = sev === 'major' || sev === 'poor';
                                 const severityLabel = item.conditionSeverity || item.severity || 'Unknown';
                                 return (
-                                    <tr key={`cond-${idx}`} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                    <tr key={`cond-${idx}`} className="hover:bg-slate-50 dark:hover:th-bg-surface-alt transition-colors">
                                         <td className="px-6 py-4 text-slate-800 dark:text-white font-bold tracking-tight">
                                             {fmtConditionName(item.condition || '')}
                                         </td>
@@ -531,8 +546,8 @@ const Health = () => {
                                         <td className="px-6 py-4">{item.name || item.id || '—'}</td>
                                         <td className="px-6 py-4">
                                             <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${isMajor
-                                                    ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400'
-                                                    : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                                ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                                                : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                                                 }`}>
                                                 <span className={`w-2 h-2 rounded-full ${isMajor ? 'bg-rose-500' : 'bg-emerald-500'}`} />
                                                 {severityLabel}

@@ -2,20 +2,148 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ─── Light Mode (default) ────────────────────────────────────────── */
 :root {
+  /* Surface palette */
+  --color-bg-base: #F1F5F9;
+  --color-bg-surface: #FFFFFF;
+  --color-bg-surface-alt: #F8FAFC;
+  --color-bg-elevated: #FFFFFF;
+  --color-bg-inset: #E2E8F0;
+
+  /* Sidebar */
+  --color-sidebar-bg: #FFFFFF;
+  --color-sidebar-hover: #F1F5F9;
+  --color-sidebar-active: #EFF6FF;
+  --color-sidebar-section: #94A3B8;
+
+  /* Border */
+  --color-border: #E2E8F0;
+  --color-border-subtle: #F1F5F9;
+
+  /* Text */
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94A3B8;
+
+  /* Overlay / glass */
+  --color-overlay: rgba(255, 255, 255, 0.8);
+  --color-glass-bg: rgba(241, 245, 249, 0.7);
+  --color-glass-border: rgba(0, 0, 0, 0.05);
+
+  /* Scrollbar */
+  --color-scrollbar-track: #F1F5F9;
+  --color-scrollbar-thumb: #CBD5E1;
+  --color-scrollbar-thumb-hover: #94A3B8;
+
+  /* Table */
+  --color-table-header-bg: rgba(248, 250, 252, 0.95);
+  --color-table-col-sticky: #FFFFFF;
+  --color-table-row-hover: rgba(0, 0, 0, 0.02);
+
+  /* Cards */
+  --color-card-bg: #FFFFFF;
+  --color-card-border: #E2E8F0;
+  --color-card-hover-border: rgba(59, 130, 246, 0.4);
+
+  /* Inputs */
+  --color-input-bg: #F8FAFC;
+  --color-input-border: #E2E8F0;
+  --color-input-text: #0F172A;
+
+  /* Dropdown */
+  --color-dropdown-bg: #FFFFFF;
+  --color-dropdown-border: #E2E8F0;
+
+  /* Accent */
+  --color-accent: #3B82F6;
+  --color-accent-subtle: rgba(59, 130, 246, 0.1);
+
+  /* Badge */
+  --color-badge-bg: #F1F5F9;
+
+  /* Resize col glow */
+  --color-resize-glow: rgba(99, 102, 241, 0.4);
+
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
-  color-scheme: dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #0F172A;
-  /* Slate-900 */
+  color-scheme: light;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-base);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── Dark Mode ───────────────────────────────────────────────────── */
+:root.dark {
+  /* Surface palette */
+  --color-bg-base: #020617;
+  --color-bg-surface: #0F172A;
+  --color-bg-surface-alt: #1E293B;
+  --color-bg-elevated: #1E293B;
+  --color-bg-inset: #0F172A;
+
+  /* Sidebar */
+  --color-sidebar-bg: #0F172A;
+  --color-sidebar-hover: #1E293B;
+  --color-sidebar-active: rgba(59, 130, 246, 0.15);
+  --color-sidebar-section: #475569;
+
+  /* Border */
+  --color-border: #1E293B;
+  --color-border-subtle: rgba(255, 255, 255, 0.05);
+
+  /* Text */
+  --color-text-primary: rgba(255, 255, 255, 0.87);
+  --color-text-secondary: #94A3B8;
+  --color-text-muted: #64748B;
+
+  /* Overlay / glass */
+  --color-overlay: rgba(15, 23, 42, 0.8);
+  --color-glass-bg: rgba(30, 41, 59, 0.7);
+  --color-glass-border: rgba(255, 255, 255, 0.05);
+
+  /* Scrollbar */
+  --color-scrollbar-track: #1E293B;
+  --color-scrollbar-thumb: #475569;
+  --color-scrollbar-thumb-hover: #64748B;
+
+  /* Table */
+  --color-table-header-bg: rgba(30, 41, 59, 0.85);
+  --color-table-col-sticky: #0F172A;
+  --color-table-row-hover: rgba(255, 255, 255, 0.03);
+
+  /* Cards */
+  --color-card-bg: #0F172A;
+  --color-card-border: #1E293B;
+  --color-card-hover-border: rgba(59, 130, 246, 0.4);
+
+  /* Inputs */
+  --color-input-bg: rgba(0, 0, 0, 0.4);
+  --color-input-border: rgba(255, 255, 255, 0.05);
+  --color-input-text: #FFFFFF;
+
+  /* Dropdown */
+  --color-dropdown-bg: #1E293B;
+  --color-dropdown-border: #334155;
+
+  /* Accent */
+  --color-accent: #3B82F6;
+  --color-accent-subtle: rgba(59, 130, 246, 0.1);
+
+  /* Badge */
+  --color-badge-bg: #1E293B;
+
+  /* Resize col glow */
+  --color-resize-glow: rgba(99, 102, 241, 0.5);
+
+  color-scheme: dark;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-base);
 }
 
 body {
@@ -24,37 +152,32 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #0F172A;
-  color: rgba(255, 255, 255, 0.87);
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
   transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-html.dark body {
-  background-color: #0F172A;
-  color: rgba(255, 255, 255, 0.87);
 }
 
 #root {
   width: 100%;
 }
 
-/* Scrollbar */
+/* ─── Scrollbar ────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #1e293b;
+  background: var(--color-scrollbar-track);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #475569;
+  background: var(--color-scrollbar-thumb);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
+  background: var(--color-scrollbar-thumb-hover);
 }
 
 /* Custom Scrollbar for local elements like Tables */
@@ -64,29 +187,25 @@ html.dark body {
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(30, 41, 59, 0.5);
-  /* slate-800 with low opacity */
+  background: var(--color-scrollbar-track);
   border-radius: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #334155;
-  /* slate-700 */
+  background: var(--color-scrollbar-thumb);
   border-radius: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #475569;
-  /* slate-600 */
+  background: var(--color-scrollbar-thumb-hover);
 }
 
-/* Animation Utilities */
+/* ─── Animation Utilities ──────────────────────────────────────────── */
 @keyframes fadeIn {
   from {
     opacity: 0;
     transform: translateY(10px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
@@ -97,34 +216,32 @@ html.dark body {
   animation: fadeIn 0.4s ease-out forwards;
 }
 
+/* ─── Glass effect ─────────────────────────────────────────────────── */
 .glass {
-  background: rgba(30, 41, 59, 0.7);
+  background: var(--color-glass-bg);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-glass-border);
 }
 
-/* Table Utilities (Sticky, Resize) */
+/* ─── Table Utilities (Sticky, Resize) ─────────────────────────────── */
 .table-header-sticky {
   position: sticky;
   top: 0;
   z-index: 20;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  background-color: rgba(30, 41, 59, 0.85);
-  /* slate-800 with high opacity for readability */
+  background-color: var(--color-table-header-bg);
 }
 
 .table-col-sticky {
   position: sticky;
   left: 0;
   z-index: 10;
-  /* Darken slightly to distinct from scrolling content */
-  background-color: #0f172a;
+  background-color: var(--color-table-col-sticky);
 }
 
 .table-header-sticky.table-col-sticky {
   z-index: 30;
-  /* Intersection of top header and left col */
 }
 
 .resizable-col {
@@ -133,7 +250,6 @@ html.dark body {
   position: relative;
 }
 
-/* Resize Handle Overlay Effect */
 .resizable-col::after {
   content: '';
   position: absolute;
@@ -148,6 +264,30 @@ html.dark body {
 
 .resizable-col:hover::after,
 .resizable-col:active::after {
-  background: rgba(99, 102, 241, 0.5);
-  /* indigo-500 glow */
+  background: var(--color-resize-glow);
+}
+
+/* ─── Theme-aware utility classes ──────────────────────────────────── */
+.th-bg-base { background-color: var(--color-bg-base); }
+.th-bg-surface { background-color: var(--color-bg-surface); }
+.th-bg-surface-alt { background-color: var(--color-bg-surface-alt); }
+.th-bg-elevated { background-color: var(--color-bg-elevated); }
+.th-bg-card { background-color: var(--color-card-bg); }
+.th-bg-input { background-color: var(--color-input-bg); }
+.th-bg-sidebar { background-color: var(--color-sidebar-bg); }
+.th-bg-dropdown { background-color: var(--color-dropdown-bg); }
+
+.th-text-primary { color: var(--color-text-primary); }
+.th-text-secondary { color: var(--color-text-secondary); }
+.th-text-muted { color: var(--color-text-muted); }
+
+.th-border { border-color: var(--color-border); }
+.th-border-subtle { border-color: var(--color-border-subtle); }
+
+.th-card {
+  background-color: var(--color-card-bg);
+  border-color: var(--color-card-border);
+}
+.th-card:hover {
+  border-color: var(--color-card-hover-border);
 }

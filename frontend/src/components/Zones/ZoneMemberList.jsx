@@ -28,9 +28,9 @@ const ZoneMemberList = ({ zoneId, members = [], onUpdated, isGlobalAdmin }) => {
       {members.map((m) => (
         <div
           key={m.email}
-          className="flex items-center justify-between py-1.5 px-2 rounded bg-slate-800/50 group"
+          className="flex items-center justify-between py-1.5 px-2 rounded th-bg-surface-alt group"
         >
-          <span className="text-xs text-slate-300 truncate flex-1 mr-2">{m.email}</span>
+          <span className="text-xs th-text-secondary truncate flex-1 mr-2">{m.email}</span>
           <div className="flex items-center gap-2 shrink-0">
             <ZoneRoleBadge role={m.zone_role} />
             {isGlobalAdmin && (

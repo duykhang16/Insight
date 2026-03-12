@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, Search, X } from 'lucide-react';
 import apiClient from '../../api/apiClient';
+import { formatAction } from '../../utils/logFormatter';
+import { useLanguage } from '../../context/LanguageContext';
 
 const METHOD_COLOR = {
   GET: 'text-emerald-400',
@@ -18,6 +20,7 @@ const STATUS_COLOR = (code) => {
 };
 
 export default function SuperLogs() {
+  const { t } = useLanguage();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -34,7 +37,7 @@ export default function SuperLogs() {
       });
       setLogs(res.data);
     } catch (e) {
-      setError(e?.response?.data?.detail || 'Không thể tải logs.');
+      setError(e?.response?.data?.detail || t('super.logs.error_load_logs'));
     } finally {
       setLoading(false);
     }
@@ -58,16 +61,16 @@ export default function SuperLogs() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-white">System Logs</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Toàn bộ audit log hệ thống — chỉ Super Admin.</p>
+          <h1 className="text-lg font-bold th-text-primary">{t('super.logs.title')}</h1>
+          <p className="text-xs text-slate-500 mt-0.5">{t('super.logs.subtitle')}</p>
         </div>
         <button
           onClick={fetchLogs}
           disabled={loading}
-          className="flex items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-sm text-white rounded transition-colors"
+          className="flex items-center gap-2 px-3 py-2 bg-slate-700 hover:bg-slate-600 text-sm th-text-primary rounded transition-colors"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
+          {t('super.logs.button_refresh')}
         </button>
       </div>
 
@@ -75,13 +78,13 @@ export default function SuperLogs() {
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
         <input
-          className="w-full bg-slate-800 border border-slate-700 rounded pl-9 pr-8 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-          placeholder="Tìm theo email, endpoint, action..."
+          className="w-full th-bg-elevated border th-border rounded pl-9 pr-8 py-2 text-sm th-text-primary placeholder-slate-500 focus:outline-none focus:border-blue-500"
+          placeholder={t('super.logs.search_placeholder')}
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
         {search && (
-          <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+          <button onClick={() => setSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:th-text-primary">
             <X className="w-3.5 h-3.5" />
           </button>
         )}
@@ -94,32 +97,32 @@ export default function SuperLogs() {
       )}
 
       {/* Log table */}
-      <div className="bg-[#0F172A] border border-slate-800 rounded-lg overflow-hidden">
+      <div className="th-bg-surface border th-border rounded-lg overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-500" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-12 text-slate-500 text-sm">Không có log nào.</div>
+          <div className="text-center py-12 text-slate-500 text-sm">{t('super.logs.empty_state')}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
-              <thead className="bg-slate-800/60">
+              <thead className="th-bg-surface-alt">
                 <tr>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">Thời gian</th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">Actor</th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">Method</th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-400 uppercase tracking-wider">Endpoint</th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">Status</th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-400 uppercase tracking-wider">Action</th>
-                  <th className="px-3 py-3 text-left font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">IP</th>
+                  <th className="px-3 py-3 text-left font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">{t('super.logs.table_header_timestamp')}</th>
+                  <th className="px-3 py-3 text-left font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">{t('super.logs.table_header_actor')}</th>
+                  <th className="px-3 py-3 text-left font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">{t('super.logs.table_header_method')}</th>
+                  <th className="px-3 py-3 text-left font-semibold text-slate-400 uppercase tracking-wider">{t('super.logs.table_header_endpoint')}</th>
+                  <th className="px-3 py-3 text-left font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">{t('super.logs.table_header_status')}</th>
+                  <th className="px-3 py-3 text-left font-semibold text-slate-400 uppercase tracking-wider">{t('super.logs.table_header_action')}</th>
+                  <th className="px-3 py-3 text-left font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">{t('super.logs.table_header_ip')}</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(log => (
-                  <tr key={log.id} className="border-t border-slate-800 hover:bg-slate-800/30 transition-colors">
+                  <tr key={log.id} className="border-t th-border hover:bg-slate-800/30 transition-colors">
                     <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{log.timestamp}</td>
-                    <td className="px-3 py-2 text-slate-300 whitespace-nowrap max-w-[180px] truncate" title={log.actor_email}>
+                    <td className="px-3 py-2 th-text-secondary whitespace-nowrap max-w-[180px] truncate" title={log.actor_email}>
                       {log.actor_email || log.insight_user_id || '—'}
                     </td>
                     <td className={`px-3 py-2 font-bold whitespace-nowrap ${METHOD_COLOR[log.method] || 'text-slate-400'}`}>
@@ -131,8 +134,8 @@ export default function SuperLogs() {
                     <td className={`px-3 py-2 font-semibold whitespace-nowrap ${STATUS_COLOR(log.statusCode)}`}>
                       {log.statusCode || '—'}
                     </td>
-                    <td className="px-3 py-2 text-slate-400 max-w-[160px] truncate" title={log.action}>
-                      {log.action || '—'}
+                    <td className="px-3 py-2 text-slate-400 max-w-[160px] truncate" title={formatAction(log.method, log.endpoint, log.action, log.payload)}>
+                      {formatAction(log.method, log.endpoint, log.action, log.payload)}
                     </td>
                     <td className="px-3 py-2 text-slate-500 whitespace-nowrap">{log.ip_address || '—'}</td>
                   </tr>
@@ -148,17 +151,17 @@ export default function SuperLogs() {
         <button
           disabled={page === 0 || loading}
           onClick={() => setPage(p => p - 1)}
-          className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300 text-sm rounded transition-colors"
+          className="px-3 py-1.5 th-bg-elevated hover:bg-slate-700 disabled:opacity-40 th-text-secondary text-sm rounded transition-colors"
         >
-          ← Trước
+          {t('super.logs.pagination_previous')}
         </button>
-        <span className="text-sm text-slate-500">Trang {page + 1}</span>
+        <span className="text-sm text-slate-500">{t('super.logs.pagination_page_label')} {page + 1}</span>
         <button
           disabled={logs.length < PAGE_SIZE || loading}
           onClick={() => setPage(p => p + 1)}
-          className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-300 text-sm rounded transition-colors"
+          className="px-3 py-1.5 th-bg-elevated hover:bg-slate-700 disabled:opacity-40 th-text-secondary text-sm rounded transition-colors"
         >
-          Tiếp →
+          {t('super.logs.pagination_next')}
         </button>
       </div>
     </div>

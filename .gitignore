@@ -65,3 +65,4 @@ eslint_utf8.txt
 
 ##CLAUDE
 .claude/
+.agent/

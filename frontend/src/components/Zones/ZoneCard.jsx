@@ -17,10 +17,11 @@ const ZoneSiteItem = ({ site }) => {
       ref={setNodeRef}
       {...attributes}
       {...listeners}
-      className={`flex items-center gap-2 px-2 py-1.5 rounded bg-slate-700/40 text-xs text-slate-300 group cursor-grab active:cursor-grabbing transition-opacity ${isDragging ? 'opacity-40' : 'hover:bg-slate-700 hover:text-white'
+      className={`flex items-center gap-2 px-2 py-1.5 rounded text-xs th-text-secondary group cursor-grab active:cursor-grabbing transition-opacity ${isDragging ? 'opacity-40' : 'hover:th-bg-surface-alt hover:th-text-primary'
         }`}
+      style={{ backgroundColor: isDragging ? undefined : 'var(--color-bg-surface-alt)', opacity: isDragging ? 0.4 : undefined }}
     >
-      <GripVertical className="w-3 h-3 text-slate-600 shrink-0" />
+      <GripVertical className="w-3 h-3 th-text-muted shrink-0" />
       <span className="truncate flex-1">{site.siteName || site.siteId}</span>
     </div>
   );
@@ -75,35 +76,36 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, allUsers = [] }) =
     return siteName.toLowerCase().includes(siteSearch.toLowerCase());
   });
 
-  const borderColor = isOver ? 'border-blue-500' : 'border-slate-700';
+  const borderColor = isOver ? 'border-blue-500' : '';
 
   return (
     <div
       ref={setNodeRef}
-      className={`bg-[#0F172A] border ${borderColor} rounded-lg overflow-hidden transition-colors`}
+      className={`th-bg-surface border th-border ${borderColor} rounded-lg overflow-hidden transition-colors`}
+      style={{ backgroundColor: 'var(--color-bg-surface)', borderColor: isOver ? undefined : 'var(--color-border)' }}
     >
       {/* Zone header bar with color accent */}
       <div
-        className="flex items-center justify-between px-3 py-2.5 border-b border-slate-800"
-        style={{ borderLeftWidth: 3, borderLeftColor: zone.color || '#3B82F6' }}
+        className="flex items-center justify-between px-3 py-2.5 border-b th-border"
+        style={{ borderLeftWidth: 3, borderLeftColor: zone.color || '#3B82F6', borderBottomColor: 'var(--color-border)' }}
       >
         <div className="flex items-center gap-2 min-w-0">
-          <span className="font-semibold text-sm text-white truncate">{zone.name}</span>
+          <span className="font-semibold text-sm th-text-primary truncate">{zone.name}</span>
           {zone.description && (
-            <span className="hidden sm:block text-xs text-slate-500 truncate">— {zone.description}</span>
+            <span className="hidden sm:block text-xs th-text-muted truncate">— {zone.description}</span>
           )}
         </div>
         <div className="flex items-center gap-3 shrink-0 ml-2">
-          <span className="text-xs text-slate-500 flex items-center gap-1">
+          <span className="text-xs th-text-muted flex items-center gap-1">
             <Server className="w-3 h-3" />{zone.site_count ?? zone.site_ids?.length ?? 0}
           </span>
-          <span className="text-xs text-slate-500 flex items-center gap-1">
+          <span className="text-xs th-text-muted flex items-center gap-1">
             <Users className="w-3 h-3" />{zone.member_count ?? zone.members?.length ?? 0}
           </span>
           {isGlobalAdmin && (
             <button
               onClick={() => onDelete?.(zone.id)}
-              className="p-1 text-slate-600 hover:text-rose-400 transition-colors"
+              className="p-1 th-text-muted hover:text-rose-400 transition-colors"
               title="Xóa zone"
             >
               <Trash2 className="w-3.5 h-3.5" />
@@ -113,24 +115,25 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, allUsers = [] }) =
       </div>
 
       {/* Sites drop target */}
-      <div className={`p-2 space-y-2 border-b border-slate-800 ${isOver ? 'bg-blue-900/10' : ''}`}>
+      <div className={`p-2 space-y-2 border-b th-border ${isOver ? 'bg-blue-900/10' : ''}`} style={{ borderBottomColor: 'var(--color-border)' }}>
         {(zone.site_ids || []).length > 0 && (
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2 top-[7px]" />
+            <Search className="w-3.5 h-3.5 th-text-muted absolute left-2 top-[7px]" />
             <input
               type="text"
               placeholder="Filter sites..."
               value={siteSearch}
               onChange={e => setSiteSearch(e.target.value)}
-              className="w-full bg-slate-800/50 border border-slate-700 rounded text-xs text-slate-200 pl-7 pr-2 py-1 focus:outline-none focus:border-blue-500 transition-colors"
+              className="w-full th-bg-surface-alt border th-border rounded text-xs th-text-primary pl-7 pr-2 py-1 focus:outline-none focus:border-blue-500 transition-colors"
+              style={{ backgroundColor: 'var(--color-bg-surface-alt)', borderColor: 'var(--color-border)', color: 'var(--color-text-primary)' }}
             />
           </div>
         )}
         <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar pr-1 min-h-[32px]">
           {(zone.site_ids || []).length === 0 ? (
-            <p className="text-xs text-slate-600 text-center py-2">Kéo site vào đây</p>
+            <p className="text-xs th-text-muted text-center py-2">Kéo site vào đây</p>
           ) : filteredSites.length === 0 ? (
-            <p className="text-xs text-slate-600 text-center py-2">Không tìm thấy site</p>
+            <p className="text-xs th-text-muted text-center py-2">Không tìm thấy site</p>
           ) : (
             filteredSites.map((siteId) => (
               <ZoneSiteItem key={siteId} site={{ siteId, siteName: zone._siteNames?.[siteId] || siteId }} />
@@ -140,10 +143,10 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, allUsers = [] }) =
       </div>
 
       {/* Members section */}
-      <div className="border-t border-slate-800">
+      <div className="border-t th-border" style={{ borderTopColor: 'var(--color-border)' }}>
         <button
           onClick={() => setShowMembers(!showMembers)}
-          className="w-full flex items-center justify-between px-3 py-2 text-xs text-slate-400 hover:text-slate-200 transition-colors"
+          className="w-full flex items-center justify-between px-3 py-2 text-xs th-text-muted hover:th-text-secondary transition-colors"
         >
           <span className="flex items-center gap-1.5">
             <Users className="w-3.5 h-3.5" />
@@ -173,8 +176,8 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, allUsers = [] }) =
                   <div className="mt-2 space-y-2">
                     {/* User picker */}
                     <div ref={dropdownRef} className="relative">
-                      <div className="flex items-center gap-1.5 bg-slate-800 border border-slate-600 rounded px-2 py-1.5 focus-within:border-blue-500 transition-colors">
-                        <Search className="w-3 h-3 text-slate-500 shrink-0" />
+                      <div className="flex items-center gap-1.5 th-bg-elevated border th-border rounded px-2 py-1.5 focus-within:border-blue-500 transition-colors" style={{ backgroundColor: 'var(--color-bg-elevated)', borderColor: 'var(--color-border)' }}>
+                        <Search className="w-3 h-3 th-text-muted shrink-0" />
                         <input
                           type="text"
                           value={newMemberEmail || userSearch}
@@ -185,7 +188,8 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, allUsers = [] }) =
                           }}
                           onFocus={() => setDropdownOpen(true)}
                           placeholder={allUsers.length > 0 ? 'Tìm hoặc nhập email...' : 'Nhập email...'}
-                          className="flex-1 text-xs bg-transparent text-slate-200 placeholder-slate-500 focus:outline-none min-w-0"
+                          className="flex-1 text-xs bg-transparent th-text-primary placeholder:th-text-muted focus:outline-none min-w-0"
+                          style={{ color: 'var(--color-text-primary)' }}
                         />
                         {newMemberEmail && (
                           <span className="text-[10px] text-emerald-400 shrink-0">✓</span>
@@ -194,7 +198,7 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, allUsers = [] }) =
 
                       {/* Dropdown list */}
                       {dropdownOpen && (userSearch || !newMemberEmail) && filteredUsers.length > 0 && (
-                        <ul className="absolute top-full left-0 right-0 mt-0.5 bg-slate-800 border border-slate-700 rounded shadow-xl z-50 max-h-36 overflow-y-auto">
+                        <ul className="absolute top-full left-0 right-0 mt-0.5 th-bg-elevated border th-border rounded shadow-xl z-50 max-h-36 overflow-y-auto" style={{ backgroundColor: 'var(--color-bg-elevated)', borderColor: 'var(--color-border)' }}>
                           {filteredUsers.map(u => (
                             <li
                               key={u.id || u.email}
@@ -203,10 +207,10 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, allUsers = [] }) =
                                 setUserSearch('');
                                 setDropdownOpen(false);
                               }}
-                              className="px-2.5 py-1.5 text-xs text-slate-300 hover:bg-slate-700 cursor-pointer flex items-center justify-between gap-2"
+                              className="px-2.5 py-1.5 text-xs th-text-secondary hover:th-bg-surface-alt cursor-pointer flex items-center justify-between gap-2"
                             >
                               <span className="font-mono truncate">{u.email}</span>
-                              <span className="text-[10px] text-slate-500 shrink-0">{u.role}</span>
+                              <span className="text-[10px] th-text-muted shrink-0">{u.role}</span>
                             </li>
                           ))}
                         </ul>
@@ -218,13 +222,13 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, allUsers = [] }) =
                       <button
                         onClick={handleAddMember}
                         disabled={adding || !newMemberEmail.trim()}
-                        className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded transition-colors disabled:opacity-50 flex-1"
+                        className="text-xs bg-blue-600 hover:bg-blue-700 th-text-primary px-2 py-1 rounded transition-colors disabled:opacity-50 flex-1"
                       >
                         {adding ? 'Đang thêm...' : 'Thêm'}
                       </button>
                       <button
                         onClick={() => { setShowAddMember(false); setNewMemberEmail(''); setUserSearch(''); }}
-                        className="text-xs text-slate-500 hover:text-slate-300 px-1"
+                        className="text-xs th-text-muted hover:th-text-secondary px-1"
                       >
                         Hủy
                       </button>

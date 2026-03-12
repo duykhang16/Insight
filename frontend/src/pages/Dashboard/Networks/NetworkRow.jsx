@@ -23,7 +23,7 @@ const SsidChip = ({ ssid }) => (
     <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-bold transition-opacity ${
         ssid.isEnabled
             ? 'bg-blue-500/10 border-blue-500/20 text-blue-300'
-            : 'bg-slate-800 border-white/5 text-slate-600 opacity-50'
+            : 'th-bg-elevated border-white/5 text-slate-600 opacity-50'
     }`}>
         <Wifi size={10} />
         <span className="font-black">{ssid.name}</span>
@@ -53,7 +53,7 @@ const NetworkRow = ({ net }) => {
                     </div>
                     <div>
                         <p
-                            className="text-white font-black text-sm tracking-tight italic uppercase truncate max-w-[200px]"
+                            className="th-text-primary font-black text-sm tracking-tight italic uppercase truncate max-w-[200px]"
                             title={net.name}
                         >
                             {net.name}
@@ -93,11 +93,11 @@ const NetworkRow = ({ net }) => {
             <td className="px-6 py-5 text-right">
                 <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl border transition-all ${
                     net.totalClients > 0
-                        ? 'bg-slate-800 border-indigo-500/20 group-hover:border-indigo-500/40'
-                        : 'bg-slate-900 border-white/5 opacity-50'
+                        ? 'th-bg-elevated border-indigo-500/20 group-hover:border-indigo-500/40'
+                        : 'th-bg-surface border-white/5 opacity-50'
                 }`}>
                     <Users size={12} className={net.totalClients > 0 ? 'text-indigo-400' : 'text-slate-600'} />
-                    <span className={`font-black text-sm ${net.totalClients > 0 ? 'text-white' : 'text-slate-600'}`}>
+                    <span className={`font-black text-sm ${net.totalClients > 0 ? 'th-text-primary' : 'text-slate-600'}`}>
                         {net.totalClients}
                     </span>
                 </div>

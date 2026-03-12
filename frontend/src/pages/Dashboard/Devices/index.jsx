@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { AlertCircle, RefreshCw, Search, HardDrive, Wifi, ArrowDown, ArrowUp, Cloud, CloudOff, Users } from 'lucide-react';
 import apiClient from '../../../api/apiClient';
 import { useSite } from '../../../context/SiteContext';
+import { useLanguage } from '../../../context/LanguageContext';
 
 // Aruba internal model ID → friendly display name
 const MODEL_DISPLAY_MAP = {
@@ -11,6 +12,11 @@ const MODEL_DISPLAY_MAP = {
     'AP-555': 'AP55',
     'AP-575': 'AP75',
     'AP-505H': 'AP22H',
+    'JL678A': '6200F',
+    'JL806A': '1960',
+    'JL807A': '1960',
+    'JL808A': '1960',
+    'JL809A': '1960'
 };
 const getDisplayModel = (model) => MODEL_DISPLAY_MAP[model] || model || '—';
 
@@ -57,16 +63,19 @@ const getClientCount = (device) => {
         if (!device.radios?.length) return device.connectedClients ?? 0;
         return device.radios.reduce((sum, r) => sum + (r.wirelessClientsCount ?? 0), 0);
     }
-    return device.wiredClientsCount ?? device.connectedClients ?? 0;
+    // Switches: Prefer groupedWiredClientsCount for accurate real-user count (Site Test fix)
+    return device.groupedWiredClientsCount ?? device.wiredClientsCount ?? device.connectedClients ?? 0;
 };
 
 const Devices = () => {
+    const { t } = useLanguage();
     const [devices, setDevices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [typeFilter, setTypeFilter] = useState('all');
     const [healthFilter, setHealthFilter] = useState('all');
+    const [lastUpdated, setLastUpdated] = useState(null);
     const [sortConfig, setSortConfig] = useState({ key: 'clients', direction: 'desc' });
 
     const { selectedSiteId, sites, fetchSites } = useSite();
@@ -99,9 +108,10 @@ const Devices = () => {
         try {
             const res = await apiClient.get(`/overview/sites/${siteId}/inventory`);
             setDevices(extractDevices(res.data) || []);
+            setLastUpdated(new Date());
         } catch (err) {
             console.error('Inventory fetch error:', err);
-            if (err.response?.status !== 401) setError('Failed to fetch device inventory.');
+            if (err.response?.status !== 401) setError(t('site.devices.error_fetch'));
         } finally {
             setLoading(false);
         }
@@ -111,7 +121,10 @@ const Devices = () => {
         try {
             const res = await apiClient.get(`/overview/sites/${siteId}/inventory`);
             const extracted = extractDevices(res.data);
-            if (extracted.length > 0) setDevices(extracted);
+            if (extracted.length > 0) {
+                setDevices(extracted);
+                setLastUpdated(new Date());
+            }
         } catch { /* silent */ }
     };
 
@@ -186,20 +199,20 @@ const Devices = () => {
     const siteName = sites.find(s => s.siteId === selectedSiteId)?.siteName || 'current site';
 
     return (
-        <div className="p-6 pb-32 min-h-screen bg-slate-950">
+        <div className="p-6 pb-32 min-h-screen th-bg-base">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                 <div>
-                    <h1 className="text-xl font-black text-white tracking-tight uppercase italic">Infrastructure</h1>
-                    <p className="text-xs text-slate-500 mt-1 font-mono">{siteName} · {processedDevices.length} devices</p>
+                    <h1 className="text-xl font-black th-text-primary tracking-tight uppercase italic">{t('site.devices.title')}</h1>
+                    <p className="text-xs text-slate-500 mt-1 font-mono">{siteName} · {processedDevices.length} {t('site.devices.subtitle')}</p>
                 </div>
                 <button
                     onClick={() => fetchInventory(selectedSiteId)}
                     disabled={loading}
-                    className="h-10 px-5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/5 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                    className="h-10 px-5 th-bg-elevated hover:bg-slate-700 th-text-primary rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/5 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
                 >
                     <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-                    Refresh
+                    {t('site.devices.button_refresh')}
                 </button>
             </div>
 
@@ -209,30 +222,30 @@ const Devices = () => {
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" size={15} />
                     <input
                         type="text"
-                        placeholder="Search name, model, MAC, IP..."
+                        placeholder={t('site.devices.search_placeholder')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full h-10 pl-10 pr-4 bg-slate-900 border border-white/5 rounded-xl text-slate-200 text-xs focus:outline-none focus:border-purple-500/50 transition-all"
+                        className="w-full h-10 pl-10 pr-4 th-bg-surface border border-white/5 rounded-xl th-text-primary text-xs focus:outline-none focus:border-purple-500/50 transition-all"
                     />
                 </div>
                 <select
                     value={typeFilter}
                     onChange={(e) => setTypeFilter(e.target.value)}
-                    className="h-10 bg-slate-900 border border-white/5 rounded-xl px-4 text-slate-300 text-xs font-bold focus:outline-none appearance-none min-w-[130px]"
+                    className="h-10 th-bg-surface border border-white/5 rounded-xl px-4 th-text-secondary text-xs font-bold focus:outline-none appearance-none min-w-[130px]"
                 >
-                    <option value="all">All Types</option>
-                    <option value="accesspoint">Access Points</option>
-                    <option value="switch">Switches</option>
+                    <option value="all">{t('site.devices.filter_type_all')}</option>
+                    <option value="accesspoint">{t('site.devices.filter_type_ap')}</option>
+                    <option value="switch">{t('site.devices.filter_type_switch')}</option>
                 </select>
                 <select
                     value={healthFilter}
                     onChange={(e) => setHealthFilter(e.target.value)}
-                    className="h-10 bg-slate-900 border border-white/5 rounded-xl px-4 text-slate-300 text-xs font-bold focus:outline-none appearance-none min-w-[130px]"
+                    className="h-10 th-bg-surface border border-white/5 rounded-xl px-4 th-text-secondary text-xs font-bold focus:outline-none appearance-none min-w-[130px]"
                 >
-                    <option value="all">All Health</option>
-                    <option value="good">Good</option>
-                    <option value="fair">Fair</option>
-                    <option value="poor">Poor</option>
+                    <option value="all">{t('site.devices.filter_health_all')}</option>
+                    <option value="good">{t('site.devices.filter_health_good')}</option>
+                    <option value="fair">{t('site.devices.filter_health_fair')}</option>
+                    <option value="poor">{t('site.devices.filter_health_poor')}</option>
                 </select>
             </div>
 
@@ -244,37 +257,37 @@ const Devices = () => {
             )}
 
             {/* Table */}
-            <div className="bg-slate-900 rounded-2xl border border-white/5 overflow-hidden shadow-2xl">
+            <div className="th-bg-surface rounded-2xl border border-white/5 overflow-hidden shadow-2xl">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs whitespace-nowrap">
-                        <thead className="bg-slate-800/60 border-b border-white/5">
+                        <thead className="th-bg-surface-alt border-b border-white/5">
                             <tr>
-                                <th onClick={() => handleSort('name')} className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400 cursor-pointer hover:text-slate-200 transition-colors">
-                                    Device <SortIcon column="name" />
+                                <th onClick={() => handleSort('name')} className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400 cursor-pointer hover:th-text-primary transition-colors">
+                                    {t('site.devices.table_header_device')} <SortIcon column="name" />
                                 </th>
-                                <th onClick={() => handleSort('health')} className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400 cursor-pointer hover:text-slate-200 transition-colors">
-                                    Health <SortIcon column="health" />
-                                </th>
-                                <th className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400">
-                                    State
-                                </th>
-                                <th onClick={() => handleSort('uptime')} className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400 cursor-pointer hover:text-slate-200 transition-colors">
-                                    Duration <SortIcon column="uptime" />
+                                <th onClick={() => handleSort('health')} className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400 cursor-pointer hover:th-text-primary transition-colors">
+                                    {t('site.devices.table_header_health')} <SortIcon column="health" />
                                 </th>
                                 <th className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400">
-                                    Type
+                                    {t('site.devices.table_header_state')}
+                                </th>
+                                <th onClick={() => handleSort('uptime')} className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400 cursor-pointer hover:th-text-primary transition-colors">
+                                    {t('site.devices.table_header_duration')} <SortIcon column="uptime" />
                                 </th>
                                 <th className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400">
-                                    Model
+                                    {t('site.devices.table_header_type')}
                                 </th>
                                 <th className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400">
-                                    MAC Address
+                                    {t('site.devices.table_header_model')}
                                 </th>
-                                <th onClick={() => handleSort('ip')} className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400 cursor-pointer hover:text-slate-200 transition-colors">
-                                    IP Address <SortIcon column="ip" />
+                                <th className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400">
+                                    {t('site.devices.table_header_mac')}
                                 </th>
-                                <th onClick={() => handleSort('clients')} className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400 cursor-pointer hover:text-slate-200 transition-colors text-right">
-                                    Clients <SortIcon column="clients" />
+                                <th onClick={() => handleSort('ip')} className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400 cursor-pointer hover:th-text-primary transition-colors">
+                                    {t('site.devices.table_header_ip')} <SortIcon column="ip" />
+                                </th>
+                                <th onClick={() => handleSort('clients')} className="px-4 py-3.5 font-black uppercase tracking-widest text-[9px] text-slate-400 cursor-pointer hover:th-text-primary transition-colors text-right">
+                                    {t('site.devices.table_header_clients')} <SortIcon column="clients" />
                                 </th>
                             </tr>
                         </thead>
@@ -284,7 +297,7 @@ const Devices = () => {
                                     <tr key={i} className="animate-pulse">
                                         {[...Array(9)].map((_, j) => (
                                             <td key={j} className="px-4 py-3.5">
-                                                <div className="h-3 bg-slate-800 rounded w-3/4"></div>
+                                                <div className="h-3 th-bg-elevated rounded w-3/4"></div>
                                             </td>
                                         ))}
                                     </tr>
@@ -308,7 +321,7 @@ const Devices = () => {
                                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center border shrink-0 transition-colors
                                                     ${isAP
                                                         ? 'bg-purple-500/10 border-purple-500/20 text-purple-400 group-hover:border-purple-500/40'
-                                                        : 'bg-slate-800 border-white/5 text-slate-400 group-hover:border-white/10'}`}>
+                                                        : 'th-bg-elevated border-white/5 text-slate-400 group-hover:border-white/10'}`}>
                                                     {isAP ? <Wifi size={14} /> : isSwitch ? <HardDrive size={14} /> : <HardDrive size={14} />}
                                                 </div>
                                                 <div className="min-w-0">
@@ -322,7 +335,7 @@ const Devices = () => {
                                             <div className="flex items-center gap-1.5">
                                                 <div className={`w-1.5 h-1.5 rounded-full shadow-[0_0_6px] shrink-0 ${hCfg.dot}`}></div>
                                                 <span className={`text-[10px] font-black uppercase tracking-wider ${hCfg.text}`}>
-                                                    {hCfg.label}
+                                                    {hCfg.label === 'Good' ? t('site.devices.health_label_good') : hCfg.label === 'Fair' ? t('site.devices.health_label_fair') : hCfg.label === 'Poor' ? t('site.devices.health_label_poor') : hCfg.label}
                                                 </span>
                                             </div>
                                         </td>
@@ -334,14 +347,14 @@ const Devices = () => {
                                                     ? <Cloud size={12} className="text-emerald-400 shrink-0" />
                                                     : <CloudOff size={12} className="text-slate-600 shrink-0" />}
                                                 <span className={`text-[10px] font-bold ${hCfg.isUp ? 'text-emerald-400' : 'text-slate-500'}`}>
-                                                    {hCfg.isUp ? 'Online' : 'Offline'}
+                                                    {hCfg.isUp ? t('site.devices.state_online') : t('site.devices.state_offline')}
                                                 </span>
                                             </div>
                                         </td>
 
                                         {/* Duration */}
                                         <td className="px-4 py-3">
-                                            <span className="text-slate-300 font-mono text-[10px]">
+                                            <span className="th-text-secondary font-mono text-[10px]">
                                                 {formatUptime(device.uptimeInSeconds)}
                                             </span>
                                         </td>
@@ -352,8 +365,8 @@ const Devices = () => {
                                                 {isAP
                                                     ? <Wifi size={11} className="text-purple-400 shrink-0" />
                                                     : <HardDrive size={11} className="text-slate-400 shrink-0" />}
-                                                <span className="text-slate-300 text-[10px] font-bold">
-                                                    {isAP ? 'Access Point' : isSwitch ? 'Switch' : (device.deviceType || 'Unknown')}
+                                                <span className="th-text-secondary text-[10px] font-bold">
+                                                    {isAP ? t('site.devices.device_type_ap') : isSwitch ? t('site.devices.device_type_switch') : (device.deviceType || 'Unknown')}
                                                 </span>
                                             </div>
                                             {isAP && radioBands && (
@@ -363,7 +376,7 @@ const Devices = () => {
 
                                         {/* Model */}
                                         <td className="px-4 py-3">
-                                            <span className="text-slate-300 font-mono text-[10px] font-bold">
+                                            <span className="th-text-secondary font-mono text-[10px] font-bold">
                                                 {getDisplayModel(model)}
                                             </span>
                                         </td>
@@ -377,7 +390,7 @@ const Devices = () => {
 
                                         {/* IP */}
                                         <td className="px-4 py-3">
-                                            <span className="text-slate-300 font-mono text-[10px]">
+                                            <span className="th-text-secondary font-mono text-[10px]">
                                                 {device.ipAddress || '—'}
                                             </span>
                                         </td>
@@ -386,7 +399,7 @@ const Devices = () => {
                                         <td className="px-4 py-3 text-right">
                                             <div className="flex items-center justify-end gap-1">
                                                 <Users size={10} className="text-slate-500 shrink-0" />
-                                                <span className={`font-black text-xs tabular-nums ${clients > 0 ? 'text-white' : 'text-slate-600'}`}>
+                                                <span className={`font-black text-xs tabular-nums ${clients > 0 ? 'th-text-primary' : 'text-slate-600'}`}>
                                                     {clients}
                                                 </span>
                                             </div>
@@ -399,8 +412,8 @@ const Devices = () => {
                                 <tr>
                                     <td colSpan={9} className="px-6 py-16 text-center">
                                         <HardDrive size={36} className="mx-auto mb-3 text-slate-700" />
-                                        <p className="text-sm font-black text-slate-600 uppercase tracking-widest">No devices found</p>
-                                        <p className="text-[10px] text-slate-700 mt-1">Try adjusting your filters</p>
+                                        <p className="text-sm font-black text-slate-600 uppercase tracking-widest">{t('site.devices.empty_state_title')}</p>
+                                        <p className="text-[10px] text-slate-700 mt-1">{t('site.devices.empty_state_hint')}</p>
                                     </td>
                                 </tr>
                             )}

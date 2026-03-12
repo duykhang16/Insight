@@ -1,15 +1,52 @@
 import React, { useState, useEffect } from 'react';
-import apiClient from '../../api/apiClient'; // still needed for POST /auth/login
-import { ShieldCheck, KeyRound } from 'lucide-react';
+import apiClient from '../../api/apiClient';
+import { ShieldCheck, KeyRound, Sun, Moon } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '../../context/ThemeContext';
+import SplashScreen from '../../components/SplashScreen';
+
+// Prefetch zones + sites in parallel — runs immediately after auth
+const prefetchAllData = async () => {
+    try {
+        const [zonesResult, sitesResult] = await Promise.allSettled([
+            // Zones: get list then fetch details for each
+            apiClient.get('/zones/my').then(async (res) => {
+                const zoneList = res.data || [];
+                const details = await Promise.all(
+                    zoneList.map(z => apiClient.get(`/zones/${z.id}`).then(r => r.data).catch(() => null))
+                );
+                return details.filter(Boolean);
+            }),
+            // Sites: simple list fetch
+            apiClient.get('/overview/sites').then(res => {
+                return Array.isArray(res.data) ? res.data : (res.data.sites || []);
+            }),
+        ]);
+
+        return {
+            zones: zonesResult.status === 'fulfilled' ? zonesResult.value : null,
+            sites: sitesResult.status === 'fulfilled' ? sitesResult.value : null,
+        };
+    } catch (err) {
+        console.warn('Prefetch failed:', err);
+        return { zones: null, sites: null };
+    }
+};
 
 const Login = ({ onLoginSuccess }) => {
     const { t } = useLanguage();
+    const { theme, toggleTheme } = useTheme();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [checkingAuth, setCheckingAuth] = useState(true);
+
+    // Splash screen phase — renders SplashScreen INSIDE Login
+    const [splashPhase, setSplashPhase] = useState(false);
+    const [splashPrefetchPromise, setSplashPrefetchPromise] = useState(null);
+    const [splashEmail, setSplashEmail] = useState('');
+    const [splashPrefetchData, setSplashPrefetchData] = useState(null);
 
     // First-login password setup state
     const [setupMode, setSetupMode] = useState(false);
@@ -26,6 +63,14 @@ const Login = ({ onLoginSuccess }) => {
             setCheckingAuth(false);
         }
     }, [onLoginSuccess]);
+
+    // Helper: enter splash phase after auth
+    const enterSplashPhase = (userEmail) => {
+        const prefetchPromise = prefetchAllData();
+        setSplashEmail(userEmail);
+        setSplashPrefetchPromise(prefetchPromise);
+        setSplashPhase(true);
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -48,9 +93,12 @@ const Login = ({ onLoginSuccess }) => {
             sessionStorage.setItem('userRole', data.role || 'viewer');
             sessionStorage.setItem('insight_user_email', data.email || email);
             sessionStorage.setItem('isZoneAdmin', String(data.is_zone_admin === true));
+            if (data.permissions) {
+                sessionStorage.setItem('rolePermissions', JSON.stringify(data.permissions));
+            }
 
-            // Do not setLoading(false) here, let it spin until unmount
-            onLoginSuccess();
+            // Enter splash phase — SplashScreen renders INSIDE Login
+            enterSplashPhase(data.email || email);
         } catch (err) {
             setLoading(false); // Only stop loading on error
             // Always show the backend detail message when available (covers 401, 403, 422+)
@@ -80,12 +128,28 @@ const Login = ({ onLoginSuccess }) => {
             sessionStorage.setItem('userRole', data.role || 'viewer');
             sessionStorage.setItem('insight_user_email', data.email || email);
             sessionStorage.setItem('isZoneAdmin', String(data.is_zone_admin === true));
-            onLoginSuccess();
+            if (data.permissions) {
+                sessionStorage.setItem('rolePermissions', JSON.stringify(data.permissions));
+            }
+            enterSplashPhase(data.email || email);
         } catch (err) {
             setLoading(false);
             setError(err.response?.data?.detail || 'Đặt mật khẩu thất bại.');
         }
     };
+
+    // ── Splash Phase: show branded transition after auth ──────────────────────
+    if (splashPhase) {
+        return (
+            <SplashScreen
+                prefetchPromise={splashPrefetchPromise}
+                email={splashEmail}
+                onComplete={(data) => {
+                    onLoginSuccess(data);
+                }}
+            />
+        );
+    }
 
     if (checkingAuth) {
         return (
@@ -106,6 +170,14 @@ const Login = ({ onLoginSuccess }) => {
     if (setupMode) {
         return (
             <div className="relative min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#020617] text-slate-800 dark:text-slate-200 overflow-hidden px-4">
+                {/* Theme toggle — top right */}
+                <button
+                    onClick={toggleTheme}
+                    className="absolute top-6 right-6 z-50 p-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all text-slate-500 dark:text-slate-400 hover:text-amber-500 dark:hover:text-blue-400"
+                    title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                >
+                    {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+                </button>
                 {bgOrbs}
                 <div className="relative z-10 w-full max-w-md">
                     <div className="backdrop-blur-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-3xl p-10 shadow-2xl dark:shadow-none">
@@ -147,7 +219,7 @@ const Login = ({ onLoginSuccess }) => {
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="w-full h-14 bg-blue-600 dark:bg-white text-white dark:text-black font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 dark:hover:bg-blue-500 dark:hover:text-white transition-all shadow-xl shadow-blue-500/10 active:scale-95 disabled:opacity-50 flex items-center justify-center"
+                                    className="w-full h-14 bg-blue-600 dark:bg-white th-text-primary dark:text-black font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 dark:hover:bg-blue-500 dark:hover:th-text-primary transition-all shadow-xl shadow-blue-500/10 active:scale-95 disabled:opacity-50 flex items-center justify-center"
                                 >
                                     {loading ? <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-current mr-3"></div> : null}
                                     {loading ? 'Đang lưu...' : 'Xác nhận & Đăng nhập'}
@@ -164,6 +236,14 @@ const Login = ({ onLoginSuccess }) => {
     // ── Normal login ──────────────────────────────────────────────────────────
     return (
         <div className="relative min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#020617] text-slate-800 dark:text-slate-200 overflow-hidden px-4">
+            {/* Theme toggle — top right */}
+            <button
+                onClick={toggleTheme}
+                className="absolute top-6 right-6 z-50 p-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all text-slate-500 dark:text-slate-400 hover:text-amber-500 dark:hover:text-blue-400"
+                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
             {bgOrbs}
 
             <div className="relative z-10 w-full max-w-md">
@@ -205,7 +285,7 @@ const Login = ({ onLoginSuccess }) => {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full h-14 bg-blue-600 dark:bg-white text-white dark:text-black font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 dark:hover:bg-blue-500 dark:hover:text-white transition-all shadow-xl shadow-blue-500/10 active:scale-95 disabled:opacity-50 flex items-center justify-center border border-transparent hover:border-blue-400/50"
+                                className="w-full h-14 bg-blue-600 text-white font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20 active:scale-95 disabled:opacity-50 flex items-center justify-center border border-transparent hover:border-blue-400/50"
                             >
                                 {loading ? (
                                     <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-current mr-3"></div>

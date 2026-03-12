@@ -70,7 +70,7 @@ export const CATEGORY_DETAILS = {
         hex: '#84cc16'
     },
     'wired': {
-        name: 'Wired Traffic',
+        name: 'Wired',
         icon: Plug,
         hex: '#94a3b8'
     },

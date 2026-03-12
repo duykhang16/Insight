@@ -15,7 +15,7 @@ const SiteGrid = ({ sites = [], loading = false }) => {
             {/* Page Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
                 <div>
-                    <h1 className="text-2xl font-black text-white tracking-tight">Sites</h1>
+                    <h1 className="text-2xl font-black th-text-primary tracking-tight">Sites</h1>
                     <p className="text-sm text-slate-400 mt-0.5">
                         {loading ? 'Loading…' : `${filtered.length} item${filtered.length !== 1 ? 's' : ''}`}
                     </p>
@@ -30,22 +30,22 @@ const SiteGrid = ({ sites = [], loading = false }) => {
                             value={search}
                             onChange={e => setSearch(e.target.value)}
                             placeholder="Search Sites"
-                            className="pl-9 pr-4 h-9 bg-slate-800 border border-white/5 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/50 w-48"
+                            className="pl-9 pr-4 h-9 th-bg-elevated border border-white/5 rounded-lg text-sm th-text-primary placeholder-slate-500 focus:outline-none focus:border-blue-500/50 w-48"
                         />
                     </div>
 
                     {/* View toggle */}
-                    <div className="flex items-center bg-slate-800 border border-white/5 rounded-lg overflow-hidden">
+                    <div className="flex items-center th-bg-elevated border border-white/5 rounded-lg overflow-hidden">
                         <button
                             onClick={() => setViewMode('grid')}
-                            className={`p-2 transition-colors ${viewMode === 'grid' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                            className={`p-2 transition-colors ${viewMode === 'grid' ? 'bg-blue-600 th-text-primary' : 'text-slate-400 hover:th-text-primary'}`}
                             title="Grid view"
                         >
                             <LayoutGrid size={16} />
                         </button>
                         <button
                             onClick={() => setViewMode('list')}
-                            className={`p-2 transition-colors ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                            className={`p-2 transition-colors ${viewMode === 'list' ? 'bg-blue-600 th-text-primary' : 'text-slate-400 hover:th-text-primary'}`}
                             title="List view"
                         >
                             <List size={16} />
@@ -53,7 +53,7 @@ const SiteGrid = ({ sites = [], loading = false }) => {
                     </div>
 
                     {/* Create Site — placeholder */}
-                    <button className="flex items-center gap-2 h-9 px-4 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-lg transition-colors">
+                    <button className="flex items-center gap-2 h-9 px-4 bg-blue-600 hover:bg-blue-500 th-text-primary text-sm font-semibold rounded-lg transition-colors">
                         <Plus size={15} />
                         Create Site
                     </button>
@@ -67,7 +67,7 @@ const SiteGrid = ({ sites = [], loading = false }) => {
                     : 'flex flex-col gap-3'
                 }>
                     {Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} className="bg-slate-800 rounded-xl h-36 animate-pulse border border-white/5" />
+                        <div key={i} className="th-bg-elevated rounded-xl h-36 animate-pulse border border-white/5" />
                     ))}
                 </div>
             ) : filtered.length === 0 ? (

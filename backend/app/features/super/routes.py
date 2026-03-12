@@ -341,3 +341,33 @@ async def get_system_logs(
             master_account_used=log.get("master_account_used", False),
         ))
     return formatted
+
+
+# ===== Role Permissions =====
+
+@router.get("/permissions")
+async def list_permissions(current_user: Dict[str, Any] = Depends(require_super_admin)):
+    _require_super(current_user)
+    from app.database.roles_crud import get_all_roles_permissions
+    return await get_all_roles_permissions()
+
+
+@router.put("/permissions/{role}")
+async def update_permissions(
+    role: str,
+    payload: dict,
+    current_user: Dict[str, Any] = Depends(require_super_admin),
+):
+    _require_super(current_user)
+    if role not in VALID_ROLES:
+        raise HTTPException(status_code=400, detail=f"Role không hợp lệ: {VALID_ROLES}")
+
+    if role == "super_admin":
+        raise HTTPException(status_code=400, detail="Không được phép thay đổi quyền của super_admin.")
+
+    perms = payload.get("permissions", {})
+    from app.database.roles_crud import update_role_permissions
+    success = await update_role_permissions(role, perms)
+    if not success:
+        raise HTTPException(status_code=500, detail="Không thể cập nhật quyền.")
+    return {"message": f"Cập nhật quyền cho {role} thành công."}

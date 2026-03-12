@@ -1,19 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import apiClient from '../../api/apiClient';
-import styles from './Cloner.module.css';
-import { useLanguage } from '../../context/LanguageContext';
+import apiClient from '../../../api/apiClient';
+import styles from './Clone.module.css';
+import { useLanguage } from '../../../context/LanguageContext';
+import { toast } from 'sonner';
 import {
     Download, LayoutDashboard, CheckSquare, FileJson,
     ArrowRight, Server, Rocket, Activity, Code, Network, Search, CheckCircle, Wifi, Cable, Users
 } from 'lucide-react';
 
+
 const Cloner = () => {
     const { t } = useLanguage();
     // --- 1. Quản lý State ---
-    const [sourceMode, setSourceMode] = useState('live');
     const [sourceSites, setSourceSites] = useState([]);
     const [selectedSourceId, setSelectedSourceId] = useState('');
+    const [sourceZoneFilter, setSourceZoneFilter] = useState('all');
+    const [sourceSearchTerm, setSourceSearchTerm] = useState('');
     const [fetchLoading, setFetchLoading] = useState(false);
     const [fetchError, setFetchError] = useState('');
 
@@ -28,22 +31,18 @@ const Cloner = () => {
     const [selectedZone, setSelectedZone] = useState('all');
     const [executionLoading, setExecutionLoading] = useState(false);
     const [executionResult, setExecutionResult] = useState(null);
+    const [executionProgress, setExecutionProgress] = useState(0);
+    const progressRef = useRef(null);
 
     const [modalData, setModalData] = useState(null);
     const [currentStep, setCurrentStep] = useState(1);
 
     // --- 2. Khởi tạo & Đồng bộ hóa ---
     useEffect(() => {
-        loadSourceSites(sourceMode);
+        loadSourceSites();
         loadTargetSites();
         loadZones();
     }, []);
-
-    useEffect(() => {
-        loadSourceSites(sourceMode);
-        setSelectedSourceId('');
-        setShowPreview(false);
-    }, [sourceMode]);
 
     useEffect(() => {
         if (executionResult) setCurrentStep(3);
@@ -52,7 +51,7 @@ const Cloner = () => {
     }, [showPreview, executionResult]);
 
     // --- 3. Các hàm Logic xử lý API ---
-    const loadSourceSites = async (mode) => {
+    const loadSourceSites = async () => {
         try {
             const res = await apiClient.get('/overview/sites');
             const list = Array.isArray(res.data) ? res.data : (res.data?.sites || []);
@@ -61,6 +60,8 @@ const Cloner = () => {
             setSourceSites([]);
         }
     };
+
+
 
     const loadTargetSites = async () => {
         try {
@@ -88,47 +89,71 @@ const Cloner = () => {
         setFetchLoading(true);
         setFetchError('');
         try {
+            // Always fetch config from live site
             const res = await apiClient.post('/cloner/preview', {
                 site_id: selectedSourceId,
-                source: sourceMode
+                source: 'live'
             });
             const ops = Array.isArray(res.data?.operations) ? res.data.operations : [];
             setPreviewOps(ops);
-            setSelectedOpsIndices(new Set());
+            setSelectedOpsIndices(new Set(ops.map((_, i) => i)));
             setShowPreview(true);
         } catch (error) {
-            setFetchError(error.response?.data?.detail || "Lỗi khi lấy cấu hình.");
+            setFetchError(error.response?.data?.detail || 'Lỗi khi lấy cấu hình.');
         } finally {
             setFetchLoading(false);
         }
     };
 
     const handleExecuteClone = async () => {
-        if (selectedTargetIds.size === 0) return alert("Vui lòng chọn ít nhất 1 Site đích.");
+        if (selectedTargetIds.size === 0) {
+            toast.error('Vui lòng chọn ít nhất 1 Site đích.');
+            return;
+        }
 
         const hasReadOnlyTarget = Array.from(selectedTargetIds).some(id => {
             const site = targetSites.find(s => s.siteId === id);
             const role = (site?.role || '').toLowerCase();
             return role !== 'administrator' && role !== 'admin';
         });
-        if (hasReadOnlyTarget) return alert("Bạn không có quyền Administrator hoặc Operator trên Site đích đã chọn.");
+        if (hasReadOnlyTarget) {
+            toast.error('Bạn không có quyền Administrator trên Site đích đã chọn.');
+            return;
+        }
 
         const opsToRun = previewOps.filter((_, i) => selectedOpsIndices.has(i));
-        if (!confirm(`Xác nhận áp dụng ${opsToRun.length} lệnh?`)) return;
 
         setExecutionLoading(true);
+        setExecutionProgress(0);
+
+        // Simulated progress
+        progressRef.current = setInterval(() => {
+            setExecutionProgress(p => p < 80 ? p + 4 : p);
+        }, 150);
+
         try {
             const res = await apiClient.post('/cloner/apply', {
                 target_site_ids: Array.from(selectedTargetIds),
-                operations: opsToRun
+                operations: opsToRun,
             });
+            clearInterval(progressRef.current);
+            setExecutionProgress(100);
             setExecutionResult(res.data);
+            const applied = selectedTargetIds.size;
+            toast.success(`Clone hoàn tất · ${opsToRun.length} ops áp dụng trên ${applied} sites`, {
+                description: 'Kiểm tra từng site để xác nhận thành công.',
+                duration: 6000,
+            });
         } catch (error) {
-            alert("Lỗi thực thi: " + (error.response?.data?.detail || error.message));
+            clearInterval(progressRef.current);
+            setExecutionProgress(0);
+            const errMsg = error.response?.data?.detail || error.message;
+            toast.error(`Lỗi thực thi clone: ${errMsg}`);
         } finally {
             setExecutionLoading(false);
         }
     };
+
 
     const toggleSetItem = (setObj, item) => {
         const newSet = new Set(setObj);
@@ -183,8 +208,8 @@ const Cloner = () => {
                                 const isCurrent = currentStep === stepNum;
                                 return (
                                     <div key={idx} className="flex flex-col items-center">
-                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 border ${isCurrent ? 'bg-blue-600 border-blue-400 shadow-[0_0_20px_rgba(37,99,235,0.4)] scale-110 text-white' :
-                                            isActive ? 'bg-white dark:bg-slate-900 border-blue-200 dark:border-blue-500/50 text-blue-500 dark:text-blue-400' : 'bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-white/5 text-slate-400 dark:text-slate-700'
+                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 border ${isCurrent ? 'bg-blue-600 border-blue-400 shadow-[0_0_20px_rgba(37,99,235,0.4)] scale-110 th-text-primary' :
+                                            isActive ? 'bg-white dark:bg-slate-900 border-blue-200 dark:border-blue-500/50 text-blue-500 dark:text-blue-400' : 'bg-slate-100 dark:bg-[#020617] border-slate-200 dark:border-white/5 text-slate-400 dark:text-slate-700'
                                             }`}>
                                             {isActive && !isCurrent ? <CheckCircle size={20} /> :
                                                 idx === 0 ? <Server size={20} /> :
@@ -220,27 +245,117 @@ const Cloner = () => {
                                 </div>
                             </div>
 
-                            <div className="max-w-2xl mx-auto flex flex-col gap-6">
-                                <div className="relative">
-                                    <select
-                                        value={selectedSourceId}
-                                        onChange={e => setSelectedSourceId(e.target.value)}
-                                        className="w-full h-16 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-2xl px-6 text-slate-800 dark:text-white text-lg font-bold appearance-none focus:outline-none focus:border-blue-500/50"
-                                    >
-                                        <option value="">{t('cloner.origin_site')}</option>
-                                        {sourceSites.map(site => (
-                                            <option key={site.siteId} value={site.siteId} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">{site.siteName}</option>
-                                        ))}
-                                    </select>
-                                    <ArrowRight className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 rotate-90" size={20} />
+                            <div className="max-w-2xl mx-auto flex flex-col gap-5">
+                                {/* Source Site Selector */}
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
+                                        <Server size={12} /> {t('cloner.origin_site') || 'Site nguồn'}
+                                    </label>
+
+                                    {/* Zone filter + Search */}
+                                    <div className="flex gap-2">
+                                        <select
+                                            value={sourceZoneFilter}
+                                            onChange={e => setSourceZoneFilter(e.target.value)}
+                                            className="h-10 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-xl px-3 text-slate-800 dark:text-white text-xs font-bold focus:outline-none min-w-[140px] appearance-none"
+                                        >
+                                            <option value="all">All Zones</option>
+                                            {zones.map(z => (
+                                                <option key={z.id || z._id} value={z.id || z._id}>{z.name}</option>
+                                            ))}
+                                        </select>
+                                        <div className="relative flex-1">
+                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <Search size={14} className="text-slate-400" />
+                                            </div>
+                                            <input
+                                                type="text"
+                                                placeholder="Search source site..."
+                                                value={sourceSearchTerm}
+                                                onChange={e => setSourceSearchTerm(e.target.value)}
+                                                className="w-full h-10 bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-xl pl-9 pr-4 text-slate-800 dark:text-white text-xs font-medium focus:outline-none focus:border-blue-500/50 transition-all"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Site list */}
+                                    <div className="bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/5 rounded-2xl overflow-hidden max-h-[240px] overflow-y-auto custom-scrollbar">
+                                        {(() => {
+                                            const filtered = sourceSites.filter(site => {
+                                                const matchesSearch = (site.siteName || '').toLowerCase().includes(sourceSearchTerm.toLowerCase());
+                                                let matchesZone = true;
+                                                if (sourceZoneFilter !== 'all') {
+                                                    const zoneObj = zones.find(z => String(z.id || z._id) === sourceZoneFilter);
+                                                    matchesZone = zoneObj ? (zoneObj.site_ids || []).includes(site.siteId || site.id) : false;
+                                                }
+                                                return matchesSearch && matchesZone;
+                                            }).sort((a, b) => (a.siteName || '').localeCompare(b.siteName || ''));
+                                            if (filtered.length === 0) {
+                                                return (
+                                                    <div className="p-6 text-center text-slate-400 dark:text-slate-600 text-xs">
+                                                        No sites found
+                                                    </div>
+                                                );
+                                            }
+                                            return filtered.map(site => {
+                                                const isSelected = selectedSourceId === site.siteId;
+                                                const tpl = site.template;
+                                                return (
+                                                    <div
+                                                        key={site.siteId}
+                                                        onClick={() => setSelectedSourceId(site.siteId)}
+                                                        className={`flex items-center justify-between px-4 py-3 cursor-pointer transition-all border-b border-slate-100 dark:border-white/5 last:border-b-0 ${
+                                                            isSelected
+                                                                ? 'bg-blue-50 dark:bg-blue-500/10'
+                                                                : 'hover:bg-slate-100 dark:hover:bg-white/5'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                            <div className={`w-2 h-2 rounded-full shrink-0 ${
+                                                                isSelected ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'
+                                                            }`} />
+                                                            <span className={`text-sm font-semibold truncate ${
+                                                                isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-slate-700 dark:text-slate-200'
+                                                            }`}>
+                                                                {site.siteName}
+                                                            </span>
+                                                            {tpl && (
+                                                                <span
+                                                                    className="shrink-0 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border"
+                                                                    style={{
+                                                                        borderColor: `${tpl.color || '#6366f1'}30`,
+                                                                        backgroundColor: `${tpl.color || '#6366f1'}10`,
+                                                                        color: tpl.color || '#6366f1'
+                                                                    }}
+                                                                >
+                                                                    {tpl.name}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        {isSelected && <CheckCircle size={16} className="text-blue-500 shrink-0" />}
+                                                    </div>
+                                                );
+                                            });
+                                        })()}
+                                    </div>
+
+                                    {/* Selected indicator */}
+                                    {selectedSourceId && (
+                                        <div className="flex items-center gap-2 text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                                            <CheckCircle size={12} />
+                                            Selected: {sourceSites.find(s => s.siteId === selectedSourceId)?.siteName || selectedSourceId}
+                                        </div>
+                                    )}
                                 </div>
+
                                 <button
                                     onClick={handleFetchConfig}
                                     disabled={!selectedSourceId || fetchLoading}
-                                    className="h-16 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl dark:shadow-2xl hover:scale-[1.02] transition-all active:scale-95 disabled:opacity-30"
+                                    className="h-14 bg-gradient-to-r from-blue-600 to-indigo-600 th-text-primary font-black uppercase tracking-[0.2em] rounded-2xl shadow-xl hover:scale-[1.02] transition-all active:scale-95 disabled:opacity-30"
                                 >
                                     {fetchLoading ? t('cloner.decoding') : t('cloner.decode')}
                                 </button>
+
                                 {fetchError && <p className="text-rose-500 text-xs font-bold text-center italic">{fetchError}</p>}
                             </div>
                         </div>
@@ -404,11 +519,26 @@ const Cloner = () => {
                                     <button
                                         onClick={handleExecuteClone}
                                         disabled={executionLoading || selectedTargetIds.size === 0}
-                                        className="flex-1 h-14 bg-gradient-to-r from-emerald-500 to-teal-500 dark:from-emerald-600 dark:to-teal-600 text-white font-black uppercase tracking-[0.3em] rounded-2xl shadow-[0_10px_30px_rgba(16,185,129,0.2)] dark:shadow-[0_10px_40px_rgba(16,185,129,0.3)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-20"
+                                        className="flex-1 h-14 bg-gradient-to-r from-emerald-500 to-teal-500 dark:from-emerald-600 dark:to-teal-600 th-text-primary font-black uppercase tracking-[0.3em] rounded-2xl shadow-[0_10px_30px_rgba(16,185,129,0.2)] dark:shadow-[0_10px_40px_rgba(16,185,129,0.3)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-20"
                                     >
                                         {executionLoading ? t('cloner.deploying') : t('cloner.initiate')}
                                     </button>
                                 </div>
+                                {/* Clone Progress Bar */}
+                                {(executionLoading || executionProgress > 0) && (
+                                    <div className="mt-4 space-y-2">
+                                        <div className="flex justify-between">
+                                            <span className="text-[10px] font-black uppercase text-slate-400">{executionLoading ? 'Cloning...' : 'Done'}</span>
+                                            <span className="text-xs font-mono font-black text-emerald-500">{executionProgress}%</span>
+                                        </div>
+                                        <div className="w-full h-2.5 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-300 shadow-[0_0_10px_rgba(16,185,129,0.4)]"
+                                                style={{ width: `${executionProgress}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                                 {executionResult && (
                                     <div className="mt-4 p-4 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl">
                                         <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-2"><CheckCircle size={14} /> {t('cloner.completed')}</span>
@@ -427,13 +557,13 @@ const Cloner = () => {
                         <div className="w-full max-w-4xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col scale-in-center">
                             <div className="p-6 border-b border-slate-100 dark:border-white/5 bg-slate-50 dark:bg-white/5 flex justify-between items-center">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 flex items-center gap-2"><Code size={16} /> {t('cloner.payload_inspector')}</span>
-                                <button onClick={() => setModalData(null)} className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors">{t('common.close')}</button>
+                                <button onClick={() => setModalData(null)} className="text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:th-text-primary transition-colors">{t('common.close')}</button>
                             </div>
                             <div className="flex-1 p-8 bg-slate-50 dark:bg-black/40 overflow-auto font-mono text-[11px] text-blue-600 dark:text-blue-300 leading-relaxed custom-scrollbar max-h-[65vh]">
                                 <pre>{JSON.stringify(modalData.payload, null, 2)}</pre>
                             </div>
                             <div className="p-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-white/5 flex justify-end">
-                                <button onClick={() => setModalData(null)} className="px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold uppercase rounded-lg transition-all">{t('common.done')}</button>
+                                <button onClick={() => setModalData(null)} className="px-6 py-2 bg-blue-600 hover:bg-blue-500 th-text-primary text-xs font-bold uppercase rounded-lg transition-all">{t('common.done')}</button>
                             </div>
                         </div>
                     </div>
