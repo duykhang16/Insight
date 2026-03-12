@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { RefreshCw, AlertCircle, Search, LayoutGrid } from 'lucide-react';
 import apiClient from '../../../api/apiClient';
 import { useSite } from '../../../context/SiteContext';
-import { processApplicationData } from './applicationProcessor';
+import { CATEGORY_DETAILS, toTitleCase } from './constants';
 import ApplicationTable from './ApplicationTable';
 import useIntervalFetch from '../../../hooks/useIntervalFetch';
 import { useSettings } from '../../../context/SettingsContext';
@@ -63,19 +63,26 @@ const Applications = () => {
     };
 
     const processedData = useMemo(() => {
-        const { categories } = processApplicationData(dashboardData);
-
-        let result = [...categories];
+        // BE provides flat categories [{id, usage, percentage}]  — enrich with FE display meta
+        const rawCats = dashboardData?.applications?.categories || [];
+        let categories = rawCats.map(cat => {
+            const meta = CATEGORY_DETAILS[cat.id] || {
+                name: toTitleCase(cat.id),
+                icon: CATEGORY_DETAILS['unknown'].icon,
+                hex: CATEGORY_DETAILS['unknown'].hex,
+            };
+            return { ...cat, name: meta.name, meta };
+        });
 
         // Filtering
         if (searchTerm) {
-            result = result.filter(n =>
+            categories = categories.filter(n =>
                 n.meta.name.toLowerCase().includes(searchTerm.toLowerCase())
             );
         }
 
         // Sorting
-        result.sort((a, b) => {
+        categories.sort((a, b) => {
             let valA, valB;
             switch (sortConfig.key) {
                 case 'name':
@@ -99,7 +106,7 @@ const Applications = () => {
             return 0;
         });
 
-        return result;
+        return categories;
     }, [dashboardData, searchTerm, sortConfig]);
 
     return (

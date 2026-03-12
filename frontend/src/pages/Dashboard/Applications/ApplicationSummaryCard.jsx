@@ -2,13 +2,24 @@ import React, { useMemo } from 'react';
 import { Box, ArrowRight } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { formatBytes } from '../../../api/apiClient';
-import { processApplicationData } from './applicationProcessor';
+import { CATEGORY_DETAILS, toTitleCase } from './constants';
 import { useNavigate } from 'react-router-dom';
 
 const ApplicationSummaryCard = ({ dashboardData, loading }) => {
     const navigate = useNavigate();
     const { totalUsage, categories } = useMemo(() => {
-        return processApplicationData(dashboardData);
+        // BE provides flat categories [{id, usage, percentage}] — enrich with FE display meta
+        const apps = dashboardData?.applications || {};
+        const rawCats = apps.categories || [];
+        const enriched = rawCats.map(cat => {
+            const meta = CATEGORY_DETAILS[cat.id] || {
+                name: toTitleCase(cat.id),
+                icon: CATEGORY_DETAILS['unknown'].icon,
+                hex: CATEGORY_DETAILS['unknown'].hex,
+            };
+            return { ...cat, name: meta.name, meta };
+        });
+        return { totalUsage: apps.totalUsage || 0, categories: enriched };
     }, [dashboardData]);
 
     const top5 = categories.slice(0, 5);

@@ -22,17 +22,38 @@ async def get_site_detail(
     user: Dict[str, Any] = Depends(get_current_insight_user),
     master_token: str = Depends(require_master_token),
 ):
-    response = await aruba_service.call_api(
-        method="GET",
-        endpoint=f"/api/sites/{site_id}",
-        aruba_token=master_token,
-    )
-    if response.status_code == 401:
-        raise HTTPException(status_code=401, detail="Phiên làm việc Aruba đã hết hạn.")
-    if response.status_code != 200:
-        raise HTTPException(status_code=response.status_code, detail="Aruba API error.")
+    """Site detail — BE map, trả schema chuẩn."""
+    return await overview_service.get_site_detail(site_id, master_token)
 
-    return response.json()
+
+@router.get("/sites/{site_id}/dashboard")
+async def get_site_dashboard(
+    site_id: str,
+    user: Dict[str, Any] = Depends(get_current_insight_user),
+    master_token: str = Depends(require_master_token),
+):
+    """Dashboard metrics — BE map, trả schema flatten."""
+    return await overview_service.get_site_dashboard(site_id, master_token)
+
+
+@router.get("/sites/{site_id}/health")
+async def get_site_health(
+    site_id: str,
+    user: Dict[str, Any] = Depends(get_current_insight_user),
+    master_token: str = Depends(require_master_token),
+):
+    """Health data — BE map, trả currentScore + history."""
+    return await overview_service.get_site_health(site_id, master_token)
+
+
+@router.get("/sites/{site_id}/alerts")
+async def get_site_alerts(
+    site_id: str,
+    user: Dict[str, Any] = Depends(get_current_insight_user),
+    master_token: str = Depends(require_master_token),
+):
+    """Alerts — BE map, trả list chuẩn."""
+    return await overview_service.get_site_alerts(site_id, master_token)
 
 
 @router.get("/sites/{site_id}/clients")
@@ -41,37 +62,28 @@ async def get_site_clients(
     user: Dict[str, Any] = Depends(get_current_insight_user),
     master_token: str = Depends(require_master_token),
 ):
-    """
-    Smarter clients endpoint that tries multiple Aruba sub-paths (clients, clientSummary, dashboard).
-    This prevents 'shotgun' 404s in the frontend and console.
-    """
-    # Optimized order: dashboard often contains everything, but /clients is more specific if supported
-    trials = [
-        f"/api/sites/{site_id}/clients",
-        f"/api/v1/sites/{site_id}/clients",
-        f"/api/sites/{site_id}/clientSummary",
-        f"/api/sites/{site_id}/clientsSummary",
-        f"/api/sites/{site_id}/dashboard"
-    ]
+    """Clients — BE map, trả flat schema."""
+    return await overview_service.get_site_clients(site_id, master_token)
 
-    for endpoint in trials:
-        try:
-            response = await aruba_service.call_api(
-                method="GET",
-                endpoint=endpoint,
-                aruba_token=master_token,
-            )
-            if response.status_code == 200:
-                return response.json()
-            if response.status_code == 401:
-                 raise HTTPException(status_code=401, detail="Phiên làm việc Aruba đã hết hạn.")
-        except HTTPException as e:
-            if e.status_code == 401: raise e
-            continue
-        except Exception:
-            continue
 
-    raise HTTPException(status_code=404, detail="Could not find clients endpoint for this site.")
+@router.get("/sites/{site_id}/wiredNetworks")
+async def get_site_networks(
+    site_id: str,
+    user: Dict[str, Any] = Depends(get_current_insight_user),
+    master_token: str = Depends(require_master_token),
+):
+    """Networks — BE map, trả wired + wireless rows."""
+    return await overview_service.get_site_networks(site_id, master_token)
+
+
+@router.get("/sites/{site_id}/inventory")
+async def get_site_inventory(
+    site_id: str,
+    user: Dict[str, Any] = Depends(get_current_insight_user),
+    master_token: str = Depends(require_master_token),
+):
+    """Inventory — BE map, trả flat devices."""
+    return await overview_service.get_site_inventory(site_id, master_token)
 
 
 @router.get("/sites/{site_id}/{sub_path:path}")
@@ -81,7 +93,7 @@ async def proxy_site_endpoint(
     user: Dict[str, Any] = Depends(get_current_insight_user),
     master_token: str = Depends(require_master_token),
 ):
-    """Generic proxy for any Aruba site sub-endpoint using master token."""
+    """Catch-all proxy cho các sub-endpoint chưa migrate."""
     response = await aruba_service.call_api(
         method="GET",
         endpoint=f"/api/sites/{site_id}/{sub_path}",

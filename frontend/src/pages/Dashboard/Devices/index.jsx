@@ -32,9 +32,10 @@ const formatUptime = (seconds) => {
     return `${mins}m`;
 };
 
+// BE pre-resolves isUp and health — simplified config
 const getHealthConfig = (device) => {
-    const isUp = (device.status || device.state || '').toLowerCase() === 'up';
-    const health = (device.health || (isUp ? 'good' : 'poor')).toLowerCase();
+    const isUp = device.isUp ?? (device.status === 'up');
+    const health = (device.health || 'good').toLowerCase();
     const map = {
         good: { dot: 'bg-emerald-400 shadow-emerald-400/60', text: 'text-emerald-400', label: 'Good' },
         fair: { dot: 'bg-amber-400 shadow-amber-400/60', text: 'text-amber-400', label: 'Fair' },
@@ -43,29 +44,7 @@ const getHealthConfig = (device) => {
     return { ...(map[health] || { dot: 'bg-slate-500', text: 'text-slate-500', label: health }), isUp };
 };
 
-const getRadioBands = (device) => {
-    if (device.deviceType?.toLowerCase() !== 'accesspoint') return null;
-    return device.radios
-        ?.map(r => {
-            const band = r.wirelessBand || r.band || '';
-            return band.replace(/(\d+\.?\d*)ghz/i, '$1G');
-        })
-        .filter(Boolean)
-        .join(' / ') || null;
-};
-
-// Client count extraction:
-//   Access Points  → sum wirelessClientsCount across all radios
-//   Switches       → wiredClientsCount on the root object
-const getClientCount = (device) => {
-    const type = device.deviceType?.toLowerCase();
-    if (type === 'accesspoint') {
-        if (!device.radios?.length) return device.connectedClients ?? 0;
-        return device.radios.reduce((sum, r) => sum + (r.wirelessClientsCount ?? 0), 0);
-    }
-    // Switches: Prefer groupedWiredClientsCount for accurate real-user count (Site Test fix)
-    return device.groupedWiredClientsCount ?? device.wiredClientsCount ?? device.connectedClients ?? 0;
-};
+// getRadioBands & getClientCount removed — BE provides radioBands + clientCount directly
 
 const Devices = () => {
     const { t } = useLanguage();
@@ -95,19 +74,13 @@ const Devices = () => {
         return () => clearInterval(interval);
     }, [selectedSiteId]);
 
-    const extractDevices = (data) => {
-        if (Array.isArray(data)) return data;
-        if (data?.elements) return data.elements;
-        if (data?.devices) return data.devices;
-        return [];
-    };
-
+    // BE pre-extracts — no element extraction needed
     const fetchInventory = async (siteId) => {
         setLoading(true);
         setError('');
         try {
             const res = await apiClient.get(`/overview/sites/${siteId}/inventory`);
-            setDevices(extractDevices(res.data) || []);
+            setDevices(Array.isArray(res.data) ? res.data : []);
             setLastUpdated(new Date());
         } catch (err) {
             console.error('Inventory fetch error:', err);
@@ -120,9 +93,9 @@ const Devices = () => {
     const fetchInventorySilent = async (siteId) => {
         try {
             const res = await apiClient.get(`/overview/sites/${siteId}/inventory`);
-            const extracted = extractDevices(res.data);
-            if (extracted.length > 0) {
-                setDevices(extracted);
+            const data = Array.isArray(res.data) ? res.data : [];
+            if (data.length > 0) {
+                setDevices(data);
                 setLastUpdated(new Date());
             }
         } catch { /* silent */ }
@@ -131,16 +104,14 @@ const Devices = () => {
     const processedDevices = useMemo(() => {
         let result = [...(devices || [])].filter(d => {
             if (!d) return false;
-            const name = d.name || d.defaultName || d.macAddress || '';
+            const name = d.name || '—';
             const matchesSearch =
                 name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (d.model || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (d.macAddress || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (d.ipAddress || '').toString().includes(searchTerm);
             const matchesType = typeFilter === 'all' || d.deviceType?.toLowerCase() === typeFilter;
-            const isUp = (d.status || d.state || '').toLowerCase() === 'up';
-            const health = (d.health || (isUp ? 'good' : 'poor')).toLowerCase();
-            const matchesHealth = healthFilter === 'all' || health === healthFilter;
+            const matchesHealth = healthFilter === 'all' || (d.health || '').toLowerCase() === healthFilter;
             return matchesSearch && matchesType && matchesHealth;
         });
 
@@ -149,23 +120,23 @@ const Devices = () => {
             const healthScore = { good: 3, fair: 2, poor: 1 };
             switch (sortConfig.key) {
                 case 'name':
-                    valA = (a.name || a.defaultName || a.macAddress || '').toLowerCase();
-                    valB = (b.name || b.defaultName || b.macAddress || '').toLowerCase();
+                    valA = (a.name || '').toLowerCase();
+                    valB = (b.name || '').toLowerCase();
                     break;
                 case 'health': {
-                    const hA = (a.health || ((a.status || '').toLowerCase() === 'up' ? 'good' : 'poor')).toLowerCase();
-                    const hB = (b.health || ((b.status || '').toLowerCase() === 'up' ? 'good' : 'poor')).toLowerCase();
+                    const hA = (a.health || 'good').toLowerCase();
+                    const hB = (b.health || 'good').toLowerCase();
                     valA = healthScore[hA] ?? 0;
                     valB = healthScore[hB] ?? 0;
                     break;
                 }
                 case 'uptime':
-                    valA = a.uptimeInSeconds || 0;
-                    valB = b.uptimeInSeconds || 0;
+                    valA = a.uptimeSeconds || 0;
+                    valB = b.uptimeSeconds || 0;
                     break;
                 case 'clients':
-                    valA = getClientCount(a);
-                    valB = getClientCount(b);
+                    valA = a.clientCount || 0;
+                    valB = b.clientCount || 0;
                     break;
                 case 'ip':
                     valA = (a.ipAddress || '');
@@ -306,10 +277,10 @@ const Devices = () => {
                                 const hCfg = getHealthConfig(device);
                                 const isAP = device.deviceType?.toLowerCase() === 'accesspoint';
                                 const isSwitch = device.deviceType?.toLowerCase() === 'switch';
-                                const name = device.name || device.defaultName || device.macAddress || '—';
+                                const name = device.name || '—';
                                 const model = device.model || '—';
-                                const radioBands = getRadioBands(device);
-                                const clients = getClientCount(device);
+                                const radioBands = device.radioBands;
+                                const clients = device.clientCount || 0;
 
                                 return (
                                     <tr key={device.id || device.macAddress}
@@ -355,7 +326,7 @@ const Devices = () => {
                                         {/* Duration */}
                                         <td className="px-4 py-3">
                                             <span className="th-text-secondary font-mono text-[10px]">
-                                                {formatUptime(device.uptimeInSeconds)}
+                                                {formatUptime(device.uptimeSeconds)}
                                             </span>
                                         </td>
 

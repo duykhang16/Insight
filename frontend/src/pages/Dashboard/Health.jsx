@@ -37,20 +37,7 @@ const worstSeverity = (conditions) => {
     return 'none';
 };
 
-const extractConditions = (entry) => {
-    const list = [];
-    if (!entry?.health) return list;
-    ['clients', 'networks', 'devices'].forEach(key => {
-        const section = entry.health[key];
-        if (Array.isArray(section?.conditions)) {
-            section.conditions.forEach(c => list.push({
-                ...c,
-                sourceType: key.charAt(0).toUpperCase() + key.slice(1).replace(/s$/, ''),
-            }));
-        }
-    });
-    return list;
-};
+// extractConditions removed — BE now pre-flattens conditions in each history entry
 
 const fmtConditionName = (str) =>
     str.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
@@ -156,36 +143,19 @@ const Health = () => {
         else fetchSites();
     };
 
-    // ── Data processing ───────────────────────────────────────────────────────
+    // ── Data processing — uses BE-mapped flat schema ───────────────────────
 
-    // Strictly sorted ascending — guarantees chronological timeline
-    const historicalEntries = useMemo(() =>
-        (data?.historicalHealths || [])
-            .slice()
-            .sort((a, b) => a.sampleTime - b.sampleTime),
-        [data]);
+    // BE already sorts ascending and flattens structure
+    const historicalEntries = useMemo(() => data?.history || [], [data]);
 
     // Unified data consumed by both synchronized charts.
-    // Both LineChart and BarChart share this same array ref so syncId index-matching works.
-    // `label`  = X-axis tick (includes "DD/MM" prefix at day boundaries)
-    // `score`  = Zone A line Y value (0–100)
-    // `count`  = Zone B bar height (alert count)
     const unifiedData = useMemo(() => {
         let prevDateKey = null;
         return historicalEntries.map(h => {
-            const conditions = extractConditions(h);
-            const majorCount = conditions.filter(c =>
-                ['major', 'poor'].includes((c.conditionSeverity || c.severity || '').toLowerCase())
-            ).length;
-            const minorCount = conditions.filter(c =>
-                ['minor', 'fair'].includes((c.conditionSeverity || c.severity || '').toLowerCase())
-            ).length;
-
             const timeStr = formatTimeOnly(h.sampleTime);
             const dateKey = formatDateKey(h.sampleTime);
             const dayChanged = dateKey !== prevDateKey;
 
-            // Mark midnight crossings clearly: "05/03 00:00"
             const label = (timeStr === '00:00' || (dayChanged && prevDateKey !== null))
                 ? `${dateKey.slice(0, 5)} ${timeStr}`
                 : timeStr;
@@ -195,12 +165,12 @@ const Health = () => {
             return {
                 label,
                 sampleTime: h.sampleTime,
-                score: h.health?.healthScore?.score ?? 0,
-                scoreSeverity: h.health?.healthScore?.scoreSeverity ?? 'none',
-                count: conditions.length,
-                majorCount,
-                minorCount,
-                severity: worstSeverity(conditions),
+                score: h.score ?? 0,
+                scoreSeverity: h.scoreSeverity ?? 'none',
+                count: h.conditionCount ?? 0,
+                majorCount: h.majorCount ?? 0,
+                minorCount: h.minorCount ?? 0,
+                severity: worstSeverity(h.conditions || []),
             };
         });
     }, [historicalEntries]);
@@ -220,23 +190,11 @@ const Health = () => {
         selectedIndex != null ? (historicalEntries[selectedIndex] ?? null) : null,
         [selectedIndex, historicalEntries]);
 
-    const allConditions = useMemo(() => {
-        const list = [];
-        if (data?.currentHealth) {
-            Object.entries(data.currentHealth).forEach(([key, val]) => {
-                if (Array.isArray(val?.conditions)) {
-                    val.conditions.forEach(c => list.push({
-                        ...c,
-                        sourceType: key.charAt(0).toUpperCase() + key.slice(1).replace(/s$/, ''),
-                    }));
-                }
-            });
-        }
-        return list;
-    }, [data]);
+    // BE already flattens conditions — use directly
+    const allConditions = useMemo(() => data?.currentConditions || [], [data]);
 
     const displayConditions = useMemo(() =>
-        selectedEntry ? extractConditions(selectedEntry) : allConditions,
+        selectedEntry ? (selectedEntry.conditions || []) : allConditions,
         [selectedEntry, allConditions]);
 
     // ReferenceLine x must exactly match the XAxis dataKey value at that index
@@ -246,10 +204,10 @@ const Health = () => {
 
     // ── UI helpers ────────────────────────────────────────────────────────────
 
-    const activeHealth = selectedEntry?.health || data?.currentHealth;
-    const currentScore = activeHealth?.healthScore?.score !== undefined && activeHealth?.healthScore?.score !== null 
-        ? Math.round(activeHealth.healthScore.score) 
-        : 0;
+    // BE provides flat score — no nested digging
+    const currentScore = selectedEntry
+        ? Math.round(selectedEntry.score ?? 0)
+        : Math.round(data?.currentScore ?? 0);
     const scoreColor = currentScore >= 67 ? 'text-emerald-500'
         : currentScore >= 34 ? 'text-amber-500'
             : 'text-rose-500';
@@ -259,7 +217,7 @@ const Health = () => {
         [unifiedData]);
 
     const getCounterBox = (title, counters) => {
-        const { goodCount = 0, fairCount = 0, poorCount = 0, noneCount = 0 } = counters || {};
+        const { good: goodCount = 0, fair: fairCount = 0, poor: poorCount = 0, none: noneCount = 0 } = counters || {};
         const total = goodCount + fairCount + poorCount + noneCount;
         return (
             <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-xl border border-slate-100 dark:border-white/5 flex flex-col items-center">
@@ -495,11 +453,11 @@ const Health = () => {
                 )}
             </div>
 
-            {/* Counter Boxes */}
+            {/* Counter Boxes — uses BE flat counters */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                {getCounterBox(t('sidebar.clients'), activeHealth?.clients?.counters)}
-                {getCounterBox(t('sidebar.networks'), activeHealth?.networks?.counters)}
-                {getCounterBox(t('sidebar.devices'), activeHealth?.devices?.counters)}
+                {getCounterBox(t('sidebar.clients'), data?.counters?.clients)}
+                {getCounterBox(t('sidebar.networks'), data?.counters?.networks)}
+                {getCounterBox(t('sidebar.devices'), data?.counters?.devices)}
             </div>
 
             {/* Conditions Table */}
@@ -534,9 +492,9 @@ const Health = () => {
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-white/5 text-slate-600 dark:text-slate-300 font-medium">
                             {displayConditions.map((item, idx) => {
-                                const sev = (item.conditionSeverity || item.severity || '').toLowerCase();
+                                const sev = (item.severity || '').toLowerCase();
                                 const isMajor = sev === 'major' || sev === 'poor';
-                                const severityLabel = item.conditionSeverity || item.severity || 'Unknown';
+                                const severityLabel = item.severity || 'Unknown';
                                 return (
                                     <tr key={`cond-${idx}`} className="hover:bg-slate-50 dark:hover:th-bg-surface-alt transition-colors">
                                         <td className="px-6 py-4 text-slate-800 dark:text-white font-bold tracking-tight">

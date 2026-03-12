@@ -29,17 +29,8 @@ const formatDuration = (totalSeconds) => {
     return hrs > 0 ? `${days}d ${hrs}h ago` : `${days} days ago`;
 };
 
-const getClientName = (alert) =>
-    alert.alertTypeProperties?.clientName ||
-    alert.alertTypeProperties?.deviceName ||
-    alert.alertTypeProperties?.apName ||
-    alert.alertTypeProperties?.switchName ||
-    alert.alertTypeProperties?.gatewayName ||
-    alert.deviceName ||
-    alert.apName ||
-    alert.switchName ||
-    alert.siteName ||
-    null;
+// BE pre-resolves target — no deep field digging needed
+const getClientName = (alert) => alert.target || null;
 
 // --- Sub-components ---
 const StatusDot = ({ isActive }) => (
@@ -130,15 +121,9 @@ const Alerts = () => {
         setError('');
         try {
             const res = await apiClient.get(`/overview/sites/${selectedSiteId}/alerts`);
-            console.log('[Alerts] Raw response:', res.data);
-
-            // Aruba returns { elements: [...] } or a bare array
-            const elements = Array.isArray(res.data)
-                ? res.data
-                : (res.data?.elements || res.data?.alerts || []);
-
-            console.log(`[Alerts] Parsed ${elements.length} alerts for site ${selectedSiteId}`);
-            setRawAlerts(elements);
+            // BE returns pre-mapped flat array — no element extraction needed
+            const alerts = Array.isArray(res.data) ? res.data : [];
+            setRawAlerts(alerts);
             setLastUpdated(new Date());
         } catch (err) {
             console.error('[Alerts] Fetch error:', err);
@@ -154,7 +139,7 @@ const Alerts = () => {
         if (selectedSiteId && !loading) fetchAlerts(true);
     }, isAutoRefreshEnabled ? 60000 : null, [selectedSiteId, loading, isAutoRefreshEnabled]);
 
-    // Apply UI filters
+    // Apply UI filters — BE already sorts (active first, raisedTime desc)
     const displayAlerts = useMemo(() => {
         let result = [...rawAlerts];
         if (severityFilter !== 'all')
@@ -163,13 +148,6 @@ const Alerts = () => {
             result = result.filter(a => a.clearedTime == null);
         if (statusFilter === 'cleared')
             result = result.filter(a => a.clearedTime != null);
-        // Sort: active first, then by raisedTime desc
-        result.sort((a, b) => {
-            const aActive = a.clearedTime == null ? 1 : 0;
-            const bActive = b.clearedTime == null ? 1 : 0;
-            if (bActive !== aActive) return bActive - aActive;
-            return (b.raisedTime || 0) - (a.raisedTime || 0);
-        });
         return result;
     }, [rawAlerts, severityFilter, statusFilter]);
 
@@ -326,7 +304,7 @@ const Alerts = () => {
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-1.5 text-slate-400 text-xs">
                                                 <Clock size={11} className="text-slate-600" />
-                                                {formatDuration(alert.numberOfSecondsSinceRaised)}
+                                                {formatDuration(alert.secondsSinceRaised)}
                                             </div>
                                         </td>
 

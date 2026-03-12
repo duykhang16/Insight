@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Wifi, Users, ArrowUp, ArrowDown } from 'lucide-react';
-import { formatBytes } from './dataProcessor';
+import { formatBytes } from '../../../api/apiClient';
 
 // --- Helpers ---
 const HEALTH_CONFIG = {

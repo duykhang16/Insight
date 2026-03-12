@@ -86,49 +86,31 @@ const SiteDetail = () => {
         if (siteId && !loading) fetchAll(true);
     }, isAutoRefreshEnabled ? 60000 : null, [siteId, loading, isAutoRefreshEnabled]);
 
-    // Map from Aruba /api/v1/sites/{id}/dashboard confirmed response structure
-    const healthScore = data?.healthOverview?.currentScore?.score ?? 'N/A';
-    const activeAlerts =
-        (data?.alertsOverview?.activeMajorAlertsCount || 0) +
-        (data?.alertsOverview?.activeMinorAlertsCount || 0) +
-        (data?.alertsOverview?.activeInfoAlertsCount || 0);
-    const connectedClients = data?.clientsOverview?.totalClient?.total || 0;
-    const activeNetworks =
-        (data?.networksOverview?.wirelessNetworks || 0) +
-        (data?.networksOverview?.wiredNetworks || 0) +
-        (data?.networksOverview?.vpnNetworks || 0);
-    const onlineDevices =
-        (data?.devicesOverview?.accessPoints?.online || 0) +
-        (data?.devicesOverview?.switches?.online || 0) +
-        (data?.devicesOverview?.stacks?.online || 0) +
-        (data?.devicesOverview?.wifiRouters?.online || 0) +
-        (data?.devicesOverview?.gateways?.online || 0);
+    // ── BE now returns flat schema — no nested Aruba paths needed ──
+    const healthScore = data?.healthScore ?? 'N/A';
+    const activeAlerts = data?.alerts?.total || 0;
+    const connectedClients = data?.clients?.total || 0;
+    const activeNetworks = data?.networks?.total || 0;
+    const onlineDevices = data?.devices?.online || 0;
 
-    // Sub-metric derivations
-    const majorAlerts = data?.alertsOverview?.activeMajorAlertsCount || 0;
-    const minorAlerts = data?.alertsOverview?.activeMinorAlertsCount || 0;
-    const infoAlerts = data?.alertsOverview?.activeInfoAlertsCount || 0;
+    // Sub-metric derivations — direct from BE flat schema
+    const majorAlerts = data?.alerts?.major || 0;
+    const minorAlerts = data?.alerts?.minor || 0;
+    const infoAlerts = data?.alerts?.info || 0;
 
-    const goodClients = data?.clientsOverview?.totalClient?.goodCount || 0;
-    const fairClients = data?.clientsOverview?.totalClient?.fairCount || 0;
-    const poorClients = data?.clientsOverview?.totalClient?.poorCount || 0;
-    const wiredClients = data?.clientsOverview?.wiredClient?.total || 0;
-    const wirelessClients = data?.clientsOverview?.wirelessClient?.total || 0;
+    const goodClients = data?.clients?.good || 0;
+    const fairClients = data?.clients?.fair || 0;
+    const poorClients = data?.clients?.poor || 0;
+    const wiredClients = data?.clients?.wired || 0;
+    const wirelessClients = data?.clients?.wireless || 0;
 
-    const inactiveWireless = data?.networksOverview?.inactiveWirelessNetworks || 0;
-    const inactiveWired = data?.networksOverview?.inactiveWiredNetworks || 0;
-    const inactiveNetworks = inactiveWireless + inactiveWired;
-    const activeNetworkCount = activeNetworks - inactiveNetworks;
+    const inactiveNetworks = data?.networks?.inactive || 0;
+    const activeNetworkCount = data?.networks?.active || 0;
 
-    const apTotal = data?.devicesOverview?.accessPoints?.total || 0;
-    const swTotal = data?.devicesOverview?.switches?.total || 0;
-    const stTotal = data?.devicesOverview?.stacks?.total || 0;
-    const wrTotal = data?.devicesOverview?.wifiRouters?.total || 0;
-    const gwTotal = data?.devicesOverview?.gateways?.total || 0;
-    const totalDevices = apTotal + swTotal + stTotal + wrTotal + gwTotal;
-    const offlineDevices = Math.max(0, totalDevices - onlineDevices);
+    const offlineDevices = data?.devices?.offline || 0;
 
-    const healthConditions = data?.healthOverview?.currentScore?.conditionsCount || 0;
+    const healthConditions = data?.healthConditions || 0;
+
 
     const cards = [
         {

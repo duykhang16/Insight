@@ -130,16 +130,16 @@ const ZoneSites = () => {
           apiClient.get(`/overview/sites/${id}/health`).catch(() => ({ data: null })),
           apiClient.get(`/overview/sites/${id}/alerts`).catch(() => ({ data: [] }))
         ]).then(([hRes, aRes]) => {
+          // BE returns flat arrays — no nested digging needed
           const alertsList = Array.isArray(aRes.data) ? aRes.data : [];
           const detail = {};
-          if (alertsList.length > 0) {
-            alertsList.forEach(a => {
-              const sev = (a.severity || a.conditionSeverity || 'minor').toLowerCase();
-              detail[sev] = (detail[sev] || 0) + 1;
-            });
-          }
+          alertsList.forEach(a => {
+            const sev = (a.severity || 'minor').toLowerCase();
+            detail[sev] = (detail[sev] || 0) + 1;
+          });
           setSiteMetrics(prev => {
-            const fetchedScore = hRes.data?.currentHealth?.healthScore?.score ?? hRes.data?.healthScore?.score ?? hRes.data?.score;
+            // BE flat: hRes.data.currentScore (no nested path guessing)
+            const fetchedScore = hRes.data?.currentScore;
             const finalScore = fetchedScore !== undefined && fetchedScore !== null ? Math.round(fetchedScore) : (site.healthScore !== null ? Math.round(site.healthScore) : null);
             return {
               ...prev,

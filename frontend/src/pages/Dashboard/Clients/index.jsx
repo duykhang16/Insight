@@ -155,20 +155,10 @@ const Clients = () => {
         if (!silent) setLoading(true);
         setError('');
         try {
-            // Updated: Call the centralized backend 'clients' endpoint which handles discovery trials.
-            // This prevents console 404 spam.
             const res = await apiClient.get(`/overview/sites/${siteId}/clients`);
-
-            if (!res.data) throw new Error("No data available.");
-
-            const data = res.data;
-            let extracted = [];
-            if (Array.isArray(data)) extracted = data;
-            else if (data.elements) extracted = data.elements;
-            else if (data.clients) extracted = data.clients;
-            else if (data.clientsOverview?.clients) extracted = data.clientsOverview.clients;
-
-            setClients(extracted);
+            // BE returns pre-mapped flat array — no element extraction needed
+            const data = Array.isArray(res.data) ? res.data : [];
+            setClients(data);
             setLastUpdated(new Date());
         } catch (err) {
             console.error("Clients fetch error:", err);
@@ -186,8 +176,9 @@ const Clients = () => {
         }
     }, isAutoRefreshEnabled ? 60000 : null, [selectedSiteId, loading, isAutoRefreshEnabled]);
 
+    // BE already resolves duration and interface — use directly
     const formatDuration = (item) => {
-        const rawSeconds = item?.stateDurationInSeconds ?? item?.connectionDurationInSeconds ?? 0;
+        const rawSeconds = item?.durationSeconds ?? 0;
         if (rawSeconds <= 0) return '';
         
         const days = Math.floor(rawSeconds / 86400);
@@ -200,25 +191,6 @@ const Clients = () => {
         if (minutes > 0 || parts.length === 0) parts.push(`${minutes}m`);
         
         return parts.join(' ');
-    };
-
-    const formatInterface = (item) => {
-        if (!item) return '';
-        const isWired = item.clientType?.toLowerCase() === 'wired';
-        if (isWired) {
-            // Priority: root portNumber -> root portId -> nested connectedToPorts
-            const port = item.portNumber ||
-                item.portId ||
-                item.connectedToPorts?.[0]?.portNumber ||
-                '';
-            return port ? `Port ${port}` : '';
-        }
-        // Wireless: Map from item.wirelessBand
-        const band = item.wirelessBand || item.radioBand || '';
-        if (band) {
-            return band.toLowerCase().replace('ghz', ' GHz');
-        }
-        return '';
     };
 
     const capitalize = (str) => {
@@ -257,9 +229,9 @@ const Clients = () => {
             if (!c) return false;
 
             const matchesSearch =
-                (c.name || c.hostName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (c.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
                 (c.macAddress || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (c.ipAddress || c.reservedIpAddress || "").toString().includes(searchTerm);
+                (c.ipAddress || "").toString().includes(searchTerm);
 
             const matchesType = typeFilter === 'all' || c.clientType === typeFilter;
 
@@ -273,8 +245,8 @@ const Clients = () => {
             let valA, valB;
             switch (sortConfig.key) {
                 case 'client':
-                    valA = (a.name || a.hostName || a.macAddress || "").toLowerCase();
-                    valB = (b.name || b.hostName || b.macAddress || "").toLowerCase();
+                    valA = (a.name || a.macAddress || "").toLowerCase();
+                    valB = (b.name || b.macAddress || "").toLowerCase();
                     break;
                 case 'health':
                     const priority = { good: 3, fair: 2, poor: 1, '': 0 };
@@ -282,17 +254,16 @@ const Clients = () => {
                     valB = priority[(b.health || "").toLowerCase()] ?? 0;
                     break;
                 case 'duration':
-                    valA = a.connectionDurationInSeconds || 0;
-                    valB = b.connectionDurationInSeconds || 0;
+                    valA = a.durationSeconds || 0;
+                    valB = b.durationSeconds || 0;
                     break;
                 case 'network':
-                    // Task 1: Sort by SSID
-                    valA = (a.wirelessNetworkName || a.accessedWiredNetworks?.[0]?.networkName || '').toLowerCase();
-                    valB = (b.wirelessNetworkName || b.accessedWiredNetworks?.[0]?.networkName || '').toLowerCase();
+                    valA = (a.network || '').toLowerCase();
+                    valB = (b.network || '').toLowerCase();
                     break;
                 case 'usage':
-                    valA = a.downstreamDataTransferredInBytes || 0;
-                    valB = b.downstreamDataTransferredInBytes || 0;
+                    valA = a.usageTotal || 0;
+                    valB = b.usageTotal || 0;
                     break;
                 default:
                     return 0;
@@ -408,33 +379,12 @@ const Clients = () => {
                                 {processedClients.map((item) => {
                                     const isWired = item.clientType?.toLowerCase() === 'wired';
 
-                                    // Rule: Client: Use item.name. If name is null or same as mac, fallback to item.hostName or item.macAddress.
-                                    const clientName = (item.name && item.name !== item.macAddress)
-                                        ? item.name
-                                        : (item.hostName || item.macAddress || '');
-
+                                    // BE pre-resolves display name, network, and device
+                                    const clientName = item.name || item.macAddress || '';
                                     const isUp = (item.status || "").toLowerCase() === 'up';
-
-                                    // Rule: Network: Smart deep search (Wireless -> Wired -> Connected Ports -> VLAN)
-                                    const networkDisplay = item.wirelessNetworkName ||
-                                        item.wiredNetworkName ||
-                                        item.connectedToPorts?.[0]?.accessedWiredNetworks?.[0]?.networkName ||
-                                        (item.vlanId ? `VLAN ${item.vlanId}` : '');
-
-                                    // Rule: Device (AP/Switch Name): Prioritize infrastructure names
-                                    const candidateDeviceName = item.apName ||
-                                                                item.switchName ||
-                                                                item.associatedToDeviceName ||
-                                                                item.associatedDeviceName ||
-                                                                item.connectedToPorts?.[0]?.deviceName ||
-                                                                item.deviceName || '';
-
-                                    // Defensive: If the device name is same as client name, it's likely just showing the client's own metadata
-                                    const deviceDisplayName = (candidateDeviceName && candidateDeviceName !== clientName)
-                                        ? candidateDeviceName
-                                        : (item.apName || item.switchName || item.associatedDeviceName || '');
-                                    // Device Model Mapping: Use only the associated device's part number
-                                    const devicePartNumber = item.associatedDevicePartNumber || '';
+                                    const networkDisplay = item.network || '';
+                                    const deviceDisplayName = item.device || '';
+                                    const devicePartNumber = item.devicePartNumber || '';
                                     const modelName = PART_NUMBER_MAP[devicePartNumber] || '';
 
                                     const renderCell = (colId) => {
@@ -493,7 +443,7 @@ const Clients = () => {
                                             case 'interface':
                                                 return (
                                                     <td key={colId} className="px-6 py-4">
-                                                        <div className="text-xs font-bold th-text-primary font-mono">{formatInterface(item)}</div>
+                                                        <div className="text-xs font-bold th-text-primary font-mono">{item.interface || ''}</div>
                                                     </td>
                                                 );
                                             case 'mac':
@@ -524,11 +474,10 @@ const Clients = () => {
                                                     </td>
                                                 );
                                             case 'usage':
-                                                const totalBytes = (item.downstreamDataTransferredInBytes || 0) + (item.upstreamDataTransferredInBytes || 0);
                                                 return (
                                                     <td key={colId} className="px-6 py-4 text-right">
                                                         <div className="th-text-primary font-black text-xs tracking-tighter">
-                                                            {formatBytes(totalBytes)}
+                                                            {formatBytes(item.usageTotal || 0)}
                                                         </div>
                                                         <div className="text-[9px] text-slate-500 font-bold uppercase">{t('site.clients.usage_total')}</div>
                                                     </td>
