@@ -260,7 +260,7 @@ const BatchDelete = () => {
 
     if (!isUnlocked) {
         return (
-            <div className="w-full min-h-[700px] flex items-center justify-center bg-slate-50 dark:th-bg-base rounded-xl border border-slate-200 dark:border-gray-800 shadow-xl p-8 relative overflow-hidden">
+            <div className="w-full min-h-[700px] flex items-center justify-center bg-slate-50 dark:bg-[#020617] rounded-xl border border-slate-200 dark:border-gray-800 shadow-xl p-8 relative overflow-hidden">
                 <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden rounded-xl">
                     <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-rose-600/5 dark:bg-rose-600/10 blur-[120px] rounded-full" />
                     <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-red-600/5 dark:bg-red-600/10 blur-[120px] rounded-full" />
@@ -284,7 +284,7 @@ const BatchDelete = () => {
                             }}
                             placeholder={t('batch_delete.enter_passkey')}
                             autoFocus
-                            className={`w-full text-center bg-slate-50 dark:bg-black/50 border-2 rounded-xl px-4 py-3 text-lg font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none transition-colors ${passkeyError ? 'border-rose-500 dark:border-rose-500/80 animate-shake' : 'border-slate-200 dark:th-border focus:border-rose-500 dark:focus:border-rose-500'}`}
+                            className={`w-full text-center bg-slate-50 dark:bg-black/50 border-2 rounded-xl px-4 py-3 text-lg font-bold text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none transition-colors ${passkeyError ? 'border-rose-500 dark:border-rose-500/80 animate-shake' : 'border-slate-200 dark:border-slate-800 focus:border-rose-500 dark:focus:border-rose-500'}`}
                         />
                         {passkeyError && (
                             <p className="text-[10px] text-rose-500 font-bold text-center mt-2 absolute w-full -bottom-5">{t('batch_delete.incorrect_passkey')}</p>
@@ -303,7 +303,7 @@ const BatchDelete = () => {
     }
 
     return (
-        <div className="relative w-full min-h-[700px] bg-slate-50 dark:th-bg-base text-slate-800 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-gray-800 shadow-xl overflow-hidden">
+        <div className="relative w-full min-h-[700px] bg-slate-50 dark:bg-[#020617] text-slate-800 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-gray-800 shadow-xl overflow-hidden">
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden rounded-xl">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-rose-600/5 dark:bg-rose-600/10 blur-[120px] rounded-full" />
                 <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-red-600/5 dark:bg-red-600/10 blur-[120px] rounded-full" />
@@ -600,7 +600,7 @@ const BatchDelete = () => {
             {/* 2-Step Confirmation Modal */}
             {showModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md">
-                    <div className="bg-white dark:bg-slate-900 max-w-md w-full rounded-3xl shadow-2xl border border-slate-200 dark:th-border overflow-hidden flex flex-col animate-fade-in relative">
+                    <div className="bg-white dark:bg-slate-900 max-w-md w-full rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col animate-fade-in relative">
                         {/* Danger header stripe */}
                         <div className="h-2 w-full bg-gradient-to-r from-rose-500 via-red-500 to-rose-500" />
 
@@ -622,7 +622,7 @@ const BatchDelete = () => {
                                     value={challengeInput}
                                     onChange={e => setChallengeInput(e.target.value)}
                                     placeholder={CHALLENGE_WORD}
-                                    className="w-full text-center bg-white dark:bg-black/50 border-2 border-slate-300 dark:th-border focus:border-rose-500 dark:focus:border-rose-500 rounded-xl px-4 py-3 text-lg font-black tracking-widest text-slate-900 dark:text-rose-500 placeholder:th-text-secondary dark:placeholder:text-slate-700 focus:outline-none transition-colors"
+                                    className="w-full text-center bg-white dark:bg-black/50 border-2 border-slate-300 dark:border-slate-800 focus:border-rose-500 dark:focus:border-rose-500 rounded-xl px-4 py-3 text-lg font-black tracking-widest text-slate-900 dark:text-rose-500 placeholder:th-text-secondary dark:placeholder:text-slate-700 focus:outline-none transition-colors"
                                 />
                             </div>
                         </div>

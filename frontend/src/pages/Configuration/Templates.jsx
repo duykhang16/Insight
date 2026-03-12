@@ -87,7 +87,7 @@ const Templates = () => {
     const filtered = templates.filter(t => t.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
     return (
-        <div className="w-full h-full p-8 space-y-8 animate-fade-in overflow-y-auto custom-scrollbar bg-slate-50 dark:th-bg-base rounded-3xl">
+        <div className="w-full h-full p-8 space-y-8 animate-fade-in overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-[#020617] rounded-3xl">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
@@ -213,7 +213,7 @@ const Templates = () => {
             {/* Create / Edit Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md">
-                    <div className="bg-white dark:th-bg-surface w-full max-w-md rounded-[2.5rem] shadow-2xl border border-white/10 overflow-hidden">
+                    <div className="bg-white dark:bg-[#0F172A] w-full max-w-md rounded-[2.5rem] shadow-2xl border border-white/10 overflow-hidden">
                         {/* Modal Header */}
                         <div className="px-8 py-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
                             <div>

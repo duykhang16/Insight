@@ -379,7 +379,7 @@ const SmartSync = () => {
 
     // --- 4. Giao diện ---
     return (
-        <div className={`relative w-full min-h-[800px] h-full bg-slate-50 dark:th-bg-base text-slate-800 dark:text-slate-200 font-sans overflow-x-hidden rounded-xl border border-slate-200 dark:border-gray-800 shadow-xl dark:shadow-2xl ${styles.clonerWrapper}`}>
+        <div className={`relative w-full min-h-[800px] h-full bg-slate-50 dark:bg-[#020617] text-slate-800 dark:text-slate-200 font-sans overflow-x-hidden rounded-xl border border-slate-200 dark:border-gray-800 shadow-xl dark:shadow-2xl ${styles.clonerWrapper}`}>
             {/* Background Orbs */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none rounded-xl">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-600/5 dark:bg-emerald-600/10 blur-[120px] rounded-full"></div>
@@ -388,7 +388,7 @@ const SmartSync = () => {
 
             <div className="relative z-10 w-full h-full p-8 space-y-12">
                 {/* Horizontal Progress Stepper */}
-                <div className="bg-white/80 dark:th-bg-base/80 backdrop-blur-xl py-6 border-b border-slate-200 dark:border-white/5 -mx-8 px-12 mb-10 transition-all duration-300">
+                <div className="bg-white/80 dark:bg-[#020617]/80 backdrop-blur-xl py-6 border-b border-slate-200 dark:border-white/5 -mx-8 px-12 mb-10 transition-all duration-300">
                     <div className="max-w-4xl mx-auto relative px-4">
                         <div className="flex justify-between items-center relative z-10">
                             {['Scope & Target', 'Filter & Config', 'Execution Log'].map((step, idx) => {
@@ -398,7 +398,7 @@ const SmartSync = () => {
                                 return (
                                     <div key={idx} className="flex flex-col items-center">
                                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 border ${isCurrent ? 'bg-emerald-600 border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)] scale-110 th-text-primary' :
-                                            isActive ? 'bg-white dark:bg-slate-900 border-emerald-200 dark:border-emerald-500/50 text-emerald-500 dark:text-emerald-400' : 'bg-slate-100 dark:th-bg-base border-slate-200 dark:border-white/5 text-slate-400 dark:text-slate-700'
+                                            isActive ? 'bg-white dark:bg-slate-900 border-emerald-200 dark:border-emerald-500/50 text-emerald-500 dark:text-emerald-400' : 'bg-slate-100 dark:bg-[#020617] border-slate-200 dark:border-white/5 text-slate-400 dark:text-slate-700'
                                             }`}>
                                             {isActive && !isCurrent ? <CheckCircle size={20} /> :
                                                 idx === 0 ? <Server size={20} /> :
@@ -688,7 +688,7 @@ const SmartSync = () => {
                                 </div>
                                 <div className="flex-1 overflow-y-auto custom-scrollbar">
                                     <table className="w-full text-left">
-                                        <thead className="sticky top-0 bg-white dark:th-bg-surface z-10">
+                                        <thead className="sticky top-0 bg-white dark:bg-[#0F172A] z-10">
                                             <tr className="border-b border-slate-200 dark:border-white/5">
                                                 <th className="p-4 text-[10px] font-black uppercase text-slate-400">Target Site</th>
                                                 <th className="p-4 text-[10px] font-black uppercase text-slate-400 text-center">Status</th>

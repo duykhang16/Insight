@@ -4,7 +4,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { toast } from 'sonner';
 import {
     Layers, Play, Square, AlertTriangle, CheckCircle,
-    XCircle, ChevronRight, Globe, Clock, Hash, Tag, Map, RefreshCw, CheckSquare, Square as SquareIcon, Rocket
+    XCircle, ChevronRight, Globe, Clock, Hash, Tag, Map, RefreshCw, CheckSquare, Square as SquareIcon, Rocket, Layout
 } from 'lucide-react';
 
 const TIMEZONES = [
@@ -58,6 +58,10 @@ const BatchProvision = () => {
     const [isLoadingZones, setIsLoadingZones] = useState(false);
     const [selectedZones, setSelectedZones] = useState(new Set());
 
+    // Template State
+    const [templates, setTemplates] = useState([]);
+    const [selectedTemplateId, setSelectedTemplateId] = useState('');
+
     const [isRunning, setIsRunning] = useState(false);
     const [logs, setLogs] = useState([]);
     const [progress, setProgress] = useState(0);
@@ -84,6 +88,10 @@ const BatchProvision = () => {
             const list = Array.isArray(res.data) ? res.data : (res.data?.sites || []);
             setSites(list);
         }).catch(() => setSites([]));
+
+        apiClient.get('/templates').then(res => {
+            setTemplates(res.data || []);
+        }).catch(() => setTemplates([]));
 
         scanZones();
         mountedRef.current = true;
@@ -150,7 +158,8 @@ const BatchProvision = () => {
                     longitude: overrideLocation ? lng : (selectedSite?.configuredLocation?.longitude || "105.85462"),
                     address: overrideLocation ? address : (selectedSite?.configuredLocation?.address || "Vietnam")
                 },
-                target_zone_ids: finalZones
+                target_zone_ids: finalZones,
+                template_id: selectedTemplateId || null,
             };
 
             const res = await apiClient.post('/cloner/batch-site-provision', payload);
@@ -196,7 +205,7 @@ const BatchProvision = () => {
     };
 
     return (
-        <div className="relative w-full min-h-[700px] bg-slate-50 dark:th-bg-base text-slate-800 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-gray-800 shadow-xl overflow-hidden">
+        <div className="relative w-full min-h-[700px] bg-slate-50 dark:bg-[#020617] text-slate-800 dark:text-slate-200 rounded-xl border border-slate-200 dark:border-gray-800 shadow-xl overflow-hidden">
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden rounded-xl">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-violet-600/5 dark:bg-violet-600/10 blur-[120px] rounded-full" />
                 <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/5 dark:bg-indigo-600/10 blur-[120px] rounded-full" />
@@ -286,6 +295,40 @@ const BatchProvision = () => {
                                 </select>
                             </div>
                         </div>
+
+                        {/* Template Selector */}
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                                <Layout size={11} className="text-emerald-500" /> Template Badge
+                            </label>
+                            <select
+                                value={selectedTemplateId}
+                                onChange={e => setSelectedTemplateId(e.target.value)}
+                                disabled={isRunning}
+                                className="w-full bg-slate-50 dark:bg-black/40 border border-slate-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 dark:text-white appearance-none focus:outline-none focus:border-emerald-500/50 disabled:opacity-50"
+                            >
+                                <option value="">Không gán template</option>
+                                {templates.map(tpl => (
+                                    <option key={tpl.id} value={tpl.id} className="bg-white dark:bg-slate-900">
+                                        {tpl.name}
+                                    </option>
+                                ))}
+                            </select>
+                            {selectedTemplateId && (() => {
+                                const tpl = templates.find(t => t.id === selectedTemplateId);
+                                return tpl ? (
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span
+                                            className="px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border"
+                                            style={{ borderColor: `${tpl.color}50`, backgroundColor: `${tpl.color}15`, color: tpl.color }}
+                                        >
+                                            {tpl.name}
+                                        </span>
+                                        <span className="text-[9px] text-slate-400 font-bold">← Badge sẽ được gắn</span>
+                                    </div>
+                                ) : null;
+                            })()}
+                        </div>
                     </div>
 
                     {/* Panel 2: Target Selection */}
@@ -370,13 +413,13 @@ const BatchProvision = () => {
                                         <Rocket size={20} />
                                     </div>
                                     <div>
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-violet-500">XÁC NHẪN THỰC THI</p>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-violet-500">XÁC NHẬN THỰC THI</p>
                                         <p className="text-sm font-bold text-slate-800 dark:text-white">Ready to Provision</p>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-1 gap-2 text-xs">
                                     <div className="flex justify-between">
-                                        <span className="text-slate-400 font-bold uppercase tracking-wider">Template</span>
+                                        <span className="text-slate-400 font-bold uppercase tracking-wider">Source Site</span>
                                         <span className="font-bold text-slate-700 dark:text-white">{selectedSite?.siteName || '—'}</span>
                                     </div>
                                     <div className="flex justify-between">
@@ -387,6 +430,20 @@ const BatchProvision = () => {
                                         <span className="text-slate-400 font-bold uppercase tracking-wider">Sites to create</span>
                                         <span className="font-bold text-slate-700 dark:text-white">{cloneCount}</span>
                                     </div>
+                                    {selectedTemplateId && (() => {
+                                        const tpl = templates.find(t => t.id === selectedTemplateId);
+                                        return tpl ? (
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-slate-400 font-bold uppercase tracking-wider">Template Badge</span>
+                                                <span
+                                                    className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest border"
+                                                    style={{ borderColor: `${tpl.color}50`, backgroundColor: `${tpl.color}15`, color: tpl.color }}
+                                                >
+                                                    {tpl.name}
+                                                </span>
+                                            </div>
+                                        ) : null;
+                                    })()}
                                 </div>
                                 <button
                                     onClick={() => setConfirmShown(true)}

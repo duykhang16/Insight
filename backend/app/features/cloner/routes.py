@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Body, Request, Depends
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from app.shared.auth_deps import get_current_insight_user, require_master_token
 from app.features.cloner.service import (
     get_live_account_sites,
@@ -26,6 +26,7 @@ class BatchProvisionRequest(BaseModel):
     timezone_iana: str
     configured_location: dict
     target_zone_ids: List[str] = Field(default_factory=list)
+    template_id: Optional[str] = None
 
 class SyncTemplateRequest(BaseModel):
     template_id: str
@@ -469,7 +470,8 @@ async def execute_batch_provision_sites(
         configured_location=payload.configured_location,
         target_zone_ids=payload.target_zone_ids,
         master_token=master_token,
-        actor_email=user["email"]
+        actor_email=user["email"],
+        template_id=payload.template_id,
     )
     return {"status": "success", "results": results}
 

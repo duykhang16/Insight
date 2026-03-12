@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../../api/apiClient';
-import { ShieldCheck, KeyRound } from 'lucide-react';
+import { ShieldCheck, KeyRound, Sun, Moon } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '../../context/ThemeContext';
 import SplashScreen from '../../components/SplashScreen';
 
 // Prefetch zones + sites in parallel — runs immediately after auth
@@ -34,6 +35,7 @@ const prefetchAllData = async () => {
 
 const Login = ({ onLoginSuccess }) => {
     const { t } = useLanguage();
+    const { theme, toggleTheme } = useTheme();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -151,7 +153,7 @@ const Login = ({ onLoginSuccess }) => {
 
     if (checkingAuth) {
         return (
-            <div className="min-h-screen bg-slate-50 dark:th-bg-base flex items-center justify-center text-blue-500">
+            <div className="min-h-screen bg-slate-50 dark:bg-[#020617] flex items-center justify-center text-blue-500">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
             </div>
         );
@@ -167,7 +169,15 @@ const Login = ({ onLoginSuccess }) => {
     // ── First-login: set password ─────────────────────────────────────────────
     if (setupMode) {
         return (
-            <div className="relative min-h-screen flex items-center justify-center bg-slate-50 dark:th-bg-base text-slate-800 dark:text-slate-200 overflow-hidden px-4">
+            <div className="relative min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#020617] text-slate-800 dark:text-slate-200 overflow-hidden px-4">
+                {/* Theme toggle — top right */}
+                <button
+                    onClick={toggleTheme}
+                    className="absolute top-6 right-6 z-50 p-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all text-slate-500 dark:text-slate-400 hover:text-amber-500 dark:hover:text-blue-400"
+                    title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                >
+                    {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+                </button>
                 {bgOrbs}
                 <div className="relative z-10 w-full max-w-md">
                     <div className="backdrop-blur-2xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/10 rounded-3xl p-10 shadow-2xl dark:shadow-none">
@@ -225,7 +235,15 @@ const Login = ({ onLoginSuccess }) => {
 
     // ── Normal login ──────────────────────────────────────────────────────────
     return (
-        <div className="relative min-h-screen flex items-center justify-center bg-slate-50 dark:th-bg-base text-slate-800 dark:text-slate-200 overflow-hidden px-4">
+        <div className="relative min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#020617] text-slate-800 dark:text-slate-200 overflow-hidden px-4">
+            {/* Theme toggle — top right */}
+            <button
+                onClick={toggleTheme}
+                className="absolute top-6 right-6 z-50 p-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white/80 dark:bg-white/5 backdrop-blur-xl shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all text-slate-500 dark:text-slate-400 hover:text-amber-500 dark:hover:text-blue-400"
+                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
             {bgOrbs}
 
             <div className="relative z-10 w-full max-w-md">
@@ -267,7 +285,7 @@ const Login = ({ onLoginSuccess }) => {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full h-14 bg-blue-600 dark:bg-white th-text-primary dark:text-black font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 dark:hover:bg-blue-500 dark:hover:th-text-primary transition-all shadow-xl shadow-blue-500/10 active:scale-95 disabled:opacity-50 flex items-center justify-center border border-transparent hover:border-blue-400/50"
+                                className="w-full h-14 bg-blue-600 text-white font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20 active:scale-95 disabled:opacity-50 flex items-center justify-center border border-transparent hover:border-blue-400/50"
                             >
                                 {loading ? (
                                     <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-current mr-3"></div>
