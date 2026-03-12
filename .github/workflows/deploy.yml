@@ -30,5 +30,12 @@ jobs:
           # Lệnh này sẽ tự cập nhật các thay đổi trong source code của anh
           docker compose up -d --build
           
-          # 5. Xóa bỏ các bản build cũ (dangling images) để tiết kiệm 30GB SSD của VPS
+          # 6. Kết nối container MongoDB (chạy bên ngoài) vào mạng insight-net
+          # để backend có thể resolve hostname "MongoDB"
+          docker network connect insight-net MongoDB || true
+          
+          # 7. Restart backend sau khi MongoDB đã join network
+          docker restart insight_backend
+          
+          # 8. Xóa bỏ các bản build cũ (dangling images) để tiết kiệm 30GB SSD của VPS
           docker image prune -f
