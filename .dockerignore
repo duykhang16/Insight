@@ -15,7 +15,7 @@
 **/dist
 **/*.log
 **/*.txt
-!backend/requirements.txt
+!**/requirements.txt
 **/*.bak
 **/.git
 **/.vscode
