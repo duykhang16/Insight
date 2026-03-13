@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Activity, Bell, Users, Wifi, Monitor, AlertCircle } from 'lucide-react';
+import { Activity, Bell, BellDot, Users, Wifi, Monitor, AlertCircle, X } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 import { useSite } from '../../context/SiteContext';
 import useIntervalFetch from '../../hooks/useIntervalFetch';
@@ -30,6 +30,10 @@ const SiteDetail = () => {
     const [error, setError] = useState('');
     const [lastUpdated, setLastUpdated] = useState(null);
 
+    // Alert notification state
+    const [alertNotif, setAlertNotif] = useState({ unread: 0, total_recent: 0, hours: 24 });
+    const [notifOpen, setNotifOpen] = useState(false);
+    const notifRef = useRef(null);
 
 
     // Make sure sites are loaded (needed for site name fallback)
@@ -85,6 +89,34 @@ const SiteDetail = () => {
     useIntervalFetch(() => {
         if (siteId && !loading) fetchAll(true);
     }, isAutoRefreshEnabled ? 60000 : null, [siteId, loading, isAutoRefreshEnabled]);
+
+    // Fetch alert notification on mount
+    useEffect(() => {
+        if (!siteId) return;
+        apiClient.get(`/overview/sites/${siteId}/alert-notification?hours=24`)
+            .then(res => setAlertNotif(res.data || { unread: 0, total_recent: 0, hours: 24 }))
+            .catch(() => {});
+    }, [siteId]);
+
+    // Close notification dropdown on click outside
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (notifRef.current && !notifRef.current.contains(e.target)) {
+                setNotifOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleBellClick = async () => {
+        if (alertNotif.unread > 0) {
+            // Mark as read
+            await apiClient.post(`/overview/sites/${siteId}/alert-notification/read`).catch(() => {});
+            setAlertNotif(prev => ({ ...prev, unread: 0 }));
+        }
+        setNotifOpen(prev => !prev);
+    };
 
     // ── BE now returns flat schema — no nested Aruba paths needed ──
     const healthScore = data?.healthScore ?? 'N/A';
@@ -164,13 +196,20 @@ const SiteDetail = () => {
         down: t('site.dashboard.health_badge_down'),
     };
     // Derived health status from numeric score for consistency
-    let healthKey = siteInfo?.health || siteInfo?.status;
     const numericScore = typeof healthScore === 'number' ? healthScore : (site?.healthScore ? site.healthScore : null);
     
+    let healthKey = null;
     if (numericScore !== null) {
+        // Have actual health score → show health-based badge
         if (numericScore >= 67) healthKey = 'good';
         else if (numericScore >= 34) healthKey = 'warning';
         else healthKey = 'poor';
+    } else {
+        // No health score → show connection status badge (up/down)
+        const connStatus = siteInfo?.status || site?.status;
+        if (connStatus === 'up' || connStatus === 'down') {
+            healthKey = connStatus;
+        }
     }
 
     const badge = healthKey && HEALTH_BADGE_CLS[healthKey]
@@ -191,6 +230,66 @@ const SiteDetail = () => {
                                 {badge.label}
                             </span>
                         )}
+
+                        {/* Alert Notification Bell */}
+                        <div className="relative" ref={notifRef}>
+                            <button
+                                onClick={handleBellClick}
+                                className="relative p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                title={`${alertNotif.total_recent} alerts in last ${alertNotif.hours}h`}
+                            >
+                                {alertNotif.unread > 0 ? (
+                                    <BellDot size={20} className="text-rose-400 animate-[pulse_2s_ease-in-out_infinite]" />
+                                ) : (
+                                    <Bell size={20} className="text-slate-400 dark:text-slate-500" />
+                                )}
+                                {alertNotif.unread > 0 && (
+                                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-rose-500 text-white text-[10px] font-black rounded-full px-1 shadow-lg shadow-rose-500/30 animate-bounce">
+                                        {alertNotif.unread}
+                                    </span>
+                                )}
+                            </button>
+
+                            {/* Dropdown */}
+                            {notifOpen && (
+                                <div className="absolute top-full left-0 mt-2 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
+                                    <div className="px-4 py-3 border-b border-slate-100 dark:border-white/5 flex items-center justify-between">
+                                        <h3 className="text-sm font-bold text-slate-700 dark:text-white">Alert Notifications</h3>
+                                        <button onClick={() => setNotifOpen(false)} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                            <X size={14} className="text-slate-400" />
+                                        </button>
+                                    </div>
+                                    <div className="p-4">
+                                        {alertNotif.total_recent > 0 ? (
+                                            <div className="flex items-start gap-3">
+                                                <div className="p-2 bg-rose-500/10 rounded-lg shrink-0">
+                                                    <Bell size={16} className="text-rose-400" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-slate-700 dark:text-white">
+                                                        {alertNotif.total_recent} alert{alertNotif.total_recent !== 1 ? 's' : ''} in last {alertNotif.hours}h
+                                                    </p>
+                                                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                                        All caught up — marked as read
+                                                    </p>
+                                                    <button
+                                                        onClick={() => { setNotifOpen(false); navigate(`/site/${siteId}/alerts`); }}
+                                                        className="text-xs text-blue-500 hover:text-blue-400 font-bold mt-2 transition-colors"
+                                                    >
+                                                        View all alerts →
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-3">
+                                                <Bell size={24} className="text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                                                <p className="text-sm text-slate-500 dark:text-slate-400">No alerts in last {alertNotif.hours}h</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
                         {t('site.dashboard.subtitle')}

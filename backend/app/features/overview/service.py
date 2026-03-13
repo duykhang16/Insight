@@ -399,6 +399,62 @@ class OverviewService:
         alerts.sort(key=lambda x: (0 if x["clearedTime"] is None else 1, -(x.get("raisedTime") or 0)))
         return alerts
 
+    async def get_alert_notification(self, site_id: str, user_email: str, aruba_token: str, hours: int = 24) -> Dict[str, Any]:
+        """
+        Returns alert notification data for a site:
+        - total alerts in the last N hours
+        - unread count (alerts raised after user's last read timestamp)
+        """
+        import time
+        from app.database.connection import get_database
+
+        db = get_database()
+        now_epoch = int(time.time())
+        cutoff_epoch = now_epoch - (hours * 3600)
+
+        # Fetch all alerts from Aruba
+        all_alerts = await self.get_site_alerts(site_id, aruba_token)
+
+        # Filter: active alerts (no clearedTime) raised in the last N hours
+        recent_alerts = []
+        for a in all_alerts:
+            raised = a.get("raisedTime")
+            if raised and raised >= cutoff_epoch:
+                recent_alerts.append(a)
+
+        # Get user's last read timestamp for this site
+        read_doc = await db.alert_reads.find_one({"user_email": user_email, "site_id": site_id})
+        last_read_at = read_doc.get("last_read_at", 0) if read_doc else 0
+
+        # Count unread = alerts raised after last_read_at
+        unread = 0
+        for a in recent_alerts:
+            raised = a.get("raisedTime", 0)
+            if raised > last_read_at:
+                unread += 1
+
+        return {
+            "total_recent": len(recent_alerts),
+            "unread": unread,
+            "last_read_at": last_read_at,
+            "hours": hours,
+        }
+
+    async def mark_alerts_read(self, site_id: str, user_email: str) -> Dict[str, Any]:
+        """Mark alerts as read for a user on a specific site."""
+        import time
+        from app.database.connection import get_database
+
+        db = get_database()
+        now_epoch = int(time.time())
+
+        await db.alert_reads.update_one(
+            {"user_email": user_email, "site_id": site_id},
+            {"$set": {"last_read_at": now_epoch, "user_email": user_email, "site_id": site_id}},
+            upsert=True
+        )
+        return {"status": "ok", "last_read_at": now_epoch}
+
     # ─── 5. Site Clients ────────────────────────────────────────────────
 
     async def get_site_clients(self, site_id: str, aruba_token: str) -> List[Dict[str, Any]]:

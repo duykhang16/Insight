@@ -13,7 +13,8 @@ export const vi = {
         updated: "Cập nhật:",
         awaiting_data: "Đang chờ dữ liệu...",
         auto_refresh_on: "Tự động làm mới BẬT",
-        auto_refresh_off: "Tự động làm mới TẮT"
+        auto_refresh_off: "Tự động làm mới TẮT",
+        logout: "Đăng xuất"
     },
     login: {
         title: "INSIGHT",
@@ -676,6 +677,12 @@ export const vi = {
             title: "Nhật ký Zone",
             button_refresh: "Làm mới",
             empty_state_message: "Chưa có log nào trong zone này."
+        },
+        templates: {
+            view_all_sites: "Xem tất cả",
+            sites_suffix: "site",
+            general_name: "Chung",
+            general_description: "Site không thuộc template nào"
         }
     },
     site: {
@@ -825,5 +832,56 @@ export const vi = {
             stats_categories_label: "Danh mục đang theo dõi",
             error_fetch: "Không thể đồng bộ phân tích ứng dụng."
         }
-    }
+    },
+    monitoring: {
+        title: "Giám sát hệ thống",
+        subtitle: "Thông số server, cơ sở dữ liệu & phân tích lưu lượng truy cập.",
+        refresh: "Làm mới",
+        days: "ngày",
+        last_updated: "Cập nhật lần cuối",
+        auto_refresh_on: "Tự động làm mới đang BẬT",
+        auto_refresh_off: "Tự động làm mới đang TẮT",
+        error_loading: "Không thể tải dữ liệu giám sát.",
+        section_server: "Tài nguyên máy chủ",
+        section_database: "Cơ sở dữ liệu",
+        section_users: "Thống kê người dùng",
+        section_traffic: "Phân tích lưu lượng",
+        disk: "Ổ đĩa",
+        hostname: "Tên máy chủ",
+        uptime: "Thời gian hoạt động",
+        network_sent: "Mạng gửi",
+        network_recv: "Mạng nhận",
+        db_size: "Kích thước dữ liệu",
+        collections: "Collections",
+        storage_size: "Kích thước lưu trữ",
+        connections: "Kết nối",
+        available: "Khả dụng",
+        collection_details: "Chi tiết Collection",
+        col_name: "Collection",
+        col_docs: "Tài liệu",
+        col_size: "Kích thước",
+        col_avg: "TB/Doc",
+        col_indexes: "Indexes",
+        total_users: "Tổng người dùng",
+        approved: "Đã duyệt",
+        pending: "Chờ duyệt",
+        new_signups_7d: "Mới (7 ngày)",
+        users_by_role: "Người dùng theo vai trò",
+        total_requests: "Tổng yêu cầu",
+        success_rate: "Tỉ lệ thành công",
+        successful: "thành công",
+        errors: "Lỗi",
+        unique_ips: "IP riêng biệt",
+        daily_traffic: "Lưu lượng theo ngày",
+        by_method: "Theo phương thức HTTP",
+        top_actions: "Thao tác phổ biến",
+        top_endpoints: "Endpoint phổ biến",
+        top_users: "Người dùng tích cực nhất",
+        cores: "lõi",
+        no_traffic_data: "Không có dữ liệu lưu lượng trong khoảng thời gian này.",
+        loading_data: "Đang tải dữ liệu giám sát...",
+        tab_overview: "Tổng quan",
+        tab_database: "Cơ sở dữ liệu",
+        tab_traffic: "Lưu lượng"
+    },
 };

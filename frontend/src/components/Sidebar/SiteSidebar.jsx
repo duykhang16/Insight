@@ -104,22 +104,25 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
     const groupedSites = getGroupedSites();
 
     const getNavLinkClass = ({ isActive }) =>
-        `flex items-center px-4 py-3 text-sm font-medium transition-colors ${isActive
-            ? 'bg-blue-600 th-text-primary'
-            : 'th-text-secondary hover:th-bg-surface-alt hover:th-text-primary'
+        `group relative flex items-center px-3 py-2.5 mx-2 text-sm font-medium rounded-lg transition-all duration-150 ${isActive
+            ? 'bg-blue-600/10 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400'
+            : 'th-text-secondary hover:bg-slate-100 dark:hover:bg-white/5 hover:th-text-primary'
         }`;
 
     return (
         <div className="flex flex-col w-64 th-bg-sidebar border-r th-border h-full transition-colors duration-200">
             {/* Brand header */}
-            <div className="flex items-center justify-between px-4 h-16 border-b th-border gap-3">
-                <div className="flex items-center gap-3">
-                    <span className="text-xl font-black italic th-text-primary tracking-widest uppercase">INSIGHT</span>
+            <div className="flex items-center px-4 h-14 border-b th-border">
+                <button
+                    onClick={() => navigate('/zones')}
+                    className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                >
+                    <span className="text-lg font-black italic th-text-primary tracking-widest uppercase">INSIGHT</span>
                     <div className="relative flex items-center justify-center h-2 w-2" title="Live Sync">
                         <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50 animate-ping"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                     </div>
-                </div>
+                </button>
             </div>
 
             {/* Back to parent Zone */}
@@ -202,34 +205,69 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
             </div>
 
             {/* Site-scoped navigation */}
-            <nav className="flex-1 overflow-y-auto pt-4 space-y-1">
+            <nav className="flex-1 overflow-y-auto pt-3 space-y-0.5">
                 <NavLink to={`/site/${siteId}`} end className={getNavLinkClass}>
-                    <Home className="w-5 h-5 mr-3" />
-                    Overview
+                    {({ isActive }) => (
+                        <>
+                            {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
+                            <Home className="w-[18px] h-[18px] mr-3 shrink-0" />
+                            Overview
+                        </>
+                    )}
                 </NavLink>
                 <NavLink to={`/site/${siteId}/health`} className={getNavLinkClass}>
-                    <Activity className="w-5 h-5 mr-3" />
-                    Health
+                    {({ isActive }) => (
+                        <>
+                            {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
+                            <Activity className="w-[18px] h-[18px] mr-3 shrink-0" />
+                            Health
+                        </>
+                    )}
                 </NavLink>
                 <NavLink to={`/site/${siteId}/alerts`} className={getNavLinkClass}>
-                    <Bell className="w-5 h-5 mr-3" />
-                    Alerts
+                    {({ isActive }) => (
+                        <>
+                            {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
+                            <Bell className="w-[18px] h-[18px] mr-3 shrink-0" />
+                            Alerts
+                        </>
+                    )}
                 </NavLink>
                 <NavLink to={`/site/${siteId}/clients`} className={getNavLinkClass}>
-                    <Users className="w-5 h-5 mr-3" />
-                    Clients
+                    {({ isActive }) => (
+                        <>
+                            {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
+                            <Users className="w-[18px] h-[18px] mr-3 shrink-0" />
+                            Clients
+                        </>
+                    )}
                 </NavLink>
                 <NavLink to={`/site/${siteId}/networks`} className={getNavLinkClass}>
-                    <Wifi className="w-5 h-5 mr-3" />
-                    Networks
+                    {({ isActive }) => (
+                        <>
+                            {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
+                            <Wifi className="w-[18px] h-[18px] mr-3 shrink-0" />
+                            Networks
+                        </>
+                    )}
                 </NavLink>
                 <NavLink to={`/site/${siteId}/devices`} className={getNavLinkClass}>
-                    <Monitor className="w-5 h-5 mr-3" />
-                    Devices
+                    {({ isActive }) => (
+                        <>
+                            {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
+                            <Monitor className="w-[18px] h-[18px] mr-3 shrink-0" />
+                            Devices
+                        </>
+                    )}
                 </NavLink>
                 <NavLink to={`/site/${siteId}/applications`} className={getNavLinkClass}>
-                    <Box className="w-5 h-5 mr-3" />
-                    Applications
+                    {({ isActive }) => (
+                        <>
+                            {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
+                            <Box className="w-[18px] h-[18px] mr-3 shrink-0" />
+                            Applications
+                        </>
+                    )}
                 </NavLink>
             </nav>
 

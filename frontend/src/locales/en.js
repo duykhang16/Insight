@@ -13,7 +13,8 @@ export const en = {
         updated: "Updated:",
         awaiting_data: "Awaiting data...",
         auto_refresh_on: "Auto refresh is ON",
-        auto_refresh_off: "Auto refresh is OFF"
+        auto_refresh_off: "Auto refresh is OFF",
+        logout: "Log out"
     },
     login: {
         title: "INSIGHT",
@@ -676,6 +677,12 @@ export const en = {
             title: "Zone Logs",
             button_refresh: "Refresh",
             empty_state_message: "No logs yet in this zone."
+        },
+        templates: {
+            view_all_sites: "View all",
+            sites_suffix: "sites",
+            general_name: "General",
+            general_description: "Sites without a template"
         }
     },
     site: {
@@ -825,5 +832,56 @@ export const en = {
             stats_categories_label: "Categories Tracked",
             error_fetch: "Failed to synchronize application analytics."
         }
-    }
+    },
+    monitoring: {
+        title: "System Monitor",
+        subtitle: "Real-time server resources, database stats & traffic analytics.",
+        refresh: "Refresh",
+        days: "days",
+        last_updated: "Last updated",
+        auto_refresh_on: "Auto-refresh is ON",
+        auto_refresh_off: "Auto-refresh is OFF",
+        error_loading: "Failed to load monitoring data.",
+        section_server: "Server Resources",
+        section_database: "Database",
+        section_users: "User Statistics",
+        section_traffic: "Traffic Analytics",
+        disk: "Disk",
+        hostname: "Hostname",
+        uptime: "Uptime",
+        network_sent: "Network Sent",
+        network_recv: "Network Recv",
+        db_size: "Data Size",
+        collections: "Collections",
+        storage_size: "Storage Size",
+        connections: "Connections",
+        available: "Available",
+        collection_details: "Collection Details",
+        col_name: "Collection",
+        col_docs: "Documents",
+        col_size: "Size",
+        col_avg: "Avg Size",
+        col_indexes: "Indexes",
+        total_users: "Total Users",
+        approved: "Approved",
+        pending: "Pending",
+        new_signups_7d: "New (7d)",
+        users_by_role: "Users by Role",
+        total_requests: "Total Requests",
+        success_rate: "Success Rate",
+        successful: "successful",
+        errors: "Errors",
+        unique_ips: "Unique IPs",
+        daily_traffic: "Daily Traffic",
+        by_method: "By HTTP Method",
+        top_actions: "Top Actions",
+        top_endpoints: "Top Endpoints",
+        top_users: "Most Active Users",
+        cores: "cores",
+        no_traffic_data: "No traffic data available for this period.",
+        loading_data: "Loading monitoring data...",
+        tab_overview: "Overview",
+        tab_database: "Database",
+        tab_traffic: "Traffic"
+    },
 };

@@ -124,7 +124,7 @@ const ZoneDashboard = () => {
                 key={zone.id}
                 className="th-bg-surface border th-border rounded-xl overflow-hidden hover:border-blue-500/40 transition-colors cursor-pointer group"
                 style={{ backgroundColor: 'var(--color-bg-surface)', borderColor: 'var(--color-border)' }}
-                onClick={() => navigate(`/zones/${zone.id}/sites`)}
+                onClick={() => navigate(`/zones/${zone.id}/templates`)}
               >
                 {/* Color accent header */}
                 <div
@@ -160,7 +160,7 @@ const ZoneDashboard = () => {
                 {/* Actions */}
                 <div className="px-4 pb-3 flex items-center justify-between">
                   <button
-                    onClick={e => { e.stopPropagation(); navigate(`/zones/${zone.id}/sites`); }}
+                    onClick={e => { e.stopPropagation(); navigate(`/zones/${zone.id}/templates`); }}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 text-blue-500 dark:text-blue-300 text-xs font-medium rounded-lg transition-colors"
                   >
                     <ChevronRight className="w-3.5 h-3.5" /> {t('zones.dashboard.card_action_enter')}
@@ -197,7 +197,7 @@ const ZoneDashboard = () => {
                     key={zone.id}
                     className="hover:th-bg-surface-alt transition-colors cursor-pointer group"
                     style={{ '--tw-hover-bg': 'var(--color-bg-surface-alt)' }}
-                    onClick={() => navigate(`/zones/${zone.id}/sites`)}
+                    onClick={() => navigate(`/zones/${zone.id}/templates`)}
                   >
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-2.5">

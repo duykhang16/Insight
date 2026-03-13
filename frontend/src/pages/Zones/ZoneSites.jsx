@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Layers, Server, MapPin, ChevronRight, ChevronLeft, RefreshCw, Wifi, Search, Filter, ArrowUp, ArrowDown, Activity, WifiOff, CloudOff, AlertTriangle, CheckCircle2, Edit3, Check, X, LayoutGrid, List } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 import { useSite } from '../../context/SiteContext';
@@ -10,9 +10,14 @@ const ZoneSites = () => {
   const { t } = useLanguage();
   const { zoneId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { sites, fetchSites, loadingSites, prefetchSite } = useSite();
   const { getZone, fetchZones } = useZone();
   const prefetchTimerRef = useRef(null);
+
+  // Read template filter from URL query param (set by ZoneTemplates page)
+  const urlTemplate = searchParams.get('template') || '';
+  const initialFilter = urlTemplate === 'general' ? 'other' : (urlTemplate || 'all');
 
   const [zone, setZone] = useState(() => getZone(zoneId) || null);
   const [loadingZone, setLoadingZone] = useState(!zone);
@@ -30,7 +35,7 @@ const ZoneSites = () => {
 
   // Template state
   const [templates, setTemplates] = useState([]);
-  const [templateFilter, setTemplateFilter] = useState('all');
+  const [templateFilter, setTemplateFilter] = useState(initialFilter);
 
   const fetchZone = useCallback(async () => {
     const cached = getZone(zoneId);
@@ -125,20 +130,21 @@ const ZoneSites = () => {
       const id = site.siteId || site.id || site._id;
       if (!fetchedSiteIds.current.has(id)) {
         fetchedSiteIds.current.add(id);
-        setSiteMetrics(prev => ({ ...prev, [id]: { loading: true, health: site.healthScore ?? null, alerts: site.alertsCount || 0, alertsDetail: site.alertsDetail || {} } }));
+        setSiteMetrics(prev => ({ ...prev, [id]: { loading: true, health: site.healthScore ?? null, activeAlerts: 0, activeAlertsDetail: {}, hasHistoricalAlerts: false } }));
         Promise.all([
           apiClient.get(`/overview/sites/${id}/health`).catch(() => ({ data: null })),
           apiClient.get(`/overview/sites/${id}/alerts`).catch(() => ({ data: [] }))
         ]).then(([hRes, aRes]) => {
-          // BE returns flat arrays — no nested digging needed
           const alertsList = Array.isArray(aRes.data) ? aRes.data : [];
-          const detail = {};
-          alertsList.forEach(a => {
+          // Separate active (clearedTime == null) vs cleared alerts
+          const activeAlerts = alertsList.filter(a => !a.clearedTime);
+          const clearedAlerts = alertsList.filter(a => a.clearedTime);
+          const activeDetail = {};
+          activeAlerts.forEach(a => {
             const sev = (a.severity || 'minor').toLowerCase();
-            detail[sev] = (detail[sev] || 0) + 1;
+            activeDetail[sev] = (activeDetail[sev] || 0) + 1;
           });
           setSiteMetrics(prev => {
-            // BE flat: hRes.data.currentScore (no nested path guessing)
             const fetchedScore = hRes.data?.currentScore;
             const finalScore = fetchedScore !== undefined && fetchedScore !== null ? Math.round(fetchedScore) : (site.healthScore !== null ? Math.round(site.healthScore) : null);
             return {
@@ -146,8 +152,9 @@ const ZoneSites = () => {
               [id]: {
                 loading: false,
                 health: finalScore,
-                alerts: (alertsList.length > 0 ? alertsList.length : (site.alertsCount || 0)),
-                alertsDetail: alertsList.length > 0 ? detail : (site.alertsDetail || {})
+                activeAlerts: activeAlerts.length,
+                activeAlertsDetail: activeDetail,
+                hasHistoricalAlerts: clearedAlerts.length > 0
               }
             };
           });
@@ -179,12 +186,19 @@ const ZoneSites = () => {
     );
   }
 
+  // Derive active template name for breadcrumb
+  const activeTemplateName = templateFilter === 'all'
+    ? null
+    : templateFilter === 'other'
+      ? 'General'
+      : templates.find(tp => tp.id === templateFilter)?.name || null;
+
   return (
     <div className="p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/zones')} className="p-1.5 rounded-lg th-text-muted hover:th-text-primary hover:th-bg-surface-alt transition-colors">
+          <button onClick={() => navigate(`/zones/${zoneId}/templates`)} className="p-1.5 rounded-lg th-text-muted hover:th-text-primary hover:th-bg-surface-alt transition-colors">
             <ChevronLeft className="w-4 h-4" />
           </button>
           <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: zone?.color || '#3B82F6' }} />
@@ -212,6 +226,18 @@ const ZoneSites = () => {
             )}
             {zone?.description && <p className="text-xs th-text-muted mt-0.5">{zone.description}</p>}
           </div>
+          {activeTemplateName && (
+            <span
+              className="text-xs font-semibold px-2.5 py-0.5 rounded-full ml-1 border"
+              style={{
+                borderColor: templateFilter === 'other' ? 'var(--color-border)' : `${templates.find(tp => tp.id === templateFilter)?.color || '#3B82F6'}40`,
+                backgroundColor: templateFilter === 'other' ? 'var(--color-bg-surface-alt)' : `${templates.find(tp => tp.id === templateFilter)?.color || '#3B82F6'}15`,
+                color: templateFilter === 'other' ? 'var(--color-text-muted)' : (templates.find(tp => tp.id === templateFilter)?.color || '#3B82F6'),
+              }}
+            >
+              {activeTemplateName}
+            </span>
+          )}
           <span className="text-xs th-text-muted th-bg-surface-alt px-2 py-0.5 rounded-full ml-1" style={{ backgroundColor: 'var(--color-bg-surface-alt)' }}>{zoneSites.length} sites</span>
         </div>
         <div className="flex items-center gap-2">
@@ -279,11 +305,10 @@ const ZoneSites = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {zoneSites.map(site => {
             const id = site.siteId || site.id || site._id;
-            const metrics = siteMetrics[id] || { loading: true, health: site.healthScore ?? null, alerts: site.alertsCount || 0, alertsDetail: site.alertsDetail || {} };
+            const metrics = siteMetrics[id] || { loading: true, health: site.healthScore ?? null, activeAlerts: 0, activeAlertsDetail: {}, hasHistoricalAlerts: false };
             const healthScore = metrics.health;
-            const alertsCount = metrics.alerts;
+            const activeAlerts = metrics.activeAlerts || 0;
             const healthLabel = healthScore === null ? 'None' : (healthScore >= 67 ? t('zones.sites.card_health_good') : healthScore >= 34 ? t('zones.sites.card_health_fair') : t('zones.sites.card_health_poor'));
-            const isUp = site.status === 'up';
 
             return (
               <div
@@ -291,8 +316,8 @@ const ZoneSites = () => {
                 onClick={() => { if (prefetchTimerRef.current) clearTimeout(prefetchTimerRef.current); navigate(`/site/${id}`); }}
                 onMouseEnter={() => { prefetchTimerRef.current = setTimeout(() => prefetchSite(id), 150); }}
                 onMouseLeave={() => { if (prefetchTimerRef.current) clearTimeout(prefetchTimerRef.current); }}
-                className={`th-bg-surface-alt rounded-xl p-4 cursor-pointer hover:th-bg-elevated hover:shadow-lg transition-all border-l-4 ${isUp ? 'border-emerald-500' : 'border-rose-500'} flex flex-col justify-between min-h-[160px] group`}
-                style={{ backgroundColor: 'var(--color-bg-surface-alt)' }}
+                className="th-bg-surface-alt rounded-xl p-4 cursor-pointer hover:th-bg-elevated hover:shadow-lg transition-all border-l-4 border-transparent flex flex-col justify-between min-h-[160px] group"
+                style={{ backgroundColor: 'var(--color-bg-surface-alt)', borderLeftColor: healthScore === null ? 'var(--color-border)' : (healthScore >= 67 ? '#10b981' : healthScore >= 34 ? '#f59e0b' : '#f43f5e') }}
               >
                 <div className="flex justify-between items-start mb-2">
                   <div className="flex flex-col truncate pr-2">
@@ -307,9 +332,6 @@ const ZoneSites = () => {
                     ) : (
                       <span className="text-[8px] font-black uppercase tracking-widest th-text-muted mt-1 opacity-50">GENERAL</span>
                     )}
-                  </div>
-                  <div className="p-1.5 th-bg-elevated rounded-md shrink-0" style={{ backgroundColor: 'var(--color-bg-elevated)' }}>
-                    {isUp ? <Wifi size={14} className="text-emerald-400" /> : <WifiOff size={14} className="text-rose-400" />}
                   </div>
                 </div>
 
@@ -347,105 +369,111 @@ const ZoneSites = () => {
                   <div className="flex items-center gap-2">
                     {metrics.loading ? (
                       <div className="w-3 h-3 rounded-full border-2 border-slate-600 border-t-slate-400 animate-spin" />
-                    ) : (
+                    ) : activeAlerts > 0 ? (
                       <>
-                        <span className={`text-sm font-bold ${alertsCount > 0 ? 'text-rose-400' : 'th-text-muted'}`}>
-                          {alertsCount} {t('zones.sites.card_alerts_label')}
+                        <AlertTriangle size={14} className="text-rose-400" />
+                        <span className="text-sm font-bold text-rose-400">
+                          {activeAlerts} {t('zones.sites.card_alerts_label')}
                         </span>
-                        {alertsCount > 0 && metrics.alertsDetail && (
+                        {metrics.activeAlertsDetail && (
                           <div className="flex gap-1 text-[8px] font-bold">
-                            {(metrics.alertsDetail.major || metrics.alertsDetail.Major) > 0 && <span className="text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">M:{(metrics.alertsDetail.major || metrics.alertsDetail.Major)}</span>}
-                            {(metrics.alertsDetail.minor || metrics.alertsDetail.Minor) > 0 && <span className="text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">m:{(metrics.alertsDetail.minor || metrics.alertsDetail.Minor)}</span>}
+                            {(metrics.activeAlertsDetail.major || metrics.activeAlertsDetail.Major) > 0 && <span className="text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">M:{(metrics.activeAlertsDetail.major || metrics.activeAlertsDetail.Major)}</span>}
+                            {(metrics.activeAlertsDetail.minor || metrics.activeAlertsDetail.Minor) > 0 && <span className="text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">m:{(metrics.activeAlertsDetail.minor || metrics.activeAlertsDetail.Minor)}</span>}
                           </div>
                         )}
                       </>
-                    )}
+                    ) : null}
                   </div>
-                  {isUp ? <ChevronRight size={14} className="th-text-muted group-hover:th-text-secondary transition-colors" /> : <CloudOff size={14} className="text-rose-500" />}
+                  <ChevronRight size={14} className="th-text-muted group-hover:th-text-secondary transition-colors" />
                 </div>
               </div>
             );
           })}
         </div>
       ) : (
-        <div className="th-bg-surface rounded-xl border th-border overflow-hidden" style={{ backgroundColor: 'var(--color-bg-surface)', borderColor: 'var(--color-border)' }}>
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="th-bg-surface-alt th-text-muted border-b th-border" style={{ backgroundColor: 'var(--color-bg-surface-alt)', borderBottomColor: 'var(--color-border)' }}>
-              <tr>
-                <th className="px-6 py-4 font-bold">Site Name</th>
-                <th className="px-6 py-4 font-bold text-center">Status</th>
-                <th className="px-6 py-4 font-bold text-center">Health %</th>
-                <th className="px-6 py-4 font-bold">Active Alerts</th>
-                <th className="px-6 py-4 font-bold">Role</th>
-                <th className="px-6 py-4"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y" style={{ '--tw-divide-color': 'var(--color-border)' }}>
-              {zoneSites.map(site => {
-                const id = site.siteId || site.id || site._id;
-                const metrics = siteMetrics[id] || { loading: true, health: site.healthScore ?? null, alerts: site.alertsCount || 0, alertsDetail: site.alertsDetail || {} };
-                const healthScore = metrics.health;
-                const alertsCount = metrics.alerts;
-                const healthColor = healthScore === null ? 'th-text-muted' : (healthScore >= 67 ? 'text-emerald-500' : healthScore >= 34 ? 'text-yellow-500' : 'text-rose-500');
-                const isUp = site.status === 'up';
-                return (
-                  <tr key={id} onClick={() => navigate(`/site/${id}`)} onMouseEnter={() => prefetchSite(id)} className="hover:th-bg-surface-alt cursor-pointer transition-colors group">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full ${isUp ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' : 'bg-rose-500'}`} />
-                        <div className="flex flex-col">
-                            <span className="font-bold th-text-primary text-base leading-tight">{site.siteName || site.name || id}</span>
-                            {site.template ? (
-                                <span 
-                                    className="px-1 py-0.5 rounded text-[7px] font-black uppercase tracking-widest border w-fit mt-1"
-                                    style={{ borderColor: `${site.template.color}40`, backgroundColor: `${site.template.color}10`, color: site.template.color }}
-                                >
-                                    {site.template.name}
-                                </span>
-                            ) : (
-                                <span className="text-[7px] font-black uppercase tracking-widest th-text-muted mt-1 opacity-50">GENERAL</span>
-                            )}
-                        </div>
-                      </div>
-                    </td>
+        <div className="flex flex-col gap-3">
+          {zoneSites.map(site => {
+            const id = site.siteId || site.id || site._id;
+            const metrics = siteMetrics[id] || { loading: true, health: site.healthScore ?? null, activeAlerts: 0, activeAlertsDetail: {}, hasHistoricalAlerts: false };
+            const healthScore = metrics.health;
+            const activeAlerts = metrics.activeAlerts || 0;
+            const healthLabel = healthScore === null ? 'None' : (healthScore >= 67 ? t('zones.sites.card_health_good') : healthScore >= 34 ? t('zones.sites.card_health_fair') : t('zones.sites.card_health_poor'));
 
-                    <td className="px-6 py-4 text-center">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${isUp ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>{isUp ? 'Online' : 'Offline'}</span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <span className={`text-base font-black ${healthColor}`}>{healthScore !== null ? `${Math.round(healthScore)}%` : '—'}</span>
-                        {healthScore !== null && (
-                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${
-                            healthScore >= 67
-                              ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                              : healthScore >= 34
-                              ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                              : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
-                          }`}>
-                            {healthScore >= 67 ? t('zones.sites.card_health_good') : healthScore >= 34 ? t('zones.sites.card_health_fair') : t('zones.sites.card_health_poor')}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <span className={`font-black text-base ${alertsCount > 0 ? 'text-rose-500' : 'th-text-primary'}`}>{alertsCount}</span>
-                        {alertsCount > 0 && metrics.alertsDetail && (
-                          <div className="flex gap-1.5 text-[9px] font-bold">
-                            {(metrics.alertsDetail.major || metrics.alertsDetail.Major) > 0 && <span className="text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded-md border border-rose-500/20">MAJOR: {(metrics.alertsDetail.major || metrics.alertsDetail.Major)}</span>}
-                            {(metrics.alertsDetail.minor || metrics.alertsDetail.Minor) > 0 && <span className="text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-md border border-amber-500/20">MINOR: {(metrics.alertsDetail.minor || metrics.alertsDetail.Minor)}</span>}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 th-text-muted font-mono text-xs uppercase">{site.internal_app_role || site.role || 'Site'}</td>
-                    <td className="px-6 py-4 text-right"><ChevronRight size={18} className="th-text-muted group-hover:th-text-primary transition-colors ml-auto" /></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+            return (
+              <div
+                key={id}
+                onClick={() => { if (prefetchTimerRef.current) clearTimeout(prefetchTimerRef.current); navigate(`/site/${id}`); }}
+                onMouseEnter={() => { prefetchTimerRef.current = setTimeout(() => prefetchSite(id), 150); }}
+                onMouseLeave={() => { if (prefetchTimerRef.current) clearTimeout(prefetchTimerRef.current); }}
+                className="th-bg-surface-alt rounded-xl px-5 py-4 cursor-pointer hover:th-bg-elevated hover:shadow-lg transition-all border-l-4 border-transparent group flex items-center gap-6"
+                style={{ backgroundColor: 'var(--color-bg-surface-alt)', borderLeftColor: healthScore === null ? 'var(--color-border)' : (healthScore >= 67 ? '#10b981' : healthScore >= 34 ? '#f59e0b' : '#f43f5e') }}
+              >
+                {/* Site Name + Template */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold th-text-primary truncate">{site.siteName || site.name || id}</h3>
+                  </div>
+                  {site.template ? (
+                    <span
+                      className="px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest border w-fit mt-1 inline-block"
+                      style={{ borderColor: `${site.template.color}40`, backgroundColor: `${site.template.color}10`, color: site.template.color }}
+                    >
+                      {site.template.name}
+                    </span>
+                  ) : (
+                    <span className="text-[7px] font-black uppercase tracking-widest th-text-muted mt-1 opacity-50 inline-block">GENERAL</span>
+                  )}
+                </div>
+
+                {/* Health Score */}
+                <div className="flex items-center gap-3 min-w-[140px] justify-center">
+                  {metrics.loading && healthScore === null ? (
+                    <div className="w-4 h-4 rounded-full border-2 border-slate-600 border-t-slate-400 animate-spin" />
+                  ) : (
+                    <>
+                      <span className={`text-xl font-black leading-none ${healthScore === null ? 'th-text-muted' : healthScore >= 67 ? 'text-emerald-400' : healthScore >= 34 ? 'text-amber-400' : 'text-rose-400'}`}>
+                        {healthScore !== null ? `${healthScore}%` : '—'}
+                      </span>
+                      {!metrics.loading && healthScore !== null && (
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${
+                          healthScore >= 67
+                            ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                            : healthScore >= 34
+                            ? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                            : 'bg-rose-500/15 text-rose-400 border-rose-500/30'
+                        }`}>
+                          {healthLabel}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Alerts */}
+                <div className="flex items-center gap-2 min-w-[120px]">
+                  {metrics.loading ? (
+                    <div className="w-3 h-3 rounded-full border-2 border-slate-600 border-t-slate-400 animate-spin" />
+                  ) : activeAlerts > 0 ? (
+                    <>
+                      <AlertTriangle size={13} className="text-rose-400" />
+                      <span className="text-sm font-bold text-rose-400">
+                        {activeAlerts} {t('zones.sites.card_alerts_label')}
+                      </span>
+                      {metrics.activeAlertsDetail && (
+                        <div className="flex gap-1 text-[8px] font-bold">
+                          {(metrics.activeAlertsDetail.major || metrics.activeAlertsDetail.Major) > 0 && <span className="text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">M:{(metrics.activeAlertsDetail.major || metrics.activeAlertsDetail.Major)}</span>}
+                          {(metrics.activeAlertsDetail.minor || metrics.activeAlertsDetail.Minor) > 0 && <span className="text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">m:{(metrics.activeAlertsDetail.minor || metrics.activeAlertsDetail.Minor)}</span>}
+                        </div>
+                      )}
+                    </>
+                  ) : null}
+                </div>
+
+                {/* Arrow */}
+                <ChevronRight size={16} className="th-text-muted group-hover:th-text-secondary transition-colors shrink-0" />
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

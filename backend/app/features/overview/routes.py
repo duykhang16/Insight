@@ -86,6 +86,28 @@ async def get_site_inventory(
     return await overview_service.get_site_inventory(site_id, master_token)
 
 
+@router.get("/sites/{site_id}/alert-notification")
+async def get_alert_notification(
+    site_id: str,
+    hours: int = 24,
+    user: Dict[str, Any] = Depends(get_current_insight_user),
+    master_token: str = Depends(require_master_token),
+):
+    """Get unread alert notification count for this user + site."""
+    return await overview_service.get_alert_notification(
+        site_id, user["email"], master_token, hours
+    )
+
+
+@router.post("/sites/{site_id}/alert-notification/read")
+async def mark_alerts_read(
+    site_id: str,
+    user: Dict[str, Any] = Depends(get_current_insight_user),
+):
+    """Mark alerts as read for this user + site."""
+    return await overview_service.mark_alerts_read(site_id, user["email"])
+
+
 @router.get("/sites/{site_id}/{sub_path:path}")
 async def proxy_site_endpoint(
     site_id: str,
@@ -105,3 +127,4 @@ async def proxy_site_endpoint(
         raise HTTPException(status_code=response.status_code, detail="Aruba API error.")
 
     return response.json()
+
