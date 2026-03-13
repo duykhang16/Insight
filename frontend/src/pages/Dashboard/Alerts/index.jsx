@@ -5,6 +5,9 @@ import { useSite } from '../../../context/SiteContext';
 import { useSettings } from '../../../context/SettingsContext';
 import useIntervalFetch from '../../../hooks/useIntervalFetch';
 import { useLanguage } from '../../../context/LanguageContext';
+import {
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table';
 
 // --- Helpers ---
 const formatTimestamp = (unixSec) => {
@@ -29,44 +32,34 @@ const formatDuration = (totalSeconds) => {
     return hrs > 0 ? `${days}d ${hrs}h ago` : `${days} days ago`;
 };
 
-const getClientName = (alert) =>
-    alert.alertTypeProperties?.clientName ||
-    alert.alertTypeProperties?.deviceName ||
-    alert.alertTypeProperties?.apName ||
-    alert.alertTypeProperties?.switchName ||
-    alert.alertTypeProperties?.gatewayName ||
-    alert.deviceName ||
-    alert.apName ||
-    alert.switchName ||
-    alert.siteName ||
-    null;
+const getClientName = (alert) => alert.target || null;
 
 // --- Sub-components ---
 const StatusDot = ({ isActive }) => (
     isActive ? (
-        <span className="relative flex h-3 w-3 mt-0.5 flex-shrink-0">
+        <span className="relative flex h-2.5 w-2.5 shrink-0">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-60" />
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
         </span>
     ) : (
-        <CheckCircle2 size={14} className="text-slate-500 flex-shrink-0 mt-0.5" />
+        <CheckCircle2 size={13} className="text-slate-500 shrink-0" />
     )
 );
 
 const SeverityBadge = ({ severity }) => {
     const s = severity?.toLowerCase();
     if (s === 'major') return (
-        <span className="px-2 py-0.5 text-[9px] font-black tracking-widest uppercase rounded bg-rose-500/20 text-rose-400 border border-rose-500/30">
+        <span className="px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase rounded bg-rose-500/20 text-rose-400 border border-rose-500/30">
             MAJOR
         </span>
     );
     if (s === 'minor') return (
-        <span className="px-2 py-0.5 text-[9px] font-black tracking-widest uppercase rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+        <span className="px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
             MINOR
         </span>
     );
     return (
-        <span className="px-2 py-0.5 text-[9px] font-black tracking-widest uppercase rounded bg-slate-700 text-slate-400 border border-white/5">
+        <span className="px-2 py-0.5 text-[9px] font-bold tracking-wider uppercase rounded bg-slate-700 text-slate-400 border border-white/5">
             {severity || 'INFO'}
         </span>
     );
@@ -75,10 +68,11 @@ const SeverityBadge = ({ severity }) => {
 const FilterChip = ({ label, active, onClick }) => (
     <button
         onClick={onClick}
-        className={`h-9 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${active
-            ? 'bg-indigo-600 border-indigo-500 th-text-primary shadow-lg shadow-indigo-500/20'
-            : 'th-bg-surface border-white/5 text-slate-400 hover:th-text-primary hover:border-white/20'
-            }`}
+        className={`h-8 px-3 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border ${
+            active
+                ? 'bg-indigo-600 border-indigo-500 th-text-primary shadow-lg shadow-indigo-500/20'
+                : 'th-bg-surface border-white/5 text-slate-400 hover:th-text-primary hover:border-white/20'
+        }`}
     >
         {label}
     </button>
@@ -92,17 +86,13 @@ const Alerts = () => {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [error, setError] = useState('');
     const [lastUpdated, setLastUpdated] = useState(null);
-
-    // Filters
-    const [severityFilter, setSeverityFilter] = useState('all');   // 'all' | 'major' | 'minor'
-    const [statusFilter, setStatusFilter] = useState('all');   // 'all' | 'active' | 'cleared'
+    const [severityFilter, setSeverityFilter] = useState('all');
+    const [statusFilter, setStatusFilter] = useState('all');
 
     const { selectedSiteId, sites, fetchSites } = useSite();
     const { isAutoRefreshEnabled } = useSettings();
-
     const selectedSite = sites.find(s => s.siteId === selectedSiteId);
 
-    // Build alert type map using translation keys
     const ALERT_TYPE_MAP = {
         'watchlistEntityDown': t('site.alerts.alert_type_watchlist_entity_down'),
         'siteDown': t('site.alerts.alert_type_site_down'),
@@ -115,13 +105,8 @@ const Alerts = () => {
     };
     const getAlertLabel = (type) => ALERT_TYPE_MAP[type] || type || 'Unknown Alert';
 
-    useEffect(() => {
-        if (sites.length === 0) fetchSites();
-    }, []);
-
-    useEffect(() => {
-        if (selectedSiteId) fetchAlerts();
-    }, [selectedSiteId]);
+    useEffect(() => { if (sites.length === 0) fetchSites(); }, []);
+    useEffect(() => { if (selectedSiteId) fetchAlerts(); }, [selectedSiteId]);
 
     const fetchAlerts = async (silent = false) => {
         if (!selectedSiteId) return;
@@ -130,15 +115,7 @@ const Alerts = () => {
         setError('');
         try {
             const res = await apiClient.get(`/overview/sites/${selectedSiteId}/alerts`);
-            console.log('[Alerts] Raw response:', res.data);
-
-            // Aruba returns { elements: [...] } or a bare array
-            const elements = Array.isArray(res.data)
-                ? res.data
-                : (res.data?.elements || res.data?.alerts || []);
-
-            console.log(`[Alerts] Parsed ${elements.length} alerts for site ${selectedSiteId}`);
-            setRawAlerts(elements);
+            setRawAlerts(Array.isArray(res.data) ? res.data : []);
             setLastUpdated(new Date());
         } catch (err) {
             console.error('[Alerts] Fetch error:', err);
@@ -149,227 +126,254 @@ const Alerts = () => {
         }
     };
 
-    // 60s auto-poll
     useIntervalFetch(() => {
         if (selectedSiteId && !loading) fetchAlerts(true);
     }, isAutoRefreshEnabled ? 60000 : null, [selectedSiteId, loading, isAutoRefreshEnabled]);
 
-    // Apply UI filters
     const displayAlerts = useMemo(() => {
         let result = [...rawAlerts];
-        if (severityFilter !== 'all')
-            result = result.filter(a => a.severity?.toLowerCase() === severityFilter);
-        if (statusFilter === 'active')
-            result = result.filter(a => a.clearedTime == null);
-        if (statusFilter === 'cleared')
-            result = result.filter(a => a.clearedTime != null);
-        // Sort: active first, then by raisedTime desc
-        result.sort((a, b) => {
-            const aActive = a.clearedTime == null ? 1 : 0;
-            const bActive = b.clearedTime == null ? 1 : 0;
-            if (bActive !== aActive) return bActive - aActive;
-            return (b.raisedTime || 0) - (a.raisedTime || 0);
-        });
+        if (severityFilter !== 'all') result = result.filter(a => a.severity?.toLowerCase() === severityFilter);
+        if (statusFilter === 'active') result = result.filter(a => a.clearedTime == null);
+        if (statusFilter === 'cleared') result = result.filter(a => a.clearedTime != null);
         return result;
     }, [rawAlerts, severityFilter, statusFilter]);
 
     const activeCount = rawAlerts.filter(a => a.clearedTime == null).length;
     const majorCount = rawAlerts.filter(a => a.severity?.toLowerCase() === 'major').length;
 
+    // ── Mobile card ──
+    const renderCard = (alert) => {
+        const isActive = alert.clearedTime == null;
+        const clientName = getClientName(alert);
+
+        return (
+            <div key={alert.id || alert.raisedTime} className={`th-bg-surface border th-border rounded-xl p-4 space-y-3 ${isActive ? 'border-l-2 border-l-rose-500/50' : ''}`}>
+                {/* Top: status + severity */}
+                <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <StatusDot isActive={isActive} />
+                        <div className="min-w-0">
+                            <p className="font-bold th-text-primary text-sm truncate">{getAlertLabel(alert.type)}</p>
+                            {alert.description && (
+                                <p className="text-[10px] text-slate-500 font-mono truncate mt-0.5">{alert.description}</p>
+                            )}
+                        </div>
+                    </div>
+                    <SeverityBadge severity={alert.severity} />
+                </div>
+
+                {/* Details grid */}
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                    <div>
+                        <span className="text-[10px] text-slate-500 uppercase tracking-wider">{t('site.alerts.table_header_target')}</span>
+                        <div className="flex items-center gap-1">
+                            {clientName ? (
+                                <>
+                                    <User size={10} className="text-slate-500" />
+                                    <span className="th-text-secondary font-mono text-[11px] truncate">{clientName}</span>
+                                </>
+                            ) : <span className="text-slate-600">—</span>}
+                        </div>
+                    </div>
+                    <div>
+                        <span className="text-[10px] text-slate-500 uppercase tracking-wider">{t('site.alerts.table_header_status')}</span>
+                        {isActive ? (
+                            <div className="flex items-center gap-1 text-[10px] font-bold uppercase text-rose-400">
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                                {t('site.alerts.alert_status_active')}
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-1 text-[10px] font-bold uppercase text-slate-500">
+                                <CheckCircle2 size={10} />
+                                {t('site.alerts.alert_status_cleared')}
+                            </div>
+                        )}
+                    </div>
+                    <div>
+                        <span className="text-[10px] text-slate-500 uppercase tracking-wider">{t('site.alerts.table_header_time_raised')}</span>
+                        <div className="text-slate-400 font-mono text-[11px]">{formatTimestamp(alert.raisedTime)}</div>
+                    </div>
+                    <div>
+                        <span className="text-[10px] text-slate-500 uppercase tracking-wider">{t('site.alerts.table_header_duration')}</span>
+                        <div className="flex items-center gap-1 text-slate-400 text-[11px]">
+                            <Clock size={10} className="text-slate-600" />
+                            {formatDuration(alert.secondsSinceRaised)}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     return (
-        <div className="p-8 pb-32 font-sans overflow-hidden th-bg-base min-h-screen">
+        <div className="p-4 md:p-8 pb-32 font-sans overflow-hidden th-bg-base min-h-screen">
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-3">
                 <div>
-                    <h1 className="text-2xl font-black th-text-primary tracking-tight italic uppercase">{t('site.alerts.title')}</h1>
-                    <p className="text-sm text-slate-400 mt-1">
+                    <h1 className="text-xl font-black th-text-primary tracking-tight italic uppercase">{t('site.alerts.title')}</h1>
+                    <p className="text-sm text-slate-400 mt-0.5">
                         {t('site.alerts.subtitle')} {selectedSite?.siteName || 'current site'}
                     </p>
                 </div>
             </div>
 
             {/* Stats Row */}
-            <div className="flex flex-wrap gap-3 mb-6">
-                <div className="th-bg-surface border border-white/5 rounded-2xl h-14 px-5 flex items-center gap-3 shadow-xl">
-                    <Bell size={16} className="text-indigo-400" />
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            <div className="flex flex-wrap gap-2 mb-5">
+                <div className="th-bg-surface border border-white/5 rounded-xl h-11 px-4 flex items-center gap-2 shadow-lg">
+                    <Bell size={14} className="text-indigo-400" />
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                         {rawAlerts.length} {t('site.alerts.stats_total_label')}
                     </span>
                 </div>
-                <div className="th-bg-surface border border-white/5 rounded-2xl h-14 px-5 flex items-center gap-3 shadow-xl">
-                    <span className="relative flex h-2.5 w-2.5">
+                <div className="th-bg-surface border border-white/5 rounded-xl h-11 px-4 flex items-center gap-2 shadow-lg">
+                    <span className="relative flex h-2 w-2">
                         {activeCount > 0 && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-60" />}
-                        <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${activeCount > 0 ? 'bg-rose-500' : 'bg-slate-600'}`} />
+                        <span className={`relative inline-flex rounded-full h-2 w-2 ${activeCount > 0 ? 'bg-rose-500' : 'bg-slate-600'}`} />
                     </span>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                         {activeCount} {t('site.alerts.stats_active_label')}
                     </span>
                 </div>
-                <div className="th-bg-surface border border-white/5 rounded-2xl h-14 px-5 flex items-center gap-3 shadow-xl">
-                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500/70 flex-shrink-0" />
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <div className="th-bg-surface border border-white/5 rounded-xl h-11 px-4 flex items-center gap-2 shadow-lg">
+                    <span className="w-2 h-2 rounded-full bg-rose-500/70 shrink-0" />
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                         {majorCount} {t('site.alerts.stats_major_label')}
                     </span>
                 </div>
             </div>
 
             {/* Filter Toolbar */}
-            <div className="flex flex-wrap items-center gap-3 mb-6">
-                <div className="flex items-center gap-2">
-                    <Filter size={14} className="text-slate-500" />
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('site.alerts.filter_severity_label')}</span>
+            <div className="flex flex-wrap items-center gap-2 mb-5">
+                <div className="flex items-center gap-1.5">
+                    <Filter size={12} className="text-slate-500" />
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('site.alerts.filter_severity_label')}</span>
                 </div>
                 <FilterChip label={t('site.alerts.filter_all')} active={severityFilter === 'all'} onClick={() => setSeverityFilter('all')} />
                 <FilterChip label={t('site.alerts.filter_major')} active={severityFilter === 'major'} onClick={() => setSeverityFilter('major')} />
                 <FilterChip label={t('site.alerts.filter_minor')} active={severityFilter === 'minor'} onClick={() => setSeverityFilter('minor')} />
 
-                <div className="w-px h-6 bg-white/10 mx-2" />
+                <div className="w-px h-5 bg-white/10 mx-1 hidden sm:block" />
 
-                <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('site.alerts.filter_status_label')}</span>
+                <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{t('site.alerts.filter_status_label')}</span>
                 </div>
                 <FilterChip label={t('site.alerts.filter_all')} active={statusFilter === 'all'} onClick={() => setStatusFilter('all')} />
                 <FilterChip label={t('site.alerts.filter_active')} active={statusFilter === 'active'} onClick={() => setStatusFilter('active')} />
                 <FilterChip label={t('site.alerts.filter_cleared')} active={statusFilter === 'cleared'} onClick={() => setStatusFilter('cleared')} />
             </div>
 
-            {/* Error */}
             {error && (
-                <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-center gap-3 text-rose-400">
-                    <AlertCircle size={20} />
-                    <span className="text-sm font-bold">{error}</span>
+                <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center gap-3 text-rose-400">
+                    <AlertCircle size={16} />
+                    <span className="text-sm font-medium">{error}</span>
                 </div>
             )}
 
-            {/* Table */}
-            <div className="th-bg-surface rounded-[2.5rem] shadow-2xl border border-white/5 overflow-hidden w-full">
-                <div className="max-h-[calc(100vh-300px)] overflow-auto custom-scrollbar">
-                    <table className="w-full min-w-[900px] text-left text-sm whitespace-nowrap">
-                        <thead className="text-slate-500 border-b border-white/5 sticky top-0 z-10 th-bg-surface">
-                            <tr>
-                                <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px] w-10" />
-                                <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px]">{t('site.alerts.table_header_alert')}</th>
-                                <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px]">{t('site.alerts.table_header_severity')}</th>
-                                <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px]">{t('site.alerts.table_header_target')}</th>
-                                <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px]">{t('site.alerts.table_header_time_raised')}</th>
-                                <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px]">{t('site.alerts.table_header_duration')}</th>
-                                <th className="px-6 py-5 font-black uppercase tracking-widest text-[10px]">{t('site.alerts.table_header_status')}</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5 th-text-secondary">
-                            {/* Skeleton rows while loading */}
-                            {loading && Array.from({ length: 5 }).map((_, i) => (
-                                <tr key={`skel-${i}`} className="animate-pulse">
-                                    <td className="px-6 py-4"><div className="w-3 h-3 rounded-full bg-slate-700 mx-auto" /></td>
-                                    <td className="px-6 py-4"><div className="h-3 th-bg-elevated rounded w-48" /></td>
-                                    <td className="px-6 py-4"><div className="h-4 th-bg-elevated rounded w-16" /></td>
-                                    <td className="px-6 py-4"><div className="h-3 th-bg-elevated rounded w-32" /></td>
-                                    <td className="px-6 py-4"><div className="h-3 th-bg-elevated rounded w-36" /></td>
-                                    <td className="px-6 py-4"><div className="h-3 th-bg-elevated rounded w-20" /></td>
-                                    <td className="px-6 py-4"><div className="h-4 th-bg-elevated rounded w-20" /></td>
-                                </tr>
-                            ))}
-
-                            {/* Alert rows */}
-                            {!loading && displayAlerts.map((alert) => {
-                                const isActive = alert.clearedTime == null;
-                                const clientName = getClientName(alert);
-                                return (
-                                    <tr
-                                        key={alert.id || alert.raisedTime}
-                                        className={`transition-colors hover:bg-white/[0.02] ${isActive ? 'border-l-2 border-rose-500/50' : ''}`}
-                                    >
-                                        {/* Status dot */}
-                                        <td className="px-6 py-4">
-                                            <div className="flex justify-center">
-                                                <StatusDot isActive={isActive} />
-                                            </div>
-                                        </td>
-
-                                        {/* Alert description */}
-                                        <td className="px-6 py-4">
-                                            <p className="font-bold th-text-primary text-sm">
-                                                {getAlertLabel(alert.type)}
-                                            </p>
-                                            {alert.description && (
-                                                <p className="text-[11px] text-slate-500 mt-0.5 font-mono">
-                                                    {alert.description}
-                                                </p>
-                                            )}
-                                        </td>
-
-                                        {/* Severity */}
-                                        <td className="px-6 py-4">
-                                            <SeverityBadge severity={alert.severity} />
-                                        </td>
-
-                                        {/* Target device/client */}
-                                        <td className="px-6 py-4">
-                                            {clientName ? (
-                                                <div className="flex items-center gap-2">
-                                                    <User size={12} className="text-slate-500 flex-shrink-0" />
-                                                    <span className="th-text-secondary font-mono text-xs">{clientName}</span>
-                                                </div>
-                                            ) : (
-                                                <span className="text-slate-600">—</span>
-                                            )}
-                                        </td>
-
-                                        {/* Time raised */}
-                                        <td className="px-6 py-4">
-                                            <span className="text-slate-400 font-mono text-xs">
-                                                {formatTimestamp(alert.raisedTime)}
-                                            </span>
-                                        </td>
-
-                                        {/* Duration since raised */}
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-1.5 text-slate-400 text-xs">
-                                                <Clock size={11} className="text-slate-600" />
-                                                {formatDuration(alert.numberOfSecondsSinceRaised)}
-                                            </div>
-                                        </td>
-
-                                        {/* Status label */}
-                                        <td className="px-6 py-4">
-                                            {isActive ? (
-                                                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-rose-400">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                                                    {t('site.alerts.alert_status_active')}
-                                                </span>
-                                            ) : (
-                                                <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                                                    <CheckCircle2 size={11} />
-                                                    {t('site.alerts.alert_status_cleared')}
-                                                </span>
-                                            )}
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-
-                            {/* Empty state */}
-                            {!loading && displayAlerts.length === 0 && (
-                                <tr>
-                                    <td colSpan="7" className="px-6 py-24 text-center text-slate-500">
-                                        <div className="flex flex-col items-center">
-                                            <div className="p-6 th-bg-elevated rounded-3xl mb-6 opacity-20">
-                                                <Bell size={64} className="text-slate-400" />
-                                            </div>
-                                            <p className="text-xl font-black text-slate-700 uppercase tracking-[0.2em]">{t('site.alerts.empty_state_title')}</p>
-                                            <p className="text-xs text-slate-600 mt-3 font-bold uppercase tracking-widest">
-                                                {rawAlerts.length > 0
-                                                    ? t('site.alerts.empty_state_filters')
-                                                    : t('site.alerts.empty_state_operational')}
-                                            </p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+            {/* Loading */}
+            {loading && (
+                <div className="flex items-center justify-center py-16">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-indigo-500" />
                 </div>
-            </div>
+            )}
+
+            {/* Mobile cards */}
+            {!loading && (
+                <div className="md:hidden space-y-3">
+                    {displayAlerts.length === 0 ? (
+                        <div className="text-center py-12">
+                            <Bell size={40} className="mx-auto mb-3 opacity-10" />
+                            <p className="text-sm font-bold text-slate-600 uppercase tracking-wider">{t('site.alerts.empty_state_title')}</p>
+                            <p className="text-xs text-slate-600 mt-1">
+                                {rawAlerts.length > 0 ? t('site.alerts.empty_state_filters') : t('site.alerts.empty_state_operational')}
+                            </p>
+                        </div>
+                    ) : displayAlerts.map(alert => renderCard(alert))}
+                </div>
+            )}
+
+            {/* Desktop table */}
+            {!loading && (
+                <div className="hidden md:block">
+                    <div className="th-bg-surface rounded-xl border border-white/5 overflow-hidden shadow-xl">
+                        <div className="max-h-[calc(100vh-300px)] overflow-auto custom-scrollbar">
+                            <Table>
+                                <TableHeader className="table-header-sticky">
+                                    <TableRow className="th-bg-surface-alt hover:bg-transparent border-b border-white/5">
+                                        <TableHead className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 w-10" />
+                                        <TableHead className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('site.alerts.table_header_alert')}</TableHead>
+                                        <TableHead className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('site.alerts.table_header_severity')}</TableHead>
+                                        <TableHead className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('site.alerts.table_header_target')}</TableHead>
+                                        <TableHead className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('site.alerts.table_header_time_raised')}</TableHead>
+                                        <TableHead className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('site.alerts.table_header_duration')}</TableHead>
+                                        <TableHead className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">{t('site.alerts.table_header_status')}</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {displayAlerts.map((alert) => {
+                                        const isActive = alert.clearedTime == null;
+                                        const clientName = getClientName(alert);
+                                        return (
+                                            <TableRow
+                                                key={alert.id || alert.raisedTime}
+                                                className={`transition-colors ${isActive ? 'border-l-2 border-l-rose-500/50' : ''}`}
+                                            >
+                                                <TableCell className="px-4 py-3">
+                                                    <div className="flex justify-center"><StatusDot isActive={isActive} /></div>
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3">
+                                                    <p className="font-bold th-text-primary text-sm">{getAlertLabel(alert.type)}</p>
+                                                    {alert.description && <p className="text-[10px] text-slate-500 mt-0.5 font-mono">{alert.description}</p>}
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3"><SeverityBadge severity={alert.severity} /></TableCell>
+                                                <TableCell className="px-4 py-3">
+                                                    {clientName ? (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <User size={11} className="text-slate-500 shrink-0" />
+                                                            <span className="th-text-secondary font-mono text-xs">{clientName}</span>
+                                                        </div>
+                                                    ) : <span className="text-slate-600">—</span>}
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3 text-slate-400 font-mono text-xs">{formatTimestamp(alert.raisedTime)}</TableCell>
+                                                <TableCell className="px-4 py-3">
+                                                    <div className="flex items-center gap-1 text-slate-400 text-xs">
+                                                        <Clock size={10} className="text-slate-600" />
+                                                        {formatDuration(alert.secondsSinceRaised)}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="px-4 py-3">
+                                                    {isActive ? (
+                                                        <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-rose-400">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                                                            {t('site.alerts.alert_status_active')}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                                            <CheckCircle2 size={10} />
+                                                            {t('site.alerts.alert_status_cleared')}
+                                                        </span>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+
+                                    {displayAlerts.length === 0 && (
+                                        <TableRow>
+                                            <TableCell colSpan={7} className="px-6 py-16 text-center text-slate-500">
+                                                <Bell size={40} className="mx-auto mb-3 opacity-10" />
+                                                <p className="text-sm font-bold text-slate-600 uppercase tracking-wider">{t('site.alerts.empty_state_title')}</p>
+                                                <p className="text-xs text-slate-600 mt-2">
+                                                    {rawAlerts.length > 0 ? t('site.alerts.empty_state_filters') : t('site.alerts.empty_state_operational')}
+                                                </p>
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

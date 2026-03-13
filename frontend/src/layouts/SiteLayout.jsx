@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Outlet, useParams } from 'react-router-dom';
 import SiteSidebar from '../components/Sidebar/SiteSidebar';
 import { useSite } from '../context/SiteContext';
+import PageTransition from '../components/PageTransition';
 
 const SiteLayout = ({ onLogout, userRole }) => {
     const { siteId } = useParams();
@@ -19,7 +20,9 @@ const SiteLayout = ({ onLogout, userRole }) => {
             <div className="relative flex flex-col flex-1 overflow-y-auto overflow-x-hidden">
                 <main className="w-full flex-1">
                     <div className="w-full py-2">
-                        <Outlet />
+                        <PageTransition>
+                            <Outlet />
+                        </PageTransition>
                     </div>
                 </main>
             </div>

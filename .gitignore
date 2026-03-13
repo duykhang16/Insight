@@ -63,6 +63,8 @@ eslint_output.txt
 eslint_utf8.txt
 
 
-##CLAUDE
+##docs
 .claude/
 .agent/
+.gemini/
+docs/

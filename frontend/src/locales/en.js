@@ -13,18 +13,25 @@ export const en = {
         updated: "Updated:",
         awaiting_data: "Awaiting data...",
         auto_refresh_on: "Auto refresh is ON",
-        auto_refresh_off: "Auto refresh is OFF"
+        auto_refresh_off: "Auto refresh is OFF",
+        logout: "Log out"
     },
     login: {
         title: "INSIGHT",
         subtitle: "Portal Access",
         email: "Email Address",
+        email_subtitle: "Enter your email to continue",
         password: "Password",
         powered_by: "Powered by INSIGHT",
         sign_in: "Sign in",
+        continue: "Continue",
+        use_another_account: "Use a different account",
+        step_password_title: "Welcome back",
+        step_password_subtitle: "Enter your password to sign in",
         error_invalid: "Incorrect Username or Password. Please try again.",
         error_failed: "Login failed. Please check your credentials.",
-        verifying: "Verifying..."
+        verifying: "Verifying...",
+        checking_email: "Checking..."
     },
     sidebar: {
         dashboard: "Overview",
@@ -233,13 +240,79 @@ export const en = {
             loading: "Loading...",
             access_denied: "Access Denied: Admin role required.",
             fetch_failed: "Failed to fetch audit logs.",
-            table_timestamp: "Timestamp (GMT+7)",
+            table_timestamp: "Timestamp",
             table_actor: "Actor Email",
             table_action: "Action",
-            table_method: "Method",
-            table_endpoint: "Endpoint",
+            table_target: "Target",
             table_status: "Status",
-            no_logs: "No audit logs found"
+            status_success: "Success",
+            status_failed: "Failed",
+            no_logs: "No audit logs found",
+            actions: {
+                // Middleware — Cloner
+                "Clone Complete Config": "Clone Complete Config",
+                "Update PSK (Password)": "Update PSK (Password)",
+                "Sync SSID Config": "Sync SSID Config",
+                "Delete SSID": "Delete SSID",
+                "Create SSID": "Create SSID",
+                "Batch Site Delete": "Batch Site Delete",
+                "Batch Account Access": "Batch Account Access",
+                "Batch Site Provision": "Batch Site Provision",
+                // Middleware — Master
+                "Master Account Linked": "Master Account Linked",
+                "Master Account Unlinked": "Master Account Unlinked",
+                "Master Token Force Refreshed": "Master Token Force Refreshed",
+                // Middleware — Zones
+                "Zone Created": "Zone Created",
+                "Zone Deleted": "Zone Deleted",
+                "Zone Member Added": "Zone Member Added",
+                "Zone Member Removed": "Zone Member Removed",
+                "Zone Member Role Updated": "Zone Member Role Updated",
+                "Zone Sites Updated": "Zone Sites Updated",
+                // Fallback — Auth
+                "Login": "Login",
+                "Logout": "Logout",
+                "Token Refresh": "Token Refresh",
+                "Session Check": "Session Check",
+                "Set Password": "Set Password",
+                // Fallback — Users
+                "Create User": "Create User",
+                "Update User": "Update User",
+                "Delete User": "Delete User",
+                "Reset Password": "Reset Password",
+                // Fallback — Tenants
+                "Create Tenant": "Create Tenant",
+                "Update Tenant": "Update Tenant",
+                "Delete Tenant": "Delete Tenant",
+                "Assign Tenant Admin": "Assign Tenant Admin",
+                // Fallback — Permissions
+                "Update Role Permissions": "Update Role Permissions",
+                "View Role Permissions": "View Role Permissions",
+                // Fallback — Master
+                "Link Master Account": "Link Master Account",
+                "Unlink Master Account": "Unlink Master Account",
+                "Refresh Master Token": "Refresh Master Token",
+                // Fallback — Zones
+                "Create Zone": "Create Zone",
+                "Update Zone": "Update Zone",
+                "Delete Zone": "Delete Zone",
+                "Add Zone Member": "Add Zone Member",
+                "Remove Zone Member": "Remove Zone Member",
+                "Update Zone Member": "Update Zone Member",
+                "Update Zone Sites": "Update Zone Sites",
+                // Fallback — Cloner
+                "Sync Password": "Sync Password",
+                "Sync Config": "Sync Config",
+                "Clone Config": "Clone Config",
+                "Clone/Provision": "Clone/Provision",
+                // Generic
+                "View Data": "View Data",
+                "Create": "Create",
+                "Update": "Update",
+                "Delete": "Delete",
+                "System Interaction": "System Interaction",
+                "Unknown Action": "Unknown Action"
+            }
         },
         users: {
             title: "User Management",
@@ -296,8 +369,54 @@ export const en = {
             no_zones: "No zones yet. Create the first one!",
             unassigned_sites: "Unassigned Sites",
             all_sites_assigned: "All sites are assigned to zones",
-            delete_confirm: "Delete this zone? Sites will become unassigned.",
-            delete_failed: "Delete failed."
+            delete_failed: "Delete failed.",
+
+            // Save system
+            save_changes: "Save Changes",
+            saving: "Saving...",
+            save_success: "All changes saved successfully!",
+            no_changes: "No changes to save",
+
+            // Inline edit
+            edit_zone: "Edit zone",
+            delete_zone_tooltip: "Delete zone",
+            edit_name_placeholder: "Zone name",
+            edit_desc_placeholder: "Description (optional)",
+
+            // Delete modal
+            delete_title: "Delete Zone",
+            delete_zone_name: "Delete zone \"{name}\"?",
+            delete_warning: "This action cannot be undone.",
+            delete_impact_sites: "{count} site(s) will be unassigned from this zone",
+            delete_impact_members: "{count} member(s) will lose access to this zone",
+            delete_confirm_btn: "Delete Zone",
+            delete_cancel_btn: "Cancel",
+            deleting: "Deleting...",
+
+            // Unsaved guard
+            unsaved_title: "You have unsaved changes!",
+            unsaved_description: "If you leave, the following changes will be lost:",
+            unsaved_change_sites_moved: "Moved {count} site(s) between zones",
+            unsaved_change_renamed: "Renamed zone \"{from}\" → \"{to}\"",
+            unsaved_change_color: "Changed color of zone \"{zone}\"",
+            unsaved_change_desc: "Changed description of zone \"{zone}\"",
+            unsaved_leave: "Discard & Leave",
+            unsaved_stay: "Continue Editing",
+
+            // Partial save
+            partial_title: "Save Results",
+            partial_success_count: "{count} change(s) saved successfully",
+            partial_fail_count: "{count} change(s) failed",
+            partial_question: "Save {success} successful change(s) and skip {fail} failed one(s)?",
+            partial_confirm: "Save {count} Changes",
+            partial_cancel: "Cancel All",
+
+            // Drag hints
+            drop_site_here: "Drop sites here",
+            no_site_found: "No site found",
+            filter_sites: "Filter sites...",
+            members_label: "Members",
+            add_member: "Add member"
         },
         master: {
             title: "Master Aruba Account",
@@ -558,6 +677,12 @@ export const en = {
             title: "Zone Logs",
             button_refresh: "Refresh",
             empty_state_message: "No logs yet in this zone."
+        },
+        templates: {
+            view_all_sites: "View all",
+            sites_suffix: "sites",
+            general_name: "General",
+            general_description: "Sites without a template"
         }
     },
     site: {
@@ -707,5 +832,56 @@ export const en = {
             stats_categories_label: "Categories Tracked",
             error_fetch: "Failed to synchronize application analytics."
         }
-    }
+    },
+    monitoring: {
+        title: "System Monitor",
+        subtitle: "Real-time server resources, database stats & traffic analytics.",
+        refresh: "Refresh",
+        days: "days",
+        last_updated: "Last updated",
+        auto_refresh_on: "Auto-refresh is ON",
+        auto_refresh_off: "Auto-refresh is OFF",
+        error_loading: "Failed to load monitoring data.",
+        section_server: "Server Resources",
+        section_database: "Database",
+        section_users: "User Statistics",
+        section_traffic: "Traffic Analytics",
+        disk: "Disk",
+        hostname: "Hostname",
+        uptime: "Uptime",
+        network_sent: "Network Sent",
+        network_recv: "Network Recv",
+        db_size: "Data Size",
+        collections: "Collections",
+        storage_size: "Storage Size",
+        connections: "Connections",
+        available: "Available",
+        collection_details: "Collection Details",
+        col_name: "Collection",
+        col_docs: "Documents",
+        col_size: "Size",
+        col_avg: "Avg Size",
+        col_indexes: "Indexes",
+        total_users: "Total Users",
+        approved: "Approved",
+        pending: "Pending",
+        new_signups_7d: "New (7d)",
+        users_by_role: "Users by Role",
+        total_requests: "Total Requests",
+        success_rate: "Success Rate",
+        successful: "successful",
+        errors: "Errors",
+        unique_ips: "Unique IPs",
+        daily_traffic: "Daily Traffic",
+        by_method: "By HTTP Method",
+        top_actions: "Top Actions",
+        top_endpoints: "Top Endpoints",
+        top_users: "Most Active Users",
+        cores: "cores",
+        no_traffic_data: "No traffic data available for this period.",
+        loading_data: "Loading monitoring data...",
+        tab_overview: "Overview",
+        tab_database: "Database",
+        tab_traffic: "Traffic"
+    },
 };

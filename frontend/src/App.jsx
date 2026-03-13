@@ -18,11 +18,13 @@ import MasterAccount from './pages/Admin/MasterAccount';
 import UserManagement from './pages/Admin/UserManagement';
 import ZoneDashboard from './pages/Zones/ZoneDashboard';
 import ZoneSites from './pages/Zones/ZoneSites';
+import ZoneTemplates from './pages/Zones/ZoneTemplates';
 import ZoneLogs from './pages/Zones/ZoneLogs';
 import TenantManagement from './pages/Super/TenantManagement';
 import SuperLogs from './pages/Super/SuperLogs';
 import SuperUserManagement from './pages/Super/SuperUserManagement';
 import SuperPermissions from './pages/Super/SuperPermissions';
+import SystemMonitoring from './pages/Super/SystemMonitoring';
 import { SiteProvider } from './context/SiteContext';
 import { ZoneProvider } from './context/ZoneContext';
 import { SettingsProvider } from './context/SettingsContext';
@@ -233,6 +235,7 @@ function App() {
 
               {/* Zone routes — all logged-in users */}
               <Route path="/zones" element={<ZoneDashboard />} />
+              <Route path="/zones/:zoneId/templates" element={<ZoneTemplates />} />
               <Route path="/zones/:zoneId/sites" element={<ZoneSites />} />
               <Route path="/zones/:zoneId/logs" element={<ZoneLogs />} />
 
@@ -277,6 +280,11 @@ function App() {
               <Route path="/super/logs" element={
                 <SuperRoute userRole={userRole}>
                   <SuperLogs />
+                </SuperRoute>
+              } />
+              <Route path="/super/monitoring" element={
+                <SuperRoute userRole={userRole}>
+                  <SystemMonitoring />
                 </SuperRoute>
               } />
 

@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { AlertCircle, Search, Network, Wifi, Users } from 'lucide-react';
 import apiClient from '../../../api/apiClient';
 import { useSite } from '../../../context/SiteContext';
-import { processNetworks } from './dataProcessor';
+// processNetworks removed — BE now returns pre-mapped data
 import NetworkTable from './NetworkTable';
 import WirelessTable from './WirelessTable';
 import useIntervalFetch from '../../../hooks/useIntervalFetch';
@@ -11,7 +11,7 @@ import { useLanguage } from '../../../context/LanguageContext';
 
 const Networks = () => {
     const { t } = useLanguage();
-    const [networksData, setNetworksData] = useState([]);
+    const [beResponse, setBeResponse] = useState({ wired: [], wireless: [], stats: {} });
     const [loading, setLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [error, setError] = useState('');
@@ -28,7 +28,7 @@ const Networks = () => {
     }, []);
 
     useEffect(() => {
-        setNetworksData([]);
+        setBeResponse({ wired: [], wireless: [], stats: {} });
         if (selectedSiteId) fetchNetworks(selectedSiteId);
     }, [selectedSiteId]);
 
@@ -39,7 +39,8 @@ const Networks = () => {
         setError('');
         try {
             const res = await apiClient.get(`/overview/sites/${siteId}/wiredNetworks`);
-            setNetworksData(processNetworks(res.data));
+            // BE returns { wired: [...], wireless: [...], stats: {...} }
+            setBeResponse(res.data || { wired: [], wireless: [], stats: {} });
             setLastUpdated(new Date());
         } catch (err) {
             console.error('Networks fetch error:', err);
@@ -58,19 +59,14 @@ const Networks = () => {
     // Split into wired / wireless — apply search on both
     const { wiredRows, wirelessRows } = useMemo(() => {
         const q = searchTerm.toLowerCase();
-        const all = networksData.filter(n =>
-            !q || n.name.toLowerCase().includes(q) || String(n.vlanId).includes(q)
-        );
+        const filterFn = (n) => !q || (n.name || '').toLowerCase().includes(q) || String(n.vlanId).includes(q);
         return {
-            wiredRows:    all.filter(n => n.rowType === 'wired'),
-            wirelessRows: all.filter(n => n.rowType === 'wireless'),
+            wiredRows:    (beResponse.wired || []).filter(filterFn),
+            wirelessRows: (beResponse.wireless || []).filter(filterFn),
         };
-    }, [networksData, searchTerm]);
+    }, [beResponse, searchTerm]);
 
-    // Legacy shape needed by NetworkTable/NetworkRow (expects ssids[] etc.)
-    // NetworkTable receives wiredRows directly; it was designed for the old shape.
-    // We pass wiredRows as-is — NetworkTable only uses: id, name, vlanId, type→usage,
-    // isEnabled, health, totalClients, ssids[]. Map here.
+    // Legacy shape needed by NetworkTable/NetworkRow
     const wiredForTable = useMemo(() =>
         wiredRows.map(r => ({
             id:           r.id,
@@ -84,16 +80,15 @@ const Networks = () => {
         })),
     [wiredRows]);
 
-    // Total clients = wired rows only (wired.clients already includes wireless SSID clients)
-    const totalClients        = networksData.filter(n => n.rowType === 'wired').reduce((s, n) => s + n.clients, 0);
-    const wiredAll            = networksData.filter(n => n.rowType === 'wired');
-    const wirelessAll         = networksData.filter(n => n.rowType === 'wireless');
-    const wiredCount          = wiredAll.length;
-    const wirelessCount       = wirelessAll.length;
-    const wiredActiveCount    = wiredAll.filter(n => n.isEnabled).length;
-    const wirelessActiveCount = wirelessAll.filter(n => n.isEnabled).length;
-    const wiredInactiveCount  = wiredCount - wiredActiveCount;
-    const wirelessInactiveCount = wirelessCount - wirelessActiveCount;
+    // Stats from BE — no client-side counting needed
+    const stats = beResponse.stats || {};
+    const totalClients        = stats.totalClients || 0;
+    const wiredCount          = stats.wiredCount || 0;
+    const wirelessCount       = stats.wirelessCount || 0;
+    const wiredActiveCount    = stats.wiredActive || 0;
+    const wirelessActiveCount = stats.wirelessActive || 0;
+    const wiredInactiveCount  = stats.wiredInactive || 0;
+    const wirelessInactiveCount = stats.wirelessInactive || 0;
 
     return (
         <div className="p-8 pb-32 font-sans overflow-hidden th-bg-base min-h-screen">

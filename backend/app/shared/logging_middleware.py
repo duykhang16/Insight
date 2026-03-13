@@ -83,7 +83,12 @@ class GlobalLoggingMiddleware(BaseHTTPMiddleware):
         actor_email = _extract_jwt_email(request) or request.headers.get("X-Insight-User", "anonymous")
 
         method = request.method
-        ip_address = request.client.host if request.client else None
+        # Real client IP: check proxy headers first, then fallback
+        ip_address = (
+            request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+            or request.headers.get("X-Real-IP", "").strip()
+            or (request.client.host if request.client else None)
+        )
 
         # Extract contextual IDs from path
         site_match = _SITE_ID_RE.search(path)
@@ -145,6 +150,7 @@ class GlobalLoggingMiddleware(BaseHTTPMiddleware):
             
             log_entry = {
                 "timestamp": datetime.now(timezone.utc),
+                "actor_email": actor_email,
                 "insight_user_id": actor_email,
                 "admin_master_id": admin_master_id,
                 "action": action_name,

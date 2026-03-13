@@ -40,6 +40,9 @@ async def connect_to_mongo():
     # === Master account config (singleton) ===
     await db.master_config.create_index("is_active")
 
+    # === Alert notification read status (per user per site) ===
+    await db.alert_reads.create_index([("user_email", 1), ("site_id", 1)], unique=True)
+
 
 async def close_mongo_connection():
     """Close MongoDB connection."""

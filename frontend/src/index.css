@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -11,13 +13,13 @@
   --color-bg-elevated: #FFFFFF;
   --color-bg-inset: #E2E8F0;
 
-  /* Sidebar */
+  /* Sidebar (custom) */
   --color-sidebar-bg: #FFFFFF;
   --color-sidebar-hover: #F1F5F9;
   --color-sidebar-active: #EFF6FF;
   --color-sidebar-section: #94A3B8;
 
-  /* Border */
+  /* Border (custom) */
   --color-border: #E2E8F0;
   --color-border-subtle: #F1F5F9;
 
@@ -36,30 +38,30 @@
   --color-scrollbar-thumb: #CBD5E1;
   --color-scrollbar-thumb-hover: #94A3B8;
 
-  /* Table */
+  /* Table (custom) */
   --color-table-header-bg: rgba(248, 250, 252, 0.95);
   --color-table-col-sticky: #FFFFFF;
   --color-table-row-hover: rgba(0, 0, 0, 0.02);
 
-  /* Cards */
+  /* Cards (custom) */
   --color-card-bg: #FFFFFF;
   --color-card-border: #E2E8F0;
   --color-card-hover-border: rgba(59, 130, 246, 0.4);
 
-  /* Inputs */
+  /* Inputs (custom) */
   --color-input-bg: #F8FAFC;
   --color-input-border: #E2E8F0;
   --color-input-text: #0F172A;
 
-  /* Dropdown */
+  /* Dropdown (custom) */
   --color-dropdown-bg: #FFFFFF;
   --color-dropdown-border: #E2E8F0;
 
-  /* Accent */
+  /* Accent (custom) */
   --color-accent: #3B82F6;
   --color-accent-subtle: rgba(59, 130, 246, 0.1);
 
-  /* Badge */
+  /* Badge (custom) */
   --color-badge-bg: #F1F5F9;
 
   /* Resize col glow */
@@ -76,6 +78,38 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* shadcn light tokens */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --shadcn-border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.809 0.105 251.813);
+  --chart-2: oklch(0.623 0.214 259.815);
+  --chart-3: oklch(0.546 0.245 262.881);
+  --chart-4: oklch(0.488 0.243 264.376);
+  --chart-5: oklch(0.424 0.199 265.638);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
 }
 
 /* ─── Dark Mode ───────────────────────────────────────────────────── */
@@ -87,13 +121,13 @@
   --color-bg-elevated: #1E293B;
   --color-bg-inset: #0F172A;
 
-  /* Sidebar */
+  /* Sidebar (custom) */
   --color-sidebar-bg: #0F172A;
   --color-sidebar-hover: #1E293B;
   --color-sidebar-active: rgba(59, 130, 246, 0.15);
   --color-sidebar-section: #475569;
 
-  /* Border */
+  /* Border (custom) */
   --color-border: #1E293B;
   --color-border-subtle: rgba(255, 255, 255, 0.05);
 
@@ -112,30 +146,30 @@
   --color-scrollbar-thumb: #475569;
   --color-scrollbar-thumb-hover: #64748B;
 
-  /* Table */
+  /* Table (custom) */
   --color-table-header-bg: rgba(30, 41, 59, 0.85);
   --color-table-col-sticky: #0F172A;
   --color-table-row-hover: rgba(255, 255, 255, 0.03);
 
-  /* Cards */
+  /* Cards (custom) */
   --color-card-bg: #0F172A;
   --color-card-border: #1E293B;
   --color-card-hover-border: rgba(59, 130, 246, 0.4);
 
-  /* Inputs */
+  /* Inputs (custom) */
   --color-input-bg: rgba(0, 0, 0, 0.4);
   --color-input-border: rgba(255, 255, 255, 0.05);
   --color-input-text: #FFFFFF;
 
-  /* Dropdown */
+  /* Dropdown (custom) */
   --color-dropdown-bg: #1E293B;
   --color-dropdown-border: #334155;
 
-  /* Accent */
+  /* Accent (custom) */
   --color-accent: #3B82F6;
   --color-accent-subtle: rgba(59, 130, 246, 0.1);
 
-  /* Badge */
+  /* Badge (custom) */
   --color-badge-bg: #1E293B;
 
   /* Resize col glow */
@@ -144,6 +178,38 @@
   color-scheme: dark;
   color: var(--color-text-primary);
   background-color: var(--color-bg-base);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --shadcn-border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.809 0.105 251.813);
+  --chart-2: oklch(0.623 0.214 259.815);
+  --chart-3: oklch(0.546 0.245 262.881);
+  --chart-4: oklch(0.488 0.243 264.376);
+  --chart-5: oklch(0.424 0.199 265.638);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
 }
 
 body {
@@ -290,4 +356,55 @@ body {
 }
 .th-card:hover {
   border-color: var(--color-card-hover-border);
+}
+
+@theme inline {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--shadcn-border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }

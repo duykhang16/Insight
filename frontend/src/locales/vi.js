@@ -13,18 +13,25 @@ export const vi = {
         updated: "Cập nhật:",
         awaiting_data: "Đang chờ dữ liệu...",
         auto_refresh_on: "Tự động làm mới BẬT",
-        auto_refresh_off: "Tự động làm mới TẮT"
+        auto_refresh_off: "Tự động làm mới TẮT",
+        logout: "Đăng xuất"
     },
     login: {
         title: "INSIGHT",
         subtitle: "Truy Cập Hệ Thống",
         email: "Địa chỉ Email",
+        email_subtitle: "Nhập email của bạn để tiếp tục",
         password: "Mật khẩu",
         powered_by: "Phát triển bởi INSIGHT",
         sign_in: "Đăng nhập",
+        continue: "Tiếp tục",
+        use_another_account: "Dùng tài khoản khác",
+        step_password_title: "Chào mừng trở lại",
+        step_password_subtitle: "Nhập mật khẩu để đăng nhập",
         error_invalid: "Sai User Name hoặc Password. Vui lòng thử lại!",
         error_failed: "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.",
-        verifying: "Đang xác thực..."
+        verifying: "Đang xác thực...",
+        checking_email: "Đang kiểm tra..."
     },
     sidebar: {
         dashboard: "Tổng quan",
@@ -233,13 +240,79 @@ export const vi = {
             loading: "Đang tải...",
             access_denied: "Từ chối truy cập: Yêu cầu quyền Admin.",
             fetch_failed: "Không thể tải nhật ký kiểm toán.",
-            table_timestamp: "Thời gian (GMT+7)",
+            table_timestamp: "Thời gian",
             table_actor: "Email người thực hiện",
             table_action: "Hành động",
-            table_method: "Phương thức",
-            table_endpoint: "Endpoint",
+            table_target: "Mục tiêu",
             table_status: "Trạng thái",
-            no_logs: "Không tìm thấy nhật ký nào"
+            status_success: "Thành công",
+            status_failed: "Thất bại",
+            no_logs: "Không tìm thấy nhật ký nào",
+            actions: {
+                // Middleware — Cloner
+                "Clone Complete Config": "Clone Complete Config",
+                "Update PSK (Password)": "Update PSK (Password)",
+                "Sync SSID Config": "Sync SSID Config",
+                "Delete SSID": "Delete SSID",
+                "Create SSID": "Create SSID",
+                "Batch Site Delete": "Batch Site Delete",
+                "Batch Account Access": "Batch Account Access",
+                "Batch Site Provision": "Batch Site Provision",
+                // Middleware — Master
+                "Master Account Linked": "Master Account Linked",
+                "Master Account Unlinked": "Master Account Unlinked",
+                "Master Token Force Refreshed": "Master Token Force Refreshed",
+                // Middleware — Zones
+                "Zone Created": "Zone Created",
+                "Zone Deleted": "Zone Deleted",
+                "Zone Member Added": "Zone Member Added",
+                "Zone Member Removed": "Zone Member Removed",
+                "Zone Member Role Updated": "Zone Member Role Updated",
+                "Zone Sites Updated": "Zone Sites Updated",
+                // Fallback — Auth
+                "Login": "Login",
+                "Logout": "Logout",
+                "Token Refresh": "Token Refresh",
+                "Session Check": "Session Check",
+                "Set Password": "Set Password",
+                // Fallback — Users
+                "Create User": "Create User",
+                "Update User": "Update User",
+                "Delete User": "Delete User",
+                "Reset Password": "Reset Password",
+                // Fallback — Tenants
+                "Create Tenant": "Create Tenant",
+                "Update Tenant": "Update Tenant",
+                "Delete Tenant": "Delete Tenant",
+                "Assign Tenant Admin": "Assign Tenant Admin",
+                // Fallback — Permissions
+                "Update Role Permissions": "Update Role Permissions",
+                "View Role Permissions": "View Role Permissions",
+                // Fallback — Master
+                "Link Master Account": "Link Master Account",
+                "Unlink Master Account": "Unlink Master Account",
+                "Refresh Master Token": "Refresh Master Token",
+                // Fallback — Zones
+                "Create Zone": "Create Zone",
+                "Update Zone": "Update Zone",
+                "Delete Zone": "Delete Zone",
+                "Add Zone Member": "Add Zone Member",
+                "Remove Zone Member": "Remove Zone Member",
+                "Update Zone Member": "Update Zone Member",
+                "Update Zone Sites": "Update Zone Sites",
+                // Fallback — Cloner
+                "Sync Password": "Sync Password",
+                "Sync Config": "Sync Config",
+                "Clone Config": "Clone Config",
+                "Clone/Provision": "Clone/Provision",
+                // Generic
+                "View Data": "View Data",
+                "Create": "Create",
+                "Update": "Update",
+                "Delete": "Delete",
+                "System Interaction": "System Interaction",
+                "Unknown Action": "Unknown Action"
+            }
         },
         users: {
             title: "Quản lý Người dùng",
@@ -296,8 +369,54 @@ export const vi = {
             no_zones: "Chưa có Zone nào. Tạo Zone đầu tiên!",
             unassigned_sites: "Site chưa phân vùng",
             all_sites_assigned: "Tất cả site đã được phân vùng",
-            delete_confirm: "Xóa zone này? Các site sẽ trở thành chưa phân vùng.",
-            delete_failed: "Xóa thất bại."
+            delete_failed: "Xóa thất bại.",
+
+            // Save system
+            save_changes: "Lưu Thay Đổi",
+            saving: "Đang lưu...",
+            save_success: "Tất cả thay đổi đã được lưu thành công!",
+            no_changes: "Không có thay đổi nào",
+
+            // Inline edit
+            edit_zone: "Chỉnh sửa zone",
+            delete_zone_tooltip: "Xóa zone",
+            edit_name_placeholder: "Tên zone",
+            edit_desc_placeholder: "Mô tả (tuỳ chọn)",
+
+            // Delete modal
+            delete_title: "Xóa Zone",
+            delete_zone_name: "Xóa zone \"{name}\"?",
+            delete_warning: "Hành động này không thể hoàn tác.",
+            delete_impact_sites: "{count} site sẽ bị gỡ khỏi zone này",
+            delete_impact_members: "{count} thành viên sẽ mất quyền truy cập zone này",
+            delete_confirm_btn: "Xóa Zone",
+            delete_cancel_btn: "Hủy",
+            deleting: "Đang xóa...",
+
+            // Unsaved guard
+            unsaved_title: "Bạn có thay đổi chưa lưu!",
+            unsaved_description: "Nếu rời đi, các thay đổi sau sẽ bị mất:",
+            unsaved_change_sites_moved: "Đã di chuyển {count} site giữa các zone",
+            unsaved_change_renamed: "Đã đổi tên zone \"{from}\" → \"{to}\"",
+            unsaved_change_color: "Đã đổi màu zone \"{zone}\"",
+            unsaved_change_desc: "Đã đổi mô tả zone \"{zone}\"",
+            unsaved_leave: "Bỏ thay đổi & Rời đi",
+            unsaved_stay: "Tiếp tục chỉnh sửa",
+
+            // Partial save
+            partial_title: "Kết quả Lưu",
+            partial_success_count: "{count} thay đổi đã lưu thành công",
+            partial_fail_count: "{count} thay đổi thất bại",
+            partial_question: "Lưu {success} thay đổi thành công và bỏ qua {fail} thay đổi lỗi?",
+            partial_confirm: "Lưu {count} Thay Đổi",
+            partial_cancel: "Hủy Tất Cả",
+
+            // Drag hints
+            drop_site_here: "Kéo site vào đây",
+            no_site_found: "Không tìm thấy site",
+            filter_sites: "Lọc site...",
+            members_label: "Thành viên",
+            add_member: "Thêm thành viên"
         },
         master: {
             title: "Tài khoản Aruba Chính",
@@ -558,6 +677,12 @@ export const vi = {
             title: "Nhật ký Zone",
             button_refresh: "Làm mới",
             empty_state_message: "Chưa có log nào trong zone này."
+        },
+        templates: {
+            view_all_sites: "Xem tất cả",
+            sites_suffix: "site",
+            general_name: "Chung",
+            general_description: "Site không thuộc template nào"
         }
     },
     site: {
@@ -707,5 +832,56 @@ export const vi = {
             stats_categories_label: "Danh mục đang theo dõi",
             error_fetch: "Không thể đồng bộ phân tích ứng dụng."
         }
-    }
+    },
+    monitoring: {
+        title: "Giám sát hệ thống",
+        subtitle: "Thông số server, cơ sở dữ liệu & phân tích lưu lượng truy cập.",
+        refresh: "Làm mới",
+        days: "ngày",
+        last_updated: "Cập nhật lần cuối",
+        auto_refresh_on: "Tự động làm mới đang BẬT",
+        auto_refresh_off: "Tự động làm mới đang TẮT",
+        error_loading: "Không thể tải dữ liệu giám sát.",
+        section_server: "Tài nguyên máy chủ",
+        section_database: "Cơ sở dữ liệu",
+        section_users: "Thống kê người dùng",
+        section_traffic: "Phân tích lưu lượng",
+        disk: "Ổ đĩa",
+        hostname: "Tên máy chủ",
+        uptime: "Thời gian hoạt động",
+        network_sent: "Mạng gửi",
+        network_recv: "Mạng nhận",
+        db_size: "Kích thước dữ liệu",
+        collections: "Collections",
+        storage_size: "Kích thước lưu trữ",
+        connections: "Kết nối",
+        available: "Khả dụng",
+        collection_details: "Chi tiết Collection",
+        col_name: "Collection",
+        col_docs: "Tài liệu",
+        col_size: "Kích thước",
+        col_avg: "TB/Doc",
+        col_indexes: "Indexes",
+        total_users: "Tổng người dùng",
+        approved: "Đã duyệt",
+        pending: "Chờ duyệt",
+        new_signups_7d: "Mới (7 ngày)",
+        users_by_role: "Người dùng theo vai trò",
+        total_requests: "Tổng yêu cầu",
+        success_rate: "Tỉ lệ thành công",
+        successful: "thành công",
+        errors: "Lỗi",
+        unique_ips: "IP riêng biệt",
+        daily_traffic: "Lưu lượng theo ngày",
+        by_method: "Theo phương thức HTTP",
+        top_actions: "Thao tác phổ biến",
+        top_endpoints: "Endpoint phổ biến",
+        top_users: "Người dùng tích cực nhất",
+        cores: "lõi",
+        no_traffic_data: "Không có dữ liệu lưu lượng trong khoảng thời gian này.",
+        loading_data: "Đang tải dữ liệu giám sát...",
+        tab_overview: "Tổng quan",
+        tab_database: "Cơ sở dữ liệu",
+        tab_traffic: "Lưu lượng"
+    },
 };

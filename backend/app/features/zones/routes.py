@@ -191,7 +191,7 @@ async def get_zone_logs(
     async for log in cursor:
         ts = log.get("timestamp")
         if ts and hasattr(ts, "astimezone"):
-            ts = ts.astimezone(vn_tz).strftime("%Y-%m-%d %H:%M:%S")
+            ts = ts.astimezone(vn_tz).strftime("%H:%M %d/%m/%Y")
         logs.append({
             "id": str(log["_id"]),
             "timestamp": ts,
