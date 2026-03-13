@@ -296,8 +296,54 @@ export const en = {
             no_zones: "No zones yet. Create the first one!",
             unassigned_sites: "Unassigned Sites",
             all_sites_assigned: "All sites are assigned to zones",
-            delete_confirm: "Delete this zone? Sites will become unassigned.",
-            delete_failed: "Delete failed."
+            delete_failed: "Delete failed.",
+
+            // Save system
+            save_changes: "Save Changes",
+            saving: "Saving...",
+            save_success: "All changes saved successfully!",
+            no_changes: "No changes to save",
+
+            // Inline edit
+            edit_zone: "Edit zone",
+            delete_zone_tooltip: "Delete zone",
+            edit_name_placeholder: "Zone name",
+            edit_desc_placeholder: "Description (optional)",
+
+            // Delete modal
+            delete_title: "Delete Zone",
+            delete_zone_name: "Delete zone \"{name}\"?",
+            delete_warning: "This action cannot be undone.",
+            delete_impact_sites: "{count} site(s) will be unassigned from this zone",
+            delete_impact_members: "{count} member(s) will lose access to this zone",
+            delete_confirm_btn: "Delete Zone",
+            delete_cancel_btn: "Cancel",
+            deleting: "Deleting...",
+
+            // Unsaved guard
+            unsaved_title: "You have unsaved changes!",
+            unsaved_description: "If you leave, the following changes will be lost:",
+            unsaved_change_sites_moved: "Moved {count} site(s) between zones",
+            unsaved_change_renamed: "Renamed zone \"{from}\" → \"{to}\"",
+            unsaved_change_color: "Changed color of zone \"{zone}\"",
+            unsaved_change_desc: "Changed description of zone \"{zone}\"",
+            unsaved_leave: "Discard & Leave",
+            unsaved_stay: "Continue Editing",
+
+            // Partial save
+            partial_title: "Save Results",
+            partial_success_count: "{count} change(s) saved successfully",
+            partial_fail_count: "{count} change(s) failed",
+            partial_question: "Save {success} successful change(s) and skip {fail} failed one(s)?",
+            partial_confirm: "Save {count} Changes",
+            partial_cancel: "Cancel All",
+
+            // Drag hints
+            drop_site_here: "Drop sites here",
+            no_site_found: "No site found",
+            filter_sites: "Filter sites...",
+            members_label: "Members",
+            add_member: "Add member"
         },
         master: {
             title: "Master Aruba Account",

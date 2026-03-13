@@ -296,8 +296,54 @@ export const vi = {
             no_zones: "Chưa có Zone nào. Tạo Zone đầu tiên!",
             unassigned_sites: "Site chưa phân vùng",
             all_sites_assigned: "Tất cả site đã được phân vùng",
-            delete_confirm: "Xóa zone này? Các site sẽ trở thành chưa phân vùng.",
-            delete_failed: "Xóa thất bại."
+            delete_failed: "Xóa thất bại.",
+
+            // Save system
+            save_changes: "Lưu Thay Đổi",
+            saving: "Đang lưu...",
+            save_success: "Tất cả thay đổi đã được lưu thành công!",
+            no_changes: "Không có thay đổi nào",
+
+            // Inline edit
+            edit_zone: "Chỉnh sửa zone",
+            delete_zone_tooltip: "Xóa zone",
+            edit_name_placeholder: "Tên zone",
+            edit_desc_placeholder: "Mô tả (tuỳ chọn)",
+
+            // Delete modal
+            delete_title: "Xóa Zone",
+            delete_zone_name: "Xóa zone \"{name}\"?",
+            delete_warning: "Hành động này không thể hoàn tác.",
+            delete_impact_sites: "{count} site sẽ bị gỡ khỏi zone này",
+            delete_impact_members: "{count} thành viên sẽ mất quyền truy cập zone này",
+            delete_confirm_btn: "Xóa Zone",
+            delete_cancel_btn: "Hủy",
+            deleting: "Đang xóa...",
+
+            // Unsaved guard
+            unsaved_title: "Bạn có thay đổi chưa lưu!",
+            unsaved_description: "Nếu rời đi, các thay đổi sau sẽ bị mất:",
+            unsaved_change_sites_moved: "Đã di chuyển {count} site giữa các zone",
+            unsaved_change_renamed: "Đã đổi tên zone \"{from}\" → \"{to}\"",
+            unsaved_change_color: "Đã đổi màu zone \"{zone}\"",
+            unsaved_change_desc: "Đã đổi mô tả zone \"{zone}\"",
+            unsaved_leave: "Bỏ thay đổi & Rời đi",
+            unsaved_stay: "Tiếp tục chỉnh sửa",
+
+            // Partial save
+            partial_title: "Kết quả Lưu",
+            partial_success_count: "{count} thay đổi đã lưu thành công",
+            partial_fail_count: "{count} thay đổi thất bại",
+            partial_question: "Lưu {success} thay đổi thành công và bỏ qua {fail} thay đổi lỗi?",
+            partial_confirm: "Lưu {count} Thay Đổi",
+            partial_cancel: "Hủy Tất Cả",
+
+            // Drag hints
+            drop_site_here: "Kéo site vào đây",
+            no_site_found: "Không tìm thấy site",
+            filter_sites: "Lọc site...",
+            members_label: "Thành viên",
+            add_member: "Thêm thành viên"
         },
         master: {
             title: "Tài khoản Aruba Chính",

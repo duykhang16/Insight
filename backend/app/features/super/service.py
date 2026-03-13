@@ -256,7 +256,7 @@ class SuperService:
         return LogResponse(
             id=str(log["_id"]),
             timestamp=gmt7_str,
-            actor_email=log.get("actor_email"),
+            actor_email=log.get("actor_email") or log.get("insight_user_id"),
             insight_user_id=log.get("insight_user_id"),
             method=log.get("method", ""),
             endpoint=log.get("endpoint", ""),

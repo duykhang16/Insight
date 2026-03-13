@@ -1,9 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { GripVertical, Users, Server, ChevronDown, ChevronUp, Plus, Trash2, Edit2, Search } from 'lucide-react';
+import { GripVertical, Users, Server, ChevronDown, ChevronUp, Plus, Trash2, Edit2, Search, Check, X } from 'lucide-react';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import ZoneMemberList from './ZoneMemberList';
 import apiClient from '../../api/apiClient';
+import { useLanguage } from '../../context/LanguageContext';
+
+const PRESET_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4'];
 
 // Draggable site item inside a zone
 const ZoneSiteItem = ({ site }) => {
@@ -27,7 +30,8 @@ const ZoneSiteItem = ({ site }) => {
   );
 };
 
-const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, allUsers = [] }) => {
+const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, onEditZone, allUsers = [] }) => {
+  const { t } = useLanguage();
   const { setNodeRef, isOver } = useDroppable({ id: zone.id });
   const [showMembers, setShowMembers] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
@@ -37,6 +41,21 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, allUsers = [] }) =
   const [siteSearch, setSiteSearch] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+
+  // Inline edit state
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(zone.name || '');
+  const [editDesc, setEditDesc] = useState(zone.description || '');
+  const [editColor, setEditColor] = useState(zone.color || '#3B82F6');
+
+  // Reset inline edit when zone changes from outside
+  useEffect(() => {
+    if (!editing) {
+      setEditName(zone.name || '');
+      setEditDesc(zone.description || '');
+      setEditColor(zone.color || '#3B82F6');
+    }
+  }, [zone.name, zone.description, zone.color, editing]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -64,10 +83,35 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, allUsers = [] }) =
       setShowAddMember(false);
       onUpdated?.();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Thêm member thất bại');
+      alert(err.response?.data?.detail || 'Failed to add member');
     } finally {
       setAdding(false);
     }
+  };
+
+  const handleStartEdit = () => {
+    setEditName(zone.name || '');
+    setEditDesc(zone.description || '');
+    setEditColor(zone.color || '#3B82F6');
+    setEditing(true);
+  };
+
+  const handleConfirmEdit = () => {
+    if (!editName.trim()) return;
+    // Call parent callback to update workingState (no API call)
+    onEditZone?.(zone.id, {
+      name: editName.trim(),
+      description: editDesc.trim() || null,
+      color: editColor,
+    });
+    setEditing(false);
+  };
+
+  const handleCancelEdit = () => {
+    setEditName(zone.name || '');
+    setEditDesc(zone.description || '');
+    setEditColor(zone.color || '#3B82F6');
+    setEditing(false);
   };
 
   const filteredSites = (zone.site_ids || []).filter(siteId => {
@@ -86,32 +130,100 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, allUsers = [] }) =
     >
       {/* Zone header bar with color accent */}
       <div
-        className="flex items-center justify-between px-3 py-2.5 border-b th-border"
-        style={{ borderLeftWidth: 3, borderLeftColor: zone.color || '#3B82F6', borderBottomColor: 'var(--color-border)' }}
+        className="px-3 py-2.5 border-b th-border"
+        style={{ borderLeftWidth: 3, borderLeftColor: editing ? editColor : (zone.color || '#3B82F6'), borderBottomColor: 'var(--color-border)' }}
       >
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="font-semibold text-sm th-text-primary truncate">{zone.name}</span>
-          {zone.description && (
-            <span className="hidden sm:block text-xs th-text-muted truncate">— {zone.description}</span>
-          )}
-        </div>
-        <div className="flex items-center gap-3 shrink-0 ml-2">
-          <span className="text-xs th-text-muted flex items-center gap-1">
-            <Server className="w-3 h-3" />{zone.site_count ?? zone.site_ids?.length ?? 0}
-          </span>
-          <span className="text-xs th-text-muted flex items-center gap-1">
-            <Users className="w-3 h-3" />{zone.member_count ?? zone.members?.length ?? 0}
-          </span>
-          {isGlobalAdmin && (
-            <button
-              onClick={() => onDelete?.(zone.id)}
-              className="p-1 th-text-muted hover:text-rose-400 transition-colors"
-              title="Xóa zone"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
+        {editing ? (
+          /* ── Inline Edit Mode ── */
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder={t('admin.zones.edit_name_placeholder')}
+                className="flex-1 th-bg-elevated border border-slate-600 th-text-primary rounded px-2 py-1 text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                autoFocus
+                onKeyDown={(e) => { if (e.key === 'Enter') handleConfirmEdit(); if (e.key === 'Escape') handleCancelEdit(); }}
+              />
+              <button
+                onClick={handleConfirmEdit}
+                disabled={!editName.trim()}
+                className="p-1.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white transition-colors disabled:opacity-40"
+                title={t('admin.zones.confirm_edit') || 'Confirm'}
+              >
+                <Check className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={handleCancelEdit}
+                className="p-1.5 rounded bg-slate-600 hover:bg-slate-500 text-white transition-colors"
+                title={t('admin.zones.cancel_edit') || 'Cancel'}
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <input
+              type="text"
+              value={editDesc}
+              onChange={(e) => setEditDesc(e.target.value)}
+              placeholder={t('admin.zones.edit_desc_placeholder')}
+              className="w-full th-bg-elevated border border-slate-600 th-text-secondary rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500 transition-colors"
+            />
+            <div className="flex items-center gap-1.5">
+              {PRESET_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setEditColor(c)}
+                  className={`w-5 h-5 rounded-full transition-transform ${editColor === c ? 'scale-125 ring-2 ring-white ring-offset-1 ring-offset-slate-900' : 'hover:scale-110'}`}
+                  style={{ backgroundColor: c }}
+                />
+              ))}
+            </div>
+          </div>
+        ) : (
+          /* ── Display Mode ── */
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="font-semibold text-sm th-text-primary truncate">{zone.name}</span>
+              {zone.description && (
+                <span className="hidden sm:block text-xs th-text-muted truncate">— {zone.description}</span>
+              )}
+            </div>
+            <div className="flex items-center gap-3 shrink-0 ml-2">
+              <span className="text-xs th-text-muted flex items-center gap-1">
+                <Server className="w-3 h-3" />{zone.site_count ?? zone.site_ids?.length ?? 0}
+              </span>
+              <span className="text-xs th-text-muted flex items-center gap-1">
+                <Users className="w-3 h-3" />{zone.member_count ?? zone.members?.length ?? 0}
+              </span>
+              {isGlobalAdmin && (
+                <TooltipProvider>
+                  <div className="flex items-center gap-1">
+                    <Tooltip>
+                      <TooltipTrigger
+                        onClick={handleStartEdit}
+                        className="p-1 th-text-muted hover:text-blue-400 transition-colors"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </TooltipTrigger>
+                      <TooltipContent>{t('admin.zones.edit_zone')}</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger
+                        onClick={() => onDelete?.(zone)}
+                        className="p-1 th-text-muted hover:text-rose-400 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </TooltipTrigger>
+                      <TooltipContent>{t('admin.zones.delete_zone_tooltip')}</TooltipContent>
+                    </Tooltip>
+                  </div>
+                </TooltipProvider>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Sites drop target */}
@@ -121,7 +233,7 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, allUsers = [] }) =
             <Search className="w-3.5 h-3.5 th-text-muted absolute left-2 top-[7px]" />
             <input
               type="text"
-              placeholder="Filter sites..."
+              placeholder={t('admin.zones.filter_sites')}
               value={siteSearch}
               onChange={e => setSiteSearch(e.target.value)}
               className="w-full th-bg-surface-alt border th-border rounded text-xs th-text-primary pl-7 pr-2 py-1 focus:outline-none focus:border-blue-500 transition-colors"
@@ -131,9 +243,9 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, allUsers = [] }) =
         )}
         <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar pr-1 min-h-[32px]">
           {(zone.site_ids || []).length === 0 ? (
-            <p className="text-xs th-text-muted text-center py-2">Kéo site vào đây</p>
+            <p className="text-xs th-text-muted text-center py-2">{t('admin.zones.drop_site_here')}</p>
           ) : filteredSites.length === 0 ? (
-            <p className="text-xs th-text-muted text-center py-2">Không tìm thấy site</p>
+            <p className="text-xs th-text-muted text-center py-2">{t('admin.zones.no_site_found')}</p>
           ) : (
             filteredSites.map((siteId) => (
               <ZoneSiteItem key={siteId} site={{ siteId, siteName: zone._siteNames?.[siteId] || siteId }} />
@@ -150,7 +262,7 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, allUsers = [] }) =
         >
           <span className="flex items-center gap-1.5">
             <Users className="w-3.5 h-3.5" />
-            Thành viên ({zone.members?.length || 0})
+            {t('admin.zones.members_label')} ({zone.members?.length || 0})
           </span>
           {showMembers ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
         </button>
@@ -170,7 +282,7 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, allUsers = [] }) =
                     onClick={() => setShowAddMember(true)}
                     className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
                   >
-                    <Plus className="w-3.5 h-3.5" /> Thêm thành viên
+                    <Plus className="w-3.5 h-3.5" /> {t('admin.zones.add_member')}
                   </button>
                 ) : (
                   <div className="mt-2 space-y-2">
@@ -187,7 +299,7 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, allUsers = [] }) =
                             setDropdownOpen(true);
                           }}
                           onFocus={() => setDropdownOpen(true)}
-                          placeholder={allUsers.length > 0 ? 'Tìm hoặc nhập email...' : 'Nhập email...'}
+                          placeholder={allUsers.length > 0 ? 'Search or enter email...' : 'Enter email...'}
                           className="flex-1 text-xs bg-transparent th-text-primary placeholder:th-text-muted focus:outline-none min-w-0"
                           style={{ color: 'var(--color-text-primary)' }}
                         />
@@ -224,13 +336,13 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, allUsers = [] }) =
                         disabled={adding || !newMemberEmail.trim()}
                         className="text-xs bg-blue-600 hover:bg-blue-700 th-text-primary px-2 py-1 rounded transition-colors disabled:opacity-50 flex-1"
                       >
-                        {adding ? 'Đang thêm...' : 'Thêm'}
+                        {adding ? 'Adding...' : 'Add'}
                       </button>
                       <button
                         onClick={() => { setShowAddMember(false); setNewMemberEmail(''); setUserSearch(''); }}
                         className="text-xs th-text-muted hover:th-text-secondary px-1"
                       >
-                        Hủy
+                        {t('admin.zones.cancel')}
                       </button>
                     </div>
                   </div>

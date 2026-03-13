@@ -971,6 +971,7 @@ async def batch_account_access(action_type: str, email: str, role: str, target_s
             # Insert Audit Log for each site
             await insert_audit_log({
                 "timestamp": datetime.now(timezone.utc),
+                "actor_email": actor_email,
                 "insight_user_id": actor_email,
                 "admin_master_id": "Master System",
                 "action": f"Batch Account Access ({action_type.capitalize()})",
@@ -1009,6 +1010,7 @@ async def batch_site_delete(target_site_ids: List[str], master_token: str, actor
             # Insert Audit Log for each site
             await insert_audit_log({
                 "timestamp": datetime.now(timezone.utc),
+                "actor_email": actor_email,
                 "insight_user_id": actor_email,
                 "admin_master_id": "Master System",
                 "action": "Batch Site Delete",
@@ -1086,6 +1088,7 @@ async def batch_site_provision(
             # Insert Audit Log for each site
             await insert_audit_log({
                 "timestamp": datetime.now(timezone.utc),
+                "actor_email": actor_email,
                 "insight_user_id": actor_email,
                 "admin_master_id": "Master System",
                 "action": "Batch Site Provision",
