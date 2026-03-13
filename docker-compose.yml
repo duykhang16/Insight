@@ -12,8 +12,8 @@ services:
     environment:
       # Ép dùng con MongoDB "lão làng" của anh
       - MONGODB_URL=mongodb://MongoDB:27017
-      # Thêm dòng này để log sạch đẹp, không còn cảnh báo bảo mật
-      - INTERNAL_APP_AUTH=CuongDeploy_Secret_2026
+      # Secret được đọc từ .env (đã gitignore) — KHÔNG hardcode ở đây
+      - INTERNAL_APP_AUTH=${INTERNAL_APP_AUTH}
       # QUAN TRỌNG: Master token manager dùng asyncio.create_task — phải chạy single worker
       # Nếu dùng nhiều workers, mỗi worker sẽ tạo một background task riêng → N lần hit Aruba SSO
       - WEB_CONCURRENCY=1

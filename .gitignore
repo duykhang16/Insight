@@ -27,14 +27,14 @@ __pycache__/
 venv/
 env/
 ENV/
-build/
+/build/
 develop-eggs/
-dist/
+/dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+/lib/
+/lib64/
 parts/
 sdist/
 var/
@@ -43,9 +43,11 @@ wheels/
 .installed.cfg
 *.egg
 
+# --- Frontend src/lib (un-ignore, since /lib/ above would block it) ---
+!frontend/src/lib/
+
 # --- Node.js ---
 node_modules/
-dist/
 dist-ssr/
 *.local
 npm-debug.log*
