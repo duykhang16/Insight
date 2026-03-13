@@ -19,7 +19,57 @@ _SETUP_TOKEN_PURPOSE = "must_set_password"
 class AuthService:
     """Handles all authentication-related business logic."""
 
-    # ── Login ──────────────────────────────────────────────────────
+    # ── Check email (Step 1) ─────────────────────────────────────
+
+    async def check_email(self, email: str) -> dict:
+        """Step 1: Validate email before asking for password.
+
+        Returns next_step:
+          - "enter_password"    → normal account, proceed to password input
+          - "must_set_password" → first-login, show set-password form + setup_token
+        Raises HTTPException for: not found, not approved, no zones.
+        """
+        user = await get_user_by_email(email)
+        if not user:
+            raise HTTPException(status_code=404, detail="Email không tồn tại trong hệ thống.")
+
+        if not user.get("isApproved", False):
+            raise HTTPException(status_code=403, detail="Tài khoản chưa được kích hoạt. Vui lòng liên hệ Admin.")
+
+        # Zone check for non-admin roles
+        role = user.get("role", "viewer")
+        _ADMIN_ROLES = {"super_admin", "tenant_admin"}
+        if role not in _ADMIN_ROLES:
+            from app.database.zones_crud import get_zones_for_member
+            zones = await get_zones_for_member(email)
+            if not zones:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Bạn chưa được phân quyền quản lý Zone nào. Vui lòng liên hệ Admin.",
+                )
+
+        # Check password status
+        password_hash = user.get("password_hash")
+        if not password_hash and user.get("must_set_password"):
+            setup_token = create_insight_token(
+                email=email, role=role,
+                extra={"purpose": _SETUP_TOKEN_PURPOSE},
+                expiry_hours=1,
+            )
+            return {
+                "status": "ok",
+                "next_step": "must_set_password",
+                "setup_token": setup_token,
+                "email": email,
+            }
+
+        return {
+            "status": "ok",
+            "next_step": "enter_password",
+            "email": email,
+        }
+
+    # ── Login (Step 2) ────────────────────────────────────────────
 
     async def login(self, email: str, password: str) -> dict:
         """Authenticate user and return token + metadata."""

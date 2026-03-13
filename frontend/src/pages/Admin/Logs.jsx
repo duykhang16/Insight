@@ -1,24 +1,40 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Shield, AlertCircle, Clock } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Shield, AlertCircle, Clock, CheckCircle2, XCircle } from 'lucide-react';
 import apiClient from '../../api/apiClient';
-import { formatAction } from '../../utils/logFormatter';
+import { formatAction, formatTarget } from '../../utils/logFormatter';
 import { useLanguage } from '../../context/LanguageContext';
+import { useSite } from '../../context/SiteContext';
 import { DataTable } from '@/components/ui/data-table';
-import { Badge } from '@/components/ui/badge';
+import { en } from '../../locales/en';
+import { vi } from '../../locales/vi';
 
-const METHOD_VARIANT = {
-    GET: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    POST: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-    PUT: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-    PATCH: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-    DELETE: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
-};
+const actionDicts = { en, vi };
 
 const AdminPage = () => {
-    const { t } = useLanguage();
+    const { t, language } = useLanguage();
+    const { sites } = useSite();
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    // Translate action label via i18n actions map
+    const translateAction = useCallback((actionLabel) => {
+        const actions = actionDicts[language]?.admin?.logs?.actions;
+        return actions?.[actionLabel] || actionLabel;
+    }, [language]);
+
+    // Build siteId → siteName map from SiteContext
+    const siteMap = useMemo(() => {
+        const map = {};
+        if (Array.isArray(sites)) {
+            sites.forEach(s => {
+                const id = s.siteId || s._id || s.id;
+                const name = s.siteName || s.name;
+                if (id && name) map[id] = name;
+            });
+        }
+        return map;
+    }, [sites]);
 
     const fetchLogs = useCallback(async () => {
         setLoading(true);
@@ -42,7 +58,7 @@ const AdminPage = () => {
             key: 'timestamp',
             label: t('admin.logs.table_timestamp'),
             sortable: true,
-            className: 'font-mono text-slate-400 text-[10px]',
+            className: 'font-mono text-slate-400 text-[10px] whitespace-nowrap',
             render: (log) => (
                 <div className="flex items-center gap-1.5">
                     <Clock size={10} className="text-slate-600 shrink-0" />
@@ -60,42 +76,49 @@ const AdminPage = () => {
         {
             key: 'action',
             label: t('admin.logs.table_action'),
-            render: (log) => (
-                <span
-                    className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded text-[9px] font-black uppercase tracking-widest text-wrap max-w-[150px] inline-block"
-                    title={formatAction(log.method, log.endpoint, log.action, log.payload)}
-                >
-                    {formatAction(log.method, log.endpoint, log.action, log.payload)}
-                </span>
-            ),
+            render: (log) => {
+                const rawAction = formatAction(log.method, log.endpoint, log.action, log.payload);
+                const label = translateAction(rawAction);
+                return (
+                    <span
+                        className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded text-[9px] font-black uppercase tracking-widest text-wrap max-w-[180px] inline-block"
+                        title={label}
+                    >
+                        {label}
+                    </span>
+                );
+            },
         },
         {
-            key: 'method',
-            label: t('admin.logs.table_method'),
-            sortable: true,
-            render: (log) => (
-                <span className={`px-2 py-0.5 rounded border text-[9px] font-black uppercase tracking-widest ${METHOD_VARIANT[log.method] || 'bg-slate-700 text-slate-400 border-white/5'}`}>
-                    {log.method}
-                </span>
-            ),
-        },
-        {
-            key: 'endpoint',
-            label: t('admin.logs.table_endpoint'),
-            className: 'font-mono text-slate-400 text-[10px] max-w-[280px] truncate',
-            render: (log) => (
-                <span title={log.endpoint}>{log.endpoint}</span>
-            ),
+            key: 'target',
+            label: t('admin.logs.table_target'),
+            className: 'text-slate-400 text-[10px] max-w-[260px]',
+            render: (log) => {
+                const target = formatTarget(log, siteMap);
+                return target ? (
+                    <span className="text-slate-300 text-[10px] truncate block max-w-[260px]" title={target}>{target}</span>
+                ) : <span className="text-slate-600">—</span>;
+            },
         },
         {
             key: 'statusCode',
             label: t('admin.logs.table_status'),
             sortable: true,
-            render: (log) => (
-                <span className={`font-black text-xs ${log.statusCode >= 400 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                    {log.statusCode}
-                </span>
-            ),
+            render: (log) => {
+                const isSuccess = log.statusCode >= 200 && log.statusCode < 300;
+                return (
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                        isSuccess
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                    }`}>
+                        {isSuccess
+                            ? <><CheckCircle2 size={10} /> {t('admin.logs.status_success')}</>
+                            : <><XCircle size={10} /> {t('admin.logs.status_failed')}</>
+                        }
+                    </span>
+                );
+            },
         },
     ];
 
@@ -133,8 +156,8 @@ const AdminPage = () => {
                 emptyMessage={t('admin.logs.no_logs')}
                 loading={loading}
                 searchable
-                searchKeys={['actor_email', 'endpoint', 'action', 'method']}
-                searchPlaceholder={`${t('admin.logs.table_actor')}, ${t('admin.logs.table_endpoint')}...`}
+                searchKeys={['actor_email', 'action']}
+                searchPlaceholder={`${t('admin.logs.table_actor')}, ${t('admin.logs.table_action')}...`}
                 stickyHeader
             />
         </div>

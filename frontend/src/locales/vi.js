@@ -19,12 +19,18 @@ export const vi = {
         title: "INSIGHT",
         subtitle: "Truy Cập Hệ Thống",
         email: "Địa chỉ Email",
+        email_subtitle: "Nhập email của bạn để tiếp tục",
         password: "Mật khẩu",
         powered_by: "Phát triển bởi INSIGHT",
         sign_in: "Đăng nhập",
+        continue: "Tiếp tục",
+        use_another_account: "Dùng tài khoản khác",
+        step_password_title: "Chào mừng trở lại",
+        step_password_subtitle: "Nhập mật khẩu để đăng nhập",
         error_invalid: "Sai User Name hoặc Password. Vui lòng thử lại!",
         error_failed: "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.",
-        verifying: "Đang xác thực..."
+        verifying: "Đang xác thực...",
+        checking_email: "Đang kiểm tra..."
     },
     sidebar: {
         dashboard: "Tổng quan",
@@ -233,13 +239,79 @@ export const vi = {
             loading: "Đang tải...",
             access_denied: "Từ chối truy cập: Yêu cầu quyền Admin.",
             fetch_failed: "Không thể tải nhật ký kiểm toán.",
-            table_timestamp: "Thời gian (GMT+7)",
+            table_timestamp: "Thời gian",
             table_actor: "Email người thực hiện",
             table_action: "Hành động",
-            table_method: "Phương thức",
-            table_endpoint: "Endpoint",
+            table_target: "Mục tiêu",
             table_status: "Trạng thái",
-            no_logs: "Không tìm thấy nhật ký nào"
+            status_success: "Thành công",
+            status_failed: "Thất bại",
+            no_logs: "Không tìm thấy nhật ký nào",
+            actions: {
+                // Middleware — Cloner
+                "Clone Complete Config": "Clone Complete Config",
+                "Update PSK (Password)": "Update PSK (Password)",
+                "Sync SSID Config": "Sync SSID Config",
+                "Delete SSID": "Delete SSID",
+                "Create SSID": "Create SSID",
+                "Batch Site Delete": "Batch Site Delete",
+                "Batch Account Access": "Batch Account Access",
+                "Batch Site Provision": "Batch Site Provision",
+                // Middleware — Master
+                "Master Account Linked": "Master Account Linked",
+                "Master Account Unlinked": "Master Account Unlinked",
+                "Master Token Force Refreshed": "Master Token Force Refreshed",
+                // Middleware — Zones
+                "Zone Created": "Zone Created",
+                "Zone Deleted": "Zone Deleted",
+                "Zone Member Added": "Zone Member Added",
+                "Zone Member Removed": "Zone Member Removed",
+                "Zone Member Role Updated": "Zone Member Role Updated",
+                "Zone Sites Updated": "Zone Sites Updated",
+                // Fallback — Auth
+                "Login": "Login",
+                "Logout": "Logout",
+                "Token Refresh": "Token Refresh",
+                "Session Check": "Session Check",
+                "Set Password": "Set Password",
+                // Fallback — Users
+                "Create User": "Create User",
+                "Update User": "Update User",
+                "Delete User": "Delete User",
+                "Reset Password": "Reset Password",
+                // Fallback — Tenants
+                "Create Tenant": "Create Tenant",
+                "Update Tenant": "Update Tenant",
+                "Delete Tenant": "Delete Tenant",
+                "Assign Tenant Admin": "Assign Tenant Admin",
+                // Fallback — Permissions
+                "Update Role Permissions": "Update Role Permissions",
+                "View Role Permissions": "View Role Permissions",
+                // Fallback — Master
+                "Link Master Account": "Link Master Account",
+                "Unlink Master Account": "Unlink Master Account",
+                "Refresh Master Token": "Refresh Master Token",
+                // Fallback — Zones
+                "Create Zone": "Create Zone",
+                "Update Zone": "Update Zone",
+                "Delete Zone": "Delete Zone",
+                "Add Zone Member": "Add Zone Member",
+                "Remove Zone Member": "Remove Zone Member",
+                "Update Zone Member": "Update Zone Member",
+                "Update Zone Sites": "Update Zone Sites",
+                // Fallback — Cloner
+                "Sync Password": "Sync Password",
+                "Sync Config": "Sync Config",
+                "Clone Config": "Clone Config",
+                "Clone/Provision": "Clone/Provision",
+                // Generic
+                "View Data": "View Data",
+                "Create": "Create",
+                "Update": "Update",
+                "Delete": "Delete",
+                "System Interaction": "System Interaction",
+                "Unknown Action": "Unknown Action"
+            }
         },
         users: {
             title: "Quản lý Người dùng",

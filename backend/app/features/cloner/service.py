@@ -944,8 +944,6 @@ async def batch_account_precheck(email: str, target_site_ids: List[str], master_
 
 async def batch_account_access(action_type: str, email: str, role: str, target_site_ids: List[str], master_token: str, actor_email: str = "anonymous") -> List[Dict]:
     import asyncio
-    from app.database.auth_crud import insert_audit_log
-    from datetime import datetime, timezone
     api_headers = {"Authorization": f"Bearer {master_token}"}
     results = []
     
@@ -967,18 +965,6 @@ async def batch_account_access(action_type: str, email: str, role: str, target_s
                     results.append({"target": site_id, "status": "ERROR", "detail": data})
             except Exception as e:
                 results.append({"target": site_id, "status": "ERROR", "detail": str(e)})
-                
-            # Insert Audit Log for each site
-            await insert_audit_log({
-                "timestamp": datetime.now(timezone.utc),
-                "actor_email": actor_email,
-                "insight_user_id": actor_email,
-                "admin_master_id": "Master System",
-                "action": f"Batch Account Access ({action_type.capitalize()})",
-                "site_id": site_id,
-                "status": status_text,
-                "detail": f"Target Email: {email}"
-            })
 
             await asyncio.sleep(2.0)
         
@@ -986,8 +972,6 @@ async def batch_account_access(action_type: str, email: str, role: str, target_s
 
 async def batch_site_delete(target_site_ids: List[str], master_token: str, actor_email: str = "anonymous") -> List[Dict]:
     import asyncio
-    from app.database.auth_crud import insert_audit_log
-    from datetime import datetime, timezone
     api_headers = {"Authorization": f"Bearer {master_token}"}
     results = []
     
@@ -1006,17 +990,6 @@ async def batch_site_delete(target_site_ids: List[str], master_token: str, actor
                     results.append({"target": site_id, "status": "ERROR", "detail": data})
             except Exception as e:
                 results.append({"target": site_id, "status": "ERROR", "detail": str(e)})
-                
-            # Insert Audit Log for each site
-            await insert_audit_log({
-                "timestamp": datetime.now(timezone.utc),
-                "actor_email": actor_email,
-                "insight_user_id": actor_email,
-                "admin_master_id": "Master System",
-                "action": "Batch Site Delete",
-                "site_id": site_id,
-                "status": status_text
-            })
 
             await asyncio.sleep(2.0)
         
@@ -1035,8 +1008,6 @@ async def batch_site_provision(
     template_id: Optional[str] = None,
 ) -> List[Dict]:
     import asyncio
-    from app.database.auth_crud import insert_audit_log
-    from datetime import datetime, timezone
     api_headers = {"Authorization": f"Bearer {master_token}", "X-ION-API-VERSION": "23"}
     results = []
     
@@ -1084,18 +1055,6 @@ async def batch_site_provision(
                     results.append({"target": site_name, "status": "ERROR", "detail": data})
             except Exception as e:
                 results.append({"target": site_name, "status": "ERROR", "detail": str(e)})
-                
-            # Insert Audit Log for each site
-            await insert_audit_log({
-                "timestamp": datetime.now(timezone.utc),
-                "actor_email": actor_email,
-                "insight_user_id": actor_email,
-                "admin_master_id": "Master System",
-                "action": "Batch Site Provision",
-                "site_id": new_site_id if status_text == "SUCCESS" else None,
-                "status": status_text,
-                "detail": f"Provisioned: {site_name}" + (f" | Template: {template_id}" if template_id else "")
-            })
 
             await asyncio.sleep(2.0)
             

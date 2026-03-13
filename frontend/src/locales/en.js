@@ -19,12 +19,18 @@ export const en = {
         title: "INSIGHT",
         subtitle: "Portal Access",
         email: "Email Address",
+        email_subtitle: "Enter your email to continue",
         password: "Password",
         powered_by: "Powered by INSIGHT",
         sign_in: "Sign in",
+        continue: "Continue",
+        use_another_account: "Use a different account",
+        step_password_title: "Welcome back",
+        step_password_subtitle: "Enter your password to sign in",
         error_invalid: "Incorrect Username or Password. Please try again.",
         error_failed: "Login failed. Please check your credentials.",
-        verifying: "Verifying..."
+        verifying: "Verifying...",
+        checking_email: "Checking..."
     },
     sidebar: {
         dashboard: "Overview",
@@ -233,13 +239,79 @@ export const en = {
             loading: "Loading...",
             access_denied: "Access Denied: Admin role required.",
             fetch_failed: "Failed to fetch audit logs.",
-            table_timestamp: "Timestamp (GMT+7)",
+            table_timestamp: "Timestamp",
             table_actor: "Actor Email",
             table_action: "Action",
-            table_method: "Method",
-            table_endpoint: "Endpoint",
+            table_target: "Target",
             table_status: "Status",
-            no_logs: "No audit logs found"
+            status_success: "Success",
+            status_failed: "Failed",
+            no_logs: "No audit logs found",
+            actions: {
+                // Middleware — Cloner
+                "Clone Complete Config": "Clone Complete Config",
+                "Update PSK (Password)": "Update PSK (Password)",
+                "Sync SSID Config": "Sync SSID Config",
+                "Delete SSID": "Delete SSID",
+                "Create SSID": "Create SSID",
+                "Batch Site Delete": "Batch Site Delete",
+                "Batch Account Access": "Batch Account Access",
+                "Batch Site Provision": "Batch Site Provision",
+                // Middleware — Master
+                "Master Account Linked": "Master Account Linked",
+                "Master Account Unlinked": "Master Account Unlinked",
+                "Master Token Force Refreshed": "Master Token Force Refreshed",
+                // Middleware — Zones
+                "Zone Created": "Zone Created",
+                "Zone Deleted": "Zone Deleted",
+                "Zone Member Added": "Zone Member Added",
+                "Zone Member Removed": "Zone Member Removed",
+                "Zone Member Role Updated": "Zone Member Role Updated",
+                "Zone Sites Updated": "Zone Sites Updated",
+                // Fallback — Auth
+                "Login": "Login",
+                "Logout": "Logout",
+                "Token Refresh": "Token Refresh",
+                "Session Check": "Session Check",
+                "Set Password": "Set Password",
+                // Fallback — Users
+                "Create User": "Create User",
+                "Update User": "Update User",
+                "Delete User": "Delete User",
+                "Reset Password": "Reset Password",
+                // Fallback — Tenants
+                "Create Tenant": "Create Tenant",
+                "Update Tenant": "Update Tenant",
+                "Delete Tenant": "Delete Tenant",
+                "Assign Tenant Admin": "Assign Tenant Admin",
+                // Fallback — Permissions
+                "Update Role Permissions": "Update Role Permissions",
+                "View Role Permissions": "View Role Permissions",
+                // Fallback — Master
+                "Link Master Account": "Link Master Account",
+                "Unlink Master Account": "Unlink Master Account",
+                "Refresh Master Token": "Refresh Master Token",
+                // Fallback — Zones
+                "Create Zone": "Create Zone",
+                "Update Zone": "Update Zone",
+                "Delete Zone": "Delete Zone",
+                "Add Zone Member": "Add Zone Member",
+                "Remove Zone Member": "Remove Zone Member",
+                "Update Zone Member": "Update Zone Member",
+                "Update Zone Sites": "Update Zone Sites",
+                // Fallback — Cloner
+                "Sync Password": "Sync Password",
+                "Sync Config": "Sync Config",
+                "Clone Config": "Clone Config",
+                "Clone/Provision": "Clone/Provision",
+                // Generic
+                "View Data": "View Data",
+                "Create": "Create",
+                "Update": "Update",
+                "Delete": "Delete",
+                "System Interaction": "System Interaction",
+                "Unknown Action": "Unknown Action"
+            }
         },
         users: {
             title: "User Management",

@@ -10,9 +10,19 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class CheckEmailRequest(BaseModel):
+    email: str
+
+
+@router.post("/check-email")
+async def check_email(body: CheckEmailRequest):
+    """Step 1: Validate email — check existence, approval, zones, password status."""
+    return await auth_service.check_email(body.email)
+
+
 @router.post("/login")
 async def login(body: LoginRequest):
-    """Login với tài khoản Insight nội bộ (email + password)."""
+    """Step 2: Login với tài khoản Insight nội bộ (email + password)."""
     return await auth_service.login(body.email, body.password)
 
 

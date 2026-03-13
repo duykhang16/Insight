@@ -251,7 +251,7 @@ class SuperService:
         if utc_dt:
             if utc_dt.tzinfo is None:
                 utc_dt = pytz.utc.localize(utc_dt)
-            gmt7_str = utc_dt.astimezone(VN_TZ).strftime("%Y-%m-%d %H:%M:%S %Z")
+            gmt7_str = utc_dt.astimezone(VN_TZ).strftime("%H:%M %d/%m/%Y")
 
         return LogResponse(
             id=str(log["_id"]),
