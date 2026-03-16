@@ -195,6 +195,8 @@ class LogResponse(BaseModel):
     site_id: Optional[str] = None
     zone_id: Optional[str] = None
     master_account_used: bool = False
+    status: Optional[str] = None
+    result_detail: Optional[Dict[str, Any]] = None
 
 
 # ===== ZONE & MASTER ACCOUNT MODELS =====
@@ -372,6 +374,8 @@ class LogResponse(BaseModel):
     site_id: Optional[str] = None
     zone_id: Optional[str] = None
     master_account_used: bool = False
+    status: Optional[str] = None
+    result_detail: Optional[Dict[str, Any]] = None
 
 
 # ===== ZONE & MASTER ACCOUNT MODELS =====

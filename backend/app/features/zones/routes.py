@@ -203,5 +203,9 @@ async def get_zone_logs(
             "ip_address": log.get("ip_address"),
             "statusCode": log.get("statusCode", 0),
             "action": log.get("action"),
+            "site_id": log.get("site_id"),
+            "zone_id": log.get("zone_id"),
+            "status": log.get("status"),
+            "result_detail": log.get("result_detail"),
         })
     return logs

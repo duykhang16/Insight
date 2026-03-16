@@ -105,18 +105,51 @@ const AdminPage = () => {
             label: t('admin.logs.table_status'),
             sortable: true,
             render: (log) => {
-                const isSuccess = log.statusCode >= 200 && log.statusCode < 300;
+                // Use the actual status field from audit log (SUCCESS/PARTIAL/SKIPPED/FAILED)
+                const status = (log.status || '').toUpperCase();
+                const statusStyles = {
+                    SUCCESS: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+                    PARTIAL: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
+                    SKIPPED: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+                    FAILED: 'bg-rose-500/10 text-rose-400 border border-rose-500/20',
+                    ERROR: 'bg-rose-500/10 text-rose-400 border border-rose-500/20',
+                };
+                const statusLabels = {
+                    SUCCESS: t('admin.logs.status_success'),
+                    PARTIAL: 'Partial',
+                    SKIPPED: 'Skipped',
+                    FAILED: t('admin.logs.status_failed'),
+                    ERROR: t('admin.logs.status_failed'),
+                };
+                const statusIcons = {
+                    SUCCESS: <CheckCircle2 size={10} />,
+                    PARTIAL: <AlertCircle size={10} />,
+                    SKIPPED: <Clock size={10} />,
+                    FAILED: <XCircle size={10} />,
+                    ERROR: <XCircle size={10} />,
+                };
+                const style = statusStyles[status] || statusStyles.SUCCESS;
+                const label = statusLabels[status] || status;
+                const icon = statusIcons[status] || <CheckCircle2 size={10} />;
                 return (
-                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
-                        isSuccess
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                    }`}>
-                        {isSuccess
-                            ? <><CheckCircle2 size={10} /> {t('admin.logs.status_success')}</>
-                            : <><XCircle size={10} /> {t('admin.logs.status_failed')}</>
-                        }
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${style}`}>
+                        {icon} {label}
                     </span>
+                );
+            },
+        },
+        {
+            key: 'result_detail',
+            label: 'Result',
+            render: (log) => {
+                const detail = log.result_detail;
+                if (!detail) return <span className="text-slate-600">—</span>;
+                return (
+                    <div className="flex items-center gap-2 text-[9px] font-bold">
+                        {detail.success > 0 && <span className="text-emerald-400">{detail.success} ✓</span>}
+                        {detail.skipped > 0 && <span className="text-amber-400">{detail.skipped} skip</span>}
+                        {detail.failed > 0 && <span className="text-rose-400">{detail.failed} ✕</span>}
+                    </div>
                 );
             },
         },

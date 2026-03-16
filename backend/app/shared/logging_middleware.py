@@ -130,9 +130,34 @@ class GlobalLoggingMiddleware(BaseHTTPMiddleware):
         request._receive = receive
 
         status_code = 500
+        response_body_data = None
         try:
             response = await call_next(request)
             status_code = response.status_code
+
+            # For clone/sync endpoints, read response body to get actual result status
+            if any(path.endswith(ep) for ep in ["/cloner/apply", "/cloner/sync-password", "/cloner/sync-config", "/cloner/sync-delete", "/cloner/sync-create"]):
+                try:
+                    body_chunks = []
+                    async for chunk in response.body_iterator:
+                        if isinstance(chunk, bytes):
+                            body_chunks.append(chunk)
+                        else:
+                            body_chunks.append(chunk.encode("utf-8"))
+                    resp_bytes = b"".join(body_chunks)
+                    response_body_data = json.loads(resp_bytes.decode("utf-8"))
+
+                    # Rebuild response with the same body
+                    from starlette.responses import Response
+                    response = Response(
+                        content=resp_bytes,
+                        status_code=status_code,
+                        headers=dict(response.headers),
+                        media_type=response.media_type,
+                    )
+                except Exception:
+                    pass  # Don't break logging if body read fails
+
         except Exception as e:
             raise e
         finally:
@@ -145,8 +170,29 @@ class GlobalLoggingMiddleware(BaseHTTPMiddleware):
                 z_ids = payload_data.get("target_zone_ids")
                 if isinstance(z_ids, list) and z_ids:
                     zone_id = z_ids[0] # Track primary target zone
+
+            # Determine status: use response body status for clone ops, else HTTP code
+            if response_body_data and isinstance(response_body_data, dict):
+                body_status = response_body_data.get("status", "").lower()
+                if body_status in ("success",):
+                    status_text = "SUCCESS"
+                elif body_status in ("partial",):
+                    status_text = "PARTIAL"
+                elif body_status in ("skipped",):
+                    status_text = "SKIPPED"
+                elif body_status in ("failed", "error"):
+                    status_text = "FAILED"
+                else:
+                    status_text = "SUCCESS" if 200 <= status_code < 300 else "ERROR"
+            else:
+                status_text = "SUCCESS" if 200 <= status_code < 300 else "ERROR"
             
-            status_text = "SUCCESS" if 200 <= status_code < 300 else "ERROR"
+            # Extract result_summary for clone/sync operations
+            result_detail = None
+            if response_body_data and isinstance(response_body_data, dict):
+                summary = response_body_data.get("result_summary")
+                if summary:
+                    result_detail = summary  # {success: N, skipped: N, failed: N, total: N}
             
             log_entry = {
                 "timestamp": datetime.now(timezone.utc),
@@ -162,6 +208,7 @@ class GlobalLoggingMiddleware(BaseHTTPMiddleware):
                 "payload": payload_data,
                 "ip_address": ip_address,
                 "statusCode": status_code,
+                "result_detail": result_detail,
             }
             asyncio.create_task(insert_audit_log(log_entry))
 

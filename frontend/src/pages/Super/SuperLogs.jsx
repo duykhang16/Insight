@@ -88,6 +88,28 @@ export default function SuperLogs() {
       ),
     },
     {
+      key: 'result',
+      label: 'Result',
+      render: (log) => {
+        const status = (log.status || '').toUpperCase();
+        const detail = log.result_detail;
+        const statusColor = {
+          SUCCESS: 'text-emerald-400', PARTIAL: 'text-blue-400',
+          SKIPPED: 'text-amber-400', FAILED: 'text-rose-400', ERROR: 'text-rose-400',
+        };
+        return (
+          <div className="flex items-center gap-2">
+            {status && <span className={`text-[9px] font-bold uppercase ${statusColor[status] || 'text-slate-400'}`}>{status}</span>}
+            {detail && (
+              <span className="text-[9px] text-slate-400">
+                {detail.success > 0 ? `${detail.success}✓ ` : ''}{detail.skipped > 0 ? `${detail.skipped}⊘ ` : ''}{detail.failed > 0 ? `${detail.failed}✕` : ''}
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       key: 'action',
       label: t('super.logs.table_header_action'),
       className: 'text-slate-400 max-w-[160px] truncate text-xs',

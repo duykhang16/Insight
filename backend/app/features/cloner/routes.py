@@ -14,6 +14,27 @@ from app.features.cloner.service import (
 from app.features.cloner import service as cloner_service
 from pydantic import BaseModel, Field
 
+
+def _build_sync_response(results: list) -> dict:
+    """Analyze sync results and build response with accurate status + summary."""
+    s = sum(1 for r in results if "SUCCESS" in (r.get("status") or "").upper())
+    sk = sum(1 for r in results if "SKIPPED" in (r.get("status") or "").upper())
+    f = len(results) - s - sk
+    if s > 0 and f == 0 and sk == 0:
+        overall = "success"
+    elif s > 0:
+        overall = "partial"
+    elif sk > 0 and f == 0:
+        overall = "skipped"
+    else:
+        overall = "failed"
+    return {
+        "status": overall,
+        "results": results,
+        "result_summary": {"success": s, "skipped": sk, "failed": f, "total": len(results)},
+    }
+
+
 class BatchDeleteRequest(BaseModel):
     target_zone_ids: List[str] = Field(default_factory=list)
     target_site_ids: List[str] = Field(default_factory=list)
@@ -201,7 +222,43 @@ async def execute_clone(
         await asyncio.sleep(1.0) # Reduced from 2s for template efficiency
 
     batch_report = {sid: result for sid, result in zip(site_ids, execution_results)}
-    return {"status": "success", "results": batch_report}
+
+    # Analyze actual outcome for accurate audit logging
+    total_success = 0
+    total_skipped = 0
+    total_failed = 0
+    for site_ops in execution_results:
+        for op in site_ops:
+            if op.get("type") == "GUEST_PORTAL":
+                continue
+            s = (op.get("status") or "").upper()
+            if "SUCCESS" in s:
+                total_success += 1
+            elif "SKIPPED" in s or "DUPLICATE" in s:
+                total_skipped += 1
+            else:
+                total_failed += 1
+
+    # Determine overall status
+    if total_success > 0 and total_failed == 0 and total_skipped == 0:
+        overall_status = "success"
+    elif total_success > 0:
+        overall_status = "partial"
+    elif total_skipped > 0 and total_failed == 0:
+        overall_status = "skipped"
+    else:
+        overall_status = "failed"
+
+    return {
+        "status": overall_status,
+        "results": batch_report,
+        "result_summary": {
+            "success": total_success,
+            "skipped": total_skipped,
+            "failed": total_failed,
+            "total": total_success + total_skipped + total_failed,
+        }
+    }
 
 
 
@@ -249,7 +306,7 @@ async def execute_password_sync(
         raise HTTPException(status_code=400, detail="Resolved 0 sites from the provided inputs.")
         
     results = await sync_ssids_passwords(source_network_name, new_password, final_site_ids, master_token)
-    return {"status": "success", "results": results}
+    return _build_sync_response(results)
 
 
 @router.post("/sync-config")
@@ -273,7 +330,7 @@ async def execute_config_sync(
         raise HTTPException(status_code=400, detail="Resolved 0 sites from the provided inputs.")
         
     results = await cloner_service.sync_ssids_config(source_site_id, source_network_name, final_site_ids, master_token)
-    return {"status": "success", "results": results}
+    return _build_sync_response(results)
 
 
 @router.post("/sync-delete")
@@ -296,7 +353,7 @@ async def execute_delete_sync(
         raise HTTPException(status_code=400, detail="Resolved 0 sites from the provided inputs.")
         
     results = await cloner_service.sync_ssids_delete(source_network_name, final_site_ids, master_token)
-    return {"status": "success", "results": results}
+    return _build_sync_response(results)
 
 
 @router.post("/sync-create")
@@ -340,7 +397,7 @@ async def execute_create_sync(
     results = await cloner_service.sync_ssids_create(
         network_name, network_type, security, password, advanced_options, final_site_ids, master_token
     )
-    return {"status": "success", "results": results}
+    return _build_sync_response(results)
 
 
 @router.get("/site-overview/{site_id}")

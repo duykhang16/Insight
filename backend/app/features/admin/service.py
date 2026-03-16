@@ -198,23 +198,37 @@ class AdminService:
             else:
                 return []
         elif not is_super:
-            from app.database.zones_crud import get_zones_for_member
-            zones = await get_zones_for_member(caller.get("email"))
-            sub_emails = set()
+            caller_email = caller.get("email")
+            caller_role = caller.get("role")
+            
+            # Collect all emails visible to this user
+            visible_emails = {caller_email}  # Always see own logs
+            
+            # Include child accounts (users created by this tenant admin)
+            if caller_role == "tenant_admin":
+                child_users = await db.users.find(
+                    {"parent_admin_id": caller_email}, {"email": 1}
+                ).to_list(200)
+                for u in child_users:
+                    visible_emails.add(u["email"])
+            
+            # Include zone member emails
+            if caller_role == "tenant_admin":
+                from app.database.zones_crud import get_zones_for_tenant_admin
+                zones = await get_zones_for_tenant_admin(caller_email)
+            else:
+                from app.database.zones_crud import get_zones_for_member
+                zones = await get_zones_for_member(caller_email)
+            
             for z in zones:
                 for m in z.get("members", []):
-                    sub_emails.add(m["email"])
-            if sub_emails:
-                sub_list = list(sub_emails)
-                query["$or"] = [
-                    {"actor_email": {"$in": sub_list}},
-                    {"insight_user_id": {"$in": sub_list}},
-                ]
-            else:
-                query["$or"] = [
-                    {"actor_email": caller.get("email")},
-                    {"insight_user_id": caller.get("email")},
-                ]
+                    visible_emails.add(m["email"])
+            
+            email_list = list(visible_emails)
+            query["$or"] = [
+                {"actor_email": {"$in": email_list}},
+                {"insight_user_id": {"$in": email_list}},
+            ]
 
         cursor = db.audit_logs.find(query).sort("timestamp", -1).skip(skip).limit(limit)
         logs = await cursor.to_list(length=limit)
@@ -252,6 +266,8 @@ class AdminService:
             site_id=log.get("site_id"),
             zone_id=log.get("zone_id"),
             master_account_used=log.get("master_account_used", False),
+            status=log.get("status"),
+            result_detail=log.get("result_detail"),
         )
 
 

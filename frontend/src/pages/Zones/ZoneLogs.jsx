@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, FileText } from 'lucide-react';
+import { ArrowLeft, RefreshCw, FileText, CheckCircle2, XCircle, AlertCircle, Clock } from 'lucide-react';
 import apiClient from '../../api/apiClient';
 import { formatAction } from '../../utils/logFormatter';
 import { useLanguage } from '../../context/LanguageContext';
@@ -82,6 +82,7 @@ const ZoneLogs = () => {
                 <th className="px-4 py-3 text-slate-400 font-medium">Method</th>
                 <th className="px-4 py-3 text-slate-400 font-medium">Endpoint</th>
                 <th className="px-4 py-3 text-slate-400 font-medium text-center">Status</th>
+                <th className="px-4 py-3 text-slate-400 font-medium">Result</th>
               </tr>
             </thead>
             <tbody>
@@ -98,9 +99,31 @@ const ZoneLogs = () => {
                   </td>
                   <td className="px-4 py-3 text-slate-400 font-mono max-w-[200px] truncate">{log.endpoint}</td>
                   <td className="px-4 py-3 text-center">
-                    <span className={`font-mono font-semibold ${getStatusColor(log.statusCode)}`}>
-                      {log.statusCode}
-                    </span>
+                    {(() => {
+                      const status = (log.status || '').toUpperCase();
+                      const cfg = {
+                        SUCCESS: { cls: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20', icon: <CheckCircle2 size={10} />, label: 'Success' },
+                        PARTIAL: { cls: 'bg-blue-500/10 text-blue-400 border-blue-500/20', icon: <AlertCircle size={10} />, label: 'Partial' },
+                        SKIPPED: { cls: 'bg-amber-500/10 text-amber-400 border-amber-500/20', icon: <Clock size={10} />, label: 'Skipped' },
+                        FAILED: { cls: 'bg-rose-500/10 text-rose-400 border-rose-500/20', icon: <XCircle size={10} />, label: 'Failed' },
+                        ERROR: { cls: 'bg-rose-500/10 text-rose-400 border-rose-500/20', icon: <XCircle size={10} />, label: 'Error' },
+                      };
+                      const c = cfg[status] || cfg.SUCCESS;
+                      return (
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${c.cls}`}>
+                          {c.icon} {c.label}
+                        </span>
+                      );
+                    })()}
+                  </td>
+                  <td className="px-4 py-3">
+                    {log.result_detail ? (
+                      <div className="flex items-center gap-2 text-[9px] font-bold">
+                        {log.result_detail.success > 0 && <span className="text-emerald-400">{log.result_detail.success} ✓</span>}
+                        {log.result_detail.skipped > 0 && <span className="text-amber-400">{log.result_detail.skipped} skip</span>}
+                        {log.result_detail.failed > 0 && <span className="text-rose-400">{log.result_detail.failed} ✕</span>}
+                      </div>
+                    ) : <span className="text-slate-600">—</span>}
                   </td>
                 </tr>
               ))}
