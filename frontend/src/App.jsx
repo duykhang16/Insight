@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useTheme } from './context/ThemeContext';
 import GlobalLayout from './layouts/GlobalLayout';
 import SiteLayout from './layouts/SiteLayout';
 import Login from './pages/Login';
@@ -18,12 +19,17 @@ import MasterAccount from './pages/Admin/MasterAccount';
 import UserManagement from './pages/Admin/UserManagement';
 import ZoneDashboard from './pages/Zones/ZoneDashboard';
 import ZoneSites from './pages/Zones/ZoneSites';
+import ZoneTemplates from './pages/Zones/ZoneTemplates';
 import ZoneLogs from './pages/Zones/ZoneLogs';
 import TenantManagement from './pages/Super/TenantManagement';
 import SuperLogs from './pages/Super/SuperLogs';
 import SuperUserManagement from './pages/Super/SuperUserManagement';
+import SuperPermissions from './pages/Super/SuperPermissions';
+import SystemMonitoring from './pages/Super/SystemMonitoring';
 import { SiteProvider } from './context/SiteContext';
+import { ZoneProvider } from './context/ZoneContext';
 import { SettingsProvider } from './context/SettingsContext';
+import { Toaster } from 'sonner';
 import './App.css';
 
 // Guard for admin-only routes (super_admin or tenant_admin).
@@ -48,10 +54,28 @@ const ViewerRoute = ({ userRole, isZoneAdmin, children }) => {
   return children;
 };
 
+// Toaster that reads from ThemeContext to auto-switch light/dark
+const ThemeAwareToaster = () => {
+  const { theme } = useTheme();
+  return (
+    <Toaster
+      position="bottom-right"
+      richColors
+      closeButton
+      theme={theme}
+      toastOptions={{
+        style: { fontFamily: 'inherit' },
+        duration: 5000,
+      }}
+    />
+  );
+};
+
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [isReady, setIsReady] = useState(false);
+  const [prefetchedData, setPrefetchedData] = useState(null);
   // userRole lives in React state so Sidebar and AdminRoute re-render reactively.
   // Initialized from sessionStorage so the very first render already has the correct
   // role — prevents the Admin tab from flashing hidden before verifySession completes.
@@ -62,6 +86,15 @@ function App() {
   // Cho phép viewer là Zone Admin được vào Configuration (chỉ trong zone của họ).
   const [isZoneAdmin, setIsZoneAdmin] = useState(
     () => sessionStorage.getItem('isZoneAdmin') === 'true'
+  );
+  const [rolePermissions, setRolePermissions] = useState(
+    () => {
+      try {
+        return JSON.parse(sessionStorage.getItem('rolePermissions')) || {};
+      } catch (e) {
+        return {};
+      }
+    }
   );
 
   useEffect(() => {
@@ -80,18 +113,23 @@ function App() {
           // JWT session verified — use role from server response (authoritative)
           const role = res.data.role || sessionStorage.getItem('userRole') || 'viewer';
           const zoneAdmin = res.data.is_zone_admin === true;
+          const perms = res.data.permissions || {};
           sessionStorage.setItem('userRole', role);
           sessionStorage.setItem('isZoneAdmin', String(zoneAdmin));
+          sessionStorage.setItem('rolePermissions', JSON.stringify(perms));
           setIsLoggedIn(true);
           setUserRole(role);
           setIsZoneAdmin(zoneAdmin);
+          setRolePermissions(perms);
         } else {
           sessionStorage.removeItem('token');
           sessionStorage.removeItem('userRole');
+          sessionStorage.removeItem('rolePermissions');
         }
       } catch (error) {
         sessionStorage.removeItem('token');
         sessionStorage.removeItem('userRole');
+        sessionStorage.removeItem('rolePermissions');
       } finally {
         setCheckingAuth(false);
         setIsReady(true);
@@ -133,16 +171,25 @@ function App() {
     };
   }, [isLoggedIn]);
 
-  const handleLoginSuccess = () => {
+  const handleLoginSuccess = (prefetchData) => {
+    // Guard: ignore if already logged in (Login's useEffect may re-trigger this)
+    if (isLoggedIn) return;
+
     // Login component already wrote userRole + isZoneAdmin to sessionStorage before calling this.
-    // Read synchronously so React state is set in the same tick as isLoggedIn.
     const role = sessionStorage.getItem('userRole') || 'viewer';
     const zoneAdmin = sessionStorage.getItem('isZoneAdmin') === 'true';
-    setTimeout(() => {
-      setUserRole(role);
-      setIsZoneAdmin(zoneAdmin);
-      setIsLoggedIn(true);
-    }, 500);
+    let perms = {};
+    try { perms = JSON.parse(sessionStorage.getItem('rolePermissions')) || {}; } catch (e) { }
+    setUserRole(role);
+    setIsZoneAdmin(zoneAdmin);
+    setRolePermissions(perms);
+
+    // Store prefetched data if available (comes from splash screen completion)
+    if (prefetchData) {
+      setPrefetchedData(prefetchData);
+    }
+
+    setIsLoggedIn(true);
   };
 
   const handleLogout = async () => {
@@ -159,7 +206,7 @@ function App() {
 
   if (checkingAuth || !isReady) {
     return (
-      <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+      <div className="min-h-screen th-bg-base flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     );
@@ -169,22 +216,27 @@ function App() {
     return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
+
   return (
+    <>
+    <ThemeAwareToaster />
     <Router>
       <SettingsProvider>
-        <SiteProvider>
-          <Routes>
+        <ZoneProvider initialZones={prefetchedData?.zones}>
+          <SiteProvider initialSites={prefetchedData?.sites}>
+            <Routes>
             {/* Global routes — use GlobalLayout */}
-            <Route element={<GlobalLayout onLogout={handleLogout} userRole={userRole} isZoneAdmin={isZoneAdmin} />}>
+            <Route element={<GlobalLayout onLogout={handleLogout} userRole={userRole} isZoneAdmin={isZoneAdmin} rolePermissions={rolePermissions} />}>
               <Route path="/" element={<Navigate to="/zones" replace />} />
               <Route path="/config" element={
                 <ViewerRoute userRole={userRole} isZoneAdmin={isZoneAdmin}>
-                  <Configuration />
+                  <Configuration rolePermissions={rolePermissions} userRole={userRole} />
                 </ViewerRoute>
               } />
 
               {/* Zone routes — all logged-in users */}
               <Route path="/zones" element={<ZoneDashboard />} />
+              <Route path="/zones/:zoneId/templates" element={<ZoneTemplates />} />
               <Route path="/zones/:zoneId/sites" element={<ZoneSites />} />
               <Route path="/zones/:zoneId/logs" element={<ZoneLogs />} />
 
@@ -221,9 +273,19 @@ function App() {
                   <SuperUserManagement />
                 </SuperRoute>
               } />
+              <Route path="/super/permissions" element={
+                <SuperRoute userRole={userRole}>
+                  <SuperPermissions />
+                </SuperRoute>
+              } />
               <Route path="/super/logs" element={
                 <SuperRoute userRole={userRole}>
                   <SuperLogs />
+                </SuperRoute>
+              } />
+              <Route path="/super/monitoring" element={
+                <SuperRoute userRole={userRole}>
+                  <SystemMonitoring />
                 </SuperRoute>
               } />
 
@@ -250,10 +312,12 @@ function App() {
               <Route path="configuration/batch" element={<Navigate to="../configuration/overview" replace />} />
               <Route path="cloner" element={<Navigate to="../configuration/overview" replace />} />
             </Route>
-          </Routes>
-        </SiteProvider>
+            </Routes>
+          </SiteProvider>
+        </ZoneProvider>
       </SettingsProvider>
     </Router>
+    </>
   );
 }
 

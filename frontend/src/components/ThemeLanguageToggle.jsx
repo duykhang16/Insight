@@ -11,7 +11,7 @@ const ThemeLanguageToggle = () => {
         <div className="flex items-center gap-3">
             <button
                 onClick={toggleLanguage}
-                className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-700 hover:border-blue-500/50 hover:bg-slate-800 transition-all text-xs font-bold text-slate-400 hover:text-white"
+                className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border th-border hover:border-blue-500/50 hover:th-bg-surface-alt transition-all text-xs font-bold th-text-muted hover:th-text-primary"
                 title="Toggle Language"
             >
                 <Languages size={14} />
@@ -20,7 +20,7 @@ const ThemeLanguageToggle = () => {
 
             <button
                 onClick={toggleTheme}
-                className="flex items-center justify-center p-1.5 rounded-lg border border-slate-700 hover:border-blue-500/50 hover:bg-slate-800 transition-all text-slate-400 hover:text-amber-400 dark:hover:text-blue-400"
+                className="flex items-center justify-center p-1.5 rounded-lg border th-border hover:border-blue-500/50 hover:th-bg-surface-alt transition-all th-text-muted hover:text-amber-400 dark:hover:text-blue-400"
                 title="Toggle Theme"
             >
                 {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}

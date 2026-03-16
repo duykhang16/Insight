@@ -19,15 +19,15 @@ const Sidebar = ({ onLogout, userRole = 'guest' }) => {
 
     const getNavLinkClass = ({ isActive }) =>
         `flex items-center px-4 py-3 text-sm font-medium transition-colors ${isActive
-            ? "bg-blue-600 text-white"
-            : "text-gray-300 hover:bg-slate-800 hover:text-white"
+            ? "bg-blue-600 th-text-primary"
+            : "th-text-secondary hover:th-bg-elevated hover:th-text-primary"
         }`;
 
     return (
-        <div className="flex flex-col w-64 bg-[#0F172A] border-r border-slate-800 h-full transition-colors duration-300">
-            <div className="flex items-center justify-between px-4 h-16 border-b border-slate-800 gap-3">
+        <div className="flex flex-col w-64 th-bg-surface border-r th-border h-full transition-colors duration-300">
+            <div className="flex items-center justify-between px-4 h-16 border-b th-border gap-3">
                 <div className="flex items-center gap-3">
-                    <span className="text-xl font-black italic text-white tracking-widest uppercase">INSIGHT</span>
+                    <span className="text-xl font-black italic th-text-primary tracking-widest uppercase">INSIGHT</span>
                     <div className="relative flex items-center justify-center h-2 w-2" title="Live Sync">
                         <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50 animate-ping"></span>
                         <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -49,7 +49,7 @@ const Sidebar = ({ onLogout, userRole = 'guest' }) => {
             </nav>
             {/* Toggle section — controlled by ENABLE_UI_TOGGLES flag above */}
             {ENABLE_UI_TOGGLES && (
-                <div className="p-4 border-t border-slate-800">
+                <div className="p-4 border-t th-border">
                     <ThemeLanguageToggle />
                 </div>
             )}

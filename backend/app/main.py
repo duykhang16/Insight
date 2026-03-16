@@ -20,6 +20,9 @@ from app.features.capture.routes import router as capture_router
 from app.features.zones.routes import router as zones_router
 from app.features.master.routes import router as master_router
 from app.features.super.routes import router as super_router
+from app.features.templates.routes import router as templates_router
+from app.features.monitoring.routes import router as monitoring_router
+
 
 
 @asynccontextmanager
@@ -28,6 +31,9 @@ async def lifespan(app: FastAPI):
     await connect_to_mongo()
 
     # Super Admin Init Logic — seeds and migrates SUPER_ADMIN_EMAILS to role="super_admin"
+    from app.database.roles_crud import initialize_default_roles
+    await initialize_default_roles()
+    
     from app.database.auth_crud import hash_password
     db = get_database()
     for email in SUPER_ADMIN_EMAILS:
@@ -94,7 +100,9 @@ app.include_router(config_router)                                            # /
 app.include_router(capture_router)                                           # /api/v1/capture* (hidden)
 app.include_router(zones_router, prefix="/api/v1", tags=["zones"])          # /api/v1/zones
 app.include_router(master_router, prefix="/api/v1", tags=["master"])        # /api/v1/master
-app.include_router(super_router, prefix="/api/v1/super", tags=["super"])   # /api/v1/super
+app.include_router(super_router, prefix="/api/v1/super", tags=["super"])
+app.include_router(templates_router, prefix="/api/v1", tags=["templates"])
+app.include_router(monitoring_router, prefix="/api/v1/monitoring", tags=["monitoring"])
 
 
 @app.get("/health", tags=["System"])

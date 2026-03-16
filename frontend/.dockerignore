@@ -10,4 +10,4 @@ Dockerfile
 .vite/
 coverage/
 node_modules.bak/
-package-lock.json
+.env*

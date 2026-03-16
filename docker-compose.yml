@@ -3,17 +3,17 @@ version: '3.8'
 services:
   backend:
     build:
-      context: ./sources/insight/backend
+      context: ./backend
       dockerfile: Dockerfile
     container_name: insight_backend
     restart: unless-stopped
     env_file:
-      - ./sources/insight/.env
+      - .env
     environment:
       # Ép dùng con MongoDB "lão làng" của anh
       - MONGODB_URL=mongodb://MongoDB:27017
-      # Thêm dòng này để log sạch đẹp, không còn cảnh báo bảo mật
-      - INTERNAL_APP_AUTH=CuongDeploy_Secret_2026
+      # Secret được đọc từ .env (đã gitignore) — KHÔNG hardcode ở đây
+      - INTERNAL_APP_AUTH=${INTERNAL_APP_AUTH}
       # QUAN TRỌNG: Master token manager dùng asyncio.create_task — phải chạy single worker
       # Nếu dùng nhiều workers, mỗi worker sẽ tạo một background task riêng → N lần hit Aruba SSO
       - WEB_CONCURRENCY=1
@@ -29,10 +29,12 @@ services:
 
   frontend:
     build:
-      context: ./sources/insight/frontend
+      context: ./frontend
       dockerfile: Dockerfile
     container_name: insight_frontend
     restart: unless-stopped
+    env_file:
+      - .env
     ports:
       - "3002:80"
     depends_on:
@@ -44,4 +46,4 @@ networks:
   insight-net:
     driver: bridge
     # Cho phép các container khác (như con MongoDB cũ) tham gia vào mạng này
-    name: api-testing_insight-net
+    name: insight-net

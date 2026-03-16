@@ -29,50 +29,30 @@ async def replay_login(username: str, password: str, client_id: Optional[str] = 
     url = ARUBA_SSO_VALIDATE_URL
 
     async with httpx.AsyncClient(verify=True) as client:
-        # --- PHASE 0: Discovery ---
-        # Fetching settings.json to get dynamic OIDC IDs
-        target_client_id_authn = client_id # Provided ID as first fallback
-        target_client_id_authz = client_id # Provided ID as first fallback
+        # HARDCODED SECURE DEFAULTS (Known working for portal.instant-on.hpe.com)
+        # We try to discover dynamic ones, but these are the primary production IDs.
+        target_client_id_authn = "8d02000d-0ba3-468a-b674-9a8052347d9b"
+        target_client_id_authz = "987b543b-210d-9ed6-54a2-10a2c4567fa0"
         target_resource = ARUBA_BASE_URL
 
         try:
             settings_url = f"{target_resource}/settings.json"
-            settings_resp = await client.get(settings_url, timeout=10.0)
+            settings_resp = await client.get(settings_url, timeout=5.0) # Lower timeout
             if settings_resp.status_code == 200:
                 s = settings_resp.json()
-                target_client_id_authn = s.get("ssoClientIdAuthN") or target_client_id_authn
-                target_client_id_authz = s.get("ssoClientIdAuthZ") or target_client_id_authz
+                discovered_authn = s.get("ssoClientIdAuthN")
+                discovered_authz = s.get("ssoClientIdAuthZ")
+                if discovered_authn: target_client_id_authn = discovered_authn
+                if discovered_authz: target_client_id_authz = discovered_authz
 
                 # Pick the most robust URL key
-                discovered_resource = s.get("restApiUrl") or s.get("portalUrl") or s.get("portalFqdn")
+                discovered_resource = s.get("restApiUrl") or s.get("portalUrl")
                 if discovered_resource:
                     if not discovered_resource.startswith("http"):
                         discovered_resource = f"https://{discovered_resource}"
                     target_resource = discovered_resource
-
-                print(f"[REPLAY] Discovery Success: AuthN={target_client_id_authn}, AuthZ={target_client_id_authz}, Resource={target_resource}")
-            else:
-                print(f"[REPLAY] Discovery (settings.json) failed: {settings_resp.status_code}")
-
-            # Fallback: Scrape from portal homepage redirect
-            if not target_client_id_authn or not target_client_id_authz:
-                print(f"[REPLAY] Falling back to Portal Redirect discovery...")
-                portal_resp = await client.get(target_resource, follow_redirects=True, timeout=10.0)
-                final_url = str(portal_resp.url)
-                if "client_id=" in final_url:
-                    from urllib.parse import urlparse, parse_qs
-                    parsed_p = urlparse(final_url)
-                    qs_p = parse_qs(parsed_p.query)
-                    target_client_id_authn = qs_p.get("client_id", [None])[0] or target_client_id_authn
-                    target_client_id_authz = target_client_id_authn # Often same
-                    print(f"[REPLAY] Discovery Success (Scrape): client_id={target_client_id_authn}")
-
         except Exception as e:
-            print(f"[REPLAY WARNING] Discovery failed: {e}")
-
-        # Final hardcoded fallbacks if everything still None
-        target_client_id_authn = target_client_id_authn or "8d02000d-0ba3-468a-b674-9a8052347d9b"
-        target_client_id_authz = target_client_id_authz or "987b543b-210d-9ed6-54a2-10a2c4567fa0"
+            print(f"[REPLAY WARNING] Discovery failed: {e}. Using defaults.")
 
         # --- STEP 1: SSO Login ---
         try:
@@ -97,31 +77,24 @@ async def replay_login(username: str, password: str, client_id: Optional[str] = 
             # Variant 1: Pure Form-URLEncoded (Postman/Curl standard - No client_id needed in Step 1)
             # We prioritize variants based on the account type (aitc-jsc.com usually needs identification)
             variants = []
+            # Variant 1: Pure Form-URLEncoded
+            # We prioritize variants based on the account type
+            variants = []
             if "@aitc-jsc.com" in username.lower():
-                # Newer accounts usually need 'identification'
                 variants = [
                     {"type": "form", "data": {"identification": username, "password": password, "client_id": target_client_id_authn}},
-                    {"type": "form", "data": {"username": username, "password": password}},
-                    {"type": "json", "data": {"identification": username, "password": password, "client_id": target_client_id_authn}},
                 ]
             else:
-                # Standard legacy flow
                 variants = [
                     {"type": "form", "data": {"username": username, "password": password}},
-                    {"type": "form", "data": {"identification": username, "password": password, "client_id": target_client_id_authn}},
-                    {"type": "json", "data": {"identification": username, "password": password, "client_id": target_client_id_authn}},
                 ]
 
-            # Add secondary variants
-            variants.extend([
-                {"type": "form", "data": {"username": username, "password": password, "client_id": target_client_id_authn}},
-                {"type": "json", "data": {"username": username, "password": password, "client_id": target_client_id_authn}},
-            ])
+            # Simplified variants to reduce attempt count (avoiding 429)
+            variants.append({"type": "form", "data": {"username": username, "password": password, "client_id": target_client_id_authn}})
 
             response = None
             for v in variants:
                 try:
-                    print(f"[REPLAY] Trying Step 1 variant: {v['type']} ({list(v['data'].keys())})")
                     v_headers = headers.copy()
                     if v["type"] == "form":
                         v_headers["Content-Type"] = "application/x-www-form-urlencoded"
@@ -131,13 +104,10 @@ async def replay_login(username: str, password: str, client_id: Optional[str] = 
                         response = await client.post(url, headers=v_headers, json=v['data'], timeout=15.0)
 
                     if response.status_code == 200:
-                        print(f"[REPLAY] Step 1 Success with variant: {v['type']} ({list(v['data'].keys())})")
                         break
                     elif response.status_code == 429:
-                        print(f"[REPLAY ERROR] 429 Too Many Requests detected. Aborting variants to avoid ban.")
-                        break # Stop immediately
-                    else:
-                        print(f"[REPLAY] Variant failed ({response.status_code}): {response.text[:100]}...")
+                        print(f"[REPLAY ERROR] 429 rate limit. IP may be temporarily banned.")
+                        return {"status": "error", "message": "Aruba SSO rate limit (429). Please wait 2-5 minutes."}
                 except Exception as e:
                     print(f"[REPLAY] Variant error: {e}")
 
@@ -169,8 +139,6 @@ async def replay_login(username: str, password: str, client_id: Optional[str] = 
                 challenge = base64.urlsafe_b64encode(sha256_hash).decode().replace('=', '')
                 state = ''.join(random.choices(string.ascii_letters + string.digits, k=32))
 
-                print(f"[REPLAY] Requesting Authorize Code...")
-                print(f"  Params: client_id={target_client_id_authz}, redirect={target_resource}")
                 authz_url = ARUBA_SSO_AUTHORIZE_URL
                 authz_params = {
                     "client_id": target_client_id_authz,
@@ -212,10 +180,7 @@ async def replay_login(username: str, password: str, client_id: Optional[str] = 
                         "location": location
                     }
 
-                print(f"[REPLAY] Authorize Success. Code obtained.")
-
                 # --- STEP 3: Token Exchange (Code Grant) ---
-                print(f"[REPLAY] Exchanging Code for Portal Token...")
                 exchange_url = ARUBA_SSO_TOKEN_URL
                 exchange_data = {
                     "client_id": target_client_id_authz,
@@ -254,7 +219,6 @@ async def replay_login(username: str, password: str, client_id: Optional[str] = 
                     customer_id = None
                     site_id = None
                     try:
-                        print(f"[REPLAY] Discovering Customer Context...")
                         ctx_headers = {
                             "Authorization": f"Bearer {final_token}",
                             "Accept": "application/json",
@@ -262,33 +226,21 @@ async def replay_login(username: str, password: str, client_id: Optional[str] = 
                             "X-Ion-Client-Type": "InstantOn",
                             "X-Ion-Client-Platform": "web"
                         }
-                        # 1. Get Customer ID
                         me_url = f"{target_resource}/api/v1/customers/me"
                         me_resp = await client.get(me_url, headers=ctx_headers, timeout=10.0)
-                        print(f"[REPLAY] Context Me: {me_resp.status_code}")
                         if me_resp.status_code == 200:
-                            me_data = me_resp.json()
-                            customer_id = me_data.get("customerId")
-                            print(f"[REPLAY] Customer ID: {customer_id}")
-                        else:
-                            print(f"[REPLAY] Me Failed: {me_resp.text[:200]}")
+                            customer_id = me_resp.json().get("customerId")
 
-                        # 2. Get Site ID
                         sites_url = f"{target_resource}/api/v1/sites"
                         sites_resp = await client.get(sites_url, headers=ctx_headers, timeout=10.0)
-                        print(f"[REPLAY] Context Sites: {sites_resp.status_code}")
                         if sites_resp.status_code == 200:
                             sites_data = sites_resp.json()
                             if isinstance(sites_data, dict) and sites_data.get("elements"):
                                 site_id = sites_data["elements"][0].get("siteId")
-                                print(f"[REPLAY] Site ID (Primary): {site_id}")
                             elif isinstance(sites_data, list) and len(sites_data) > 0:
                                 site_id = sites_data[0].get("siteId") or sites_data[0].get("id")
-                                print(f"[REPLAY] Site ID (Primary List): {site_id}")
-                        else:
-                            print(f"[REPLAY] Sites Failed: {sites_resp.text[:200]}")
                     except Exception as e:
-                        print(f"[REPLAY WARNING] Context Discovery failed: {e}")
+                        print(f"[REPLAY WARNING] Context discovery failed: {e}")
 
                     return {
                         "status": "success",

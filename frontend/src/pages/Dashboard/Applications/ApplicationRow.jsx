@@ -20,18 +20,18 @@ const ApplicationRow = ({ category }) => {
                         <Icon size={18} />
                     </div>
                     {/* Bold, Uppercase, Italic formatting for Category Name */}
-                    <span className="text-white font-black tracking-tight text-sm uppercase italic">
+                    <span className="th-text-primary font-black tracking-tight text-sm uppercase italic">
                         {meta.name}
                     </span>
                 </div>
             </td>
             <td className="px-8 py-5 text-right">
                 <div className="flex flex-col items-end">
-                    <span className="text-white font-mono font-bold text-base tracking-tighter">
+                    <span className="th-text-primary font-mono font-bold text-base tracking-tighter">
                         {formatBytes(usage)}
                     </span>
                     <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">
-                        24H Traffic
+                        24H Usage
                     </span>
                 </div>
             </td>
@@ -42,7 +42,7 @@ const ApplicationRow = ({ category }) => {
                         <span className="text-indigo-400 font-mono font-black text-sm">{percentage.toFixed(1)}%</span>
                     </div>
                     {/* Progress Bar below percentage */}
-                    <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden border border-white/5 shadow-inner">
+                    <div className="w-full h-1.5 th-bg-elevated rounded-full overflow-hidden border border-white/5 shadow-inner">
                         <div
                             className="h-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(0,0,0,0.5)]"
                             style={{

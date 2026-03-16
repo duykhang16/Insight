@@ -3,16 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Search, Network, Wifi, Users } from 'lucide-react';
 import apiClient from '../../../api/apiClient';
 import { useSite } from '../../../context/SiteContext';
-import { processNetworks } from './dataProcessor';
+// processNetworks removed — BE now returns pre-mapped data
 import NetworkTable from './NetworkTable';
 import WirelessTable from './WirelessTable';
 import useIntervalFetch from '../../../hooks/useIntervalFetch';
 import { useSettings } from '../../../context/SettingsContext';
-import SyncIndicator from '../../../components/SyncIndicator';
+import { useLanguage } from '../../../context/LanguageContext';
 
 const Networks = () => {
-    const navigate = useNavigate();
-    const [networksData, setNetworksData] = useState([]);
+    const { t } = useLanguage();
+    const [beResponse, setBeResponse] = useState({ wired: [], wireless: [], stats: {} });
     const [loading, setLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [error, setError] = useState('');
@@ -34,7 +34,7 @@ const Networks = () => {
     }, []);
 
     useEffect(() => {
-        setNetworksData([]);
+        setBeResponse({ wired: [], wireless: [], stats: {} });
         if (selectedSiteId) fetchNetworks(selectedSiteId);
     }, [selectedSiteId]);
 
@@ -45,11 +45,12 @@ const Networks = () => {
         setError('');
         try {
             const res = await apiClient.get(`/overview/sites/${siteId}/wiredNetworks`);
-            setNetworksData(processNetworks(res.data));
+            // BE returns { wired: [...], wireless: [...], stats: {...} }
+            setBeResponse(res.data || { wired: [], wireless: [], stats: {} });
             setLastUpdated(new Date());
         } catch (err) {
             console.error('Networks fetch error:', err);
-            if (!silent) setError('Failed to synchronize network configurations.');
+            if (!silent) setError(t('site.networks.error_fetch'));
         } finally {
             if (!silent) setLoading(false);
             else setIsRefreshing(false);
@@ -64,19 +65,14 @@ const Networks = () => {
     // Split into wired / wireless — apply search on both
     const { wiredRows, wirelessRows } = useMemo(() => {
         const q = searchTerm.toLowerCase();
-        const all = networksData.filter(n =>
-            !q || n.name.toLowerCase().includes(q) || String(n.vlanId).includes(q)
-        );
+        const filterFn = (n) => !q || (n.name || '').toLowerCase().includes(q) || String(n.vlanId).includes(q);
         return {
-            wiredRows:    all.filter(n => n.rowType === 'wired'),
-            wirelessRows: all.filter(n => n.rowType === 'wireless'),
+            wiredRows:    (beResponse.wired || []).filter(filterFn),
+            wirelessRows: (beResponse.wireless || []).filter(filterFn),
         };
-    }, [networksData, searchTerm]);
+    }, [beResponse, searchTerm]);
 
-    // Legacy shape needed by NetworkTable/NetworkRow (expects ssids[] etc.)
-    // NetworkTable receives wiredRows directly; it was designed for the old shape.
-    // We pass wiredRows as-is — NetworkTable only uses: id, name, vlanId, type→usage,
-    // isEnabled, health, totalClients, ssids[]. Map here.
+    // Legacy shape needed by NetworkTable/NetworkRow
     const wiredForTable = useMemo(() =>
         wiredRows.map(r => ({
             id:           r.id,
@@ -90,64 +86,62 @@ const Networks = () => {
         })),
     [wiredRows]);
 
-    // Total clients = wired rows only (wired.clients already includes wireless SSID clients)
-    const totalClients        = networksData.filter(n => n.rowType === 'wired').reduce((s, n) => s + n.clients, 0);
-    const wiredAll            = networksData.filter(n => n.rowType === 'wired');
-    const wirelessAll         = networksData.filter(n => n.rowType === 'wireless');
-    const wiredCount          = wiredAll.length;
-    const wirelessCount       = wirelessAll.length;
-    const wiredActiveCount    = wiredAll.filter(n => n.isEnabled).length;
-    const wirelessActiveCount = wirelessAll.filter(n => n.isEnabled).length;
-    const wiredInactiveCount  = wiredCount - wiredActiveCount;
-    const wirelessInactiveCount = wirelessCount - wirelessActiveCount;
+    // Stats from BE — no client-side counting needed
+    const stats = beResponse.stats || {};
+    const totalClients        = stats.totalClients || 0;
+    const wiredCount          = stats.wiredCount || 0;
+    const wirelessCount       = stats.wirelessCount || 0;
+    const wiredActiveCount    = stats.wiredActive || 0;
+    const wirelessActiveCount = stats.wirelessActive || 0;
+    const wiredInactiveCount  = stats.wiredInactive || 0;
+    const wirelessInactiveCount = stats.wirelessInactive || 0;
 
     return (
-        <div className="p-8 pb-32 font-sans overflow-hidden bg-slate-950 min-h-screen">
+        <div className="p-8 pb-32 font-sans overflow-hidden th-bg-base min-h-screen">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
                 <div>
-                    <h1 className="text-2xl font-black text-white tracking-tight italic uppercase">Networks</h1>
+                    <h1 className="text-2xl font-black th-text-primary tracking-tight italic uppercase">{t('site.networks.title')}</h1>
                     <p className="text-sm text-slate-400 mt-1">
-                        Wired &amp; wireless topology for {sites.find(s => s.siteId === selectedSiteId)?.siteName || 'current site'}
+                        {t('site.networks.subtitle')} {sites.find(s => s.siteId === selectedSiteId)?.siteName || 'current site'}
                     </p>
                 </div>
-                <SyncIndicator isSyncing={loading || isRefreshing} lastUpdated={lastUpdated} />
             </div>
 
             {/* Stats Row */}
             <div className="flex flex-wrap gap-3 mb-6">
                 {/* Wired pill */}
-                <div className="bg-slate-900 border border-white/5 rounded-2xl h-14 px-5 flex items-center gap-3 shadow-xl">
+                <div className="th-bg-surface border border-white/5 rounded-2xl h-14 px-5 flex items-center gap-3 shadow-xl">
                     <Network size={15} className="text-amber-400 shrink-0" />
                     <div className="flex flex-col leading-none gap-0.5">
-                        <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">Wired</span>
-                        <span className="text-[10px] font-black text-slate-300">
-                            <span className="text-emerald-400">{wiredActiveCount} on</span>
+                        <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest">{t('site.networks.stats_wired_label')}</span>
+                        <span className="text-[10px] font-black th-text-secondary">
+                            <span className="text-emerald-400">{wiredActiveCount} {t('site.networks.stats_wired_on')}</span>
                             <span className="text-slate-600 mx-1">/</span>
-                            <span className="text-slate-500">{wiredInactiveCount} off</span>
-                            <span className="text-slate-600 ml-1">· {wiredCount} total</span>
+                            <span className="text-slate-500">{wiredInactiveCount} {t('site.networks.stats_wired_off')}</span>
+                            <span className="text-slate-600 ml-1">· {wiredCount} {t('site.networks.stats_wired_total')}</span>
                         </span>
                     </div>
                 </div>
                 {/* Wireless pill */}
-                <div className="bg-slate-900 border border-white/5 rounded-2xl h-14 px-5 flex items-center gap-3 shadow-xl">
+                <div className="th-bg-surface border border-white/5 rounded-2xl h-14 px-5 flex items-center gap-3 shadow-xl">
                     <Wifi size={15} className="text-blue-400 shrink-0" />
                     <div className="flex flex-col leading-none gap-0.5">
-                        <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Wireless</span>
-                        <span className="text-[10px] font-black text-slate-300">
-                            <span className="text-emerald-400">{wirelessActiveCount} on</span>
+                        <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">{t('site.networks.stats_wireless_label')}</span>
+                        <span className="text-[10px] font-black th-text-secondary">
+                            <span className="text-emerald-400">{wirelessActiveCount} {t('site.networks.stats_wireless_on')}</span>
                             <span className="text-slate-600 mx-1">/</span>
-                            <span className="text-slate-500">{wirelessInactiveCount} off</span>
-                            <span className="text-slate-600 ml-1">· {wirelessCount} total</span>
+                            <span className="text-slate-500">{wirelessInactiveCount} {t('site.networks.stats_wireless_off')}</span>
+                            <span className="text-slate-600 ml-1">· {wirelessCount} {t('site.networks.stats_wireless_total')}</span>
                         </span>
                     </div>
                 </div>
                 {/* Clients pill */}
-                <div className="bg-slate-900 border border-white/5 rounded-2xl h-14 px-5 flex items-center gap-3 shadow-xl">
+                <div className="th-bg-surface border border-white/5 rounded-2xl h-14 px-5 flex items-center gap-3 shadow-xl">
                     <Users size={15} className="text-slate-500 shrink-0" />
                     <div className="flex flex-col leading-none gap-0.5">
-                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Clients</span>
-                        <span className="text-[10px] font-black text-slate-300">{totalClients} connected</span>
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{t('site.networks.stats_clients_label')}</span>
+                        <span className="text-[10px] font-black th-text-secondary">{totalClients} {t('site.networks.stats_clients_connected')}</span>
                     </div>
                 </div>
             </div>
@@ -158,26 +152,30 @@ const Networks = () => {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
                     <input
                         type="text"
-                        placeholder="Search network name or VLAN..."
+                        placeholder={t('site.networks.search_placeholder')}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full h-14 pl-12 pr-4 bg-slate-900 border border-white/5 rounded-2xl text-white text-sm focus:outline-none focus:border-indigo-500/50 shadow-inner transition-all hover:bg-slate-800/50"
+                        className="w-full h-14 pl-12 pr-4 th-bg-surface border border-white/5 rounded-2xl th-text-primary text-sm focus:outline-none focus:border-indigo-500/50 shadow-inner transition-all hover:th-bg-surface-alt"
                     />
                 </div>
 
                 {/* Tabs */}
-                <div className="flex items-center gap-1 bg-slate-900 border border-white/5 rounded-2xl p-1 shadow-xl">
-                    {['all', 'wireless', 'wired'].map(tab => (
+                <div className="flex items-center gap-1 th-bg-surface border border-white/5 rounded-2xl p-1 shadow-xl">
+                    {[
+                        { value: 'all',      label: t('site.networks.tab_all') },
+                        { value: 'wireless', label: t('site.networks.tab_wireless') },
+                        { value: 'wired',    label: t('site.networks.tab_wired') },
+                    ].map(tab => (
                         <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
+                            key={tab.value}
+                            onClick={() => setActiveTab(tab.value)}
                             className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                                activeTab === tab
+                                activeTab === tab.value
                                     ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
-                                    : 'text-slate-500 hover:text-slate-300 border border-transparent'
+                                    : 'text-slate-500 hover:th-text-secondary border border-transparent'
                             }`}
                         >
-                            {tab}
+                            {tab.label}
                         </button>
                     ))}
                 </div>
@@ -196,7 +194,7 @@ const Networks = () => {
                     {activeTab === 'all' && (
                         <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-3 px-1 flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
-                            Wireless Networks
+                            {t('site.networks.section_wireless_title')}
                             <span className="text-slate-700 normal-case font-bold tracking-normal">— {wirelessRows.length} SSIDs</span>
                         </h2>
                     )}
@@ -210,7 +208,7 @@ const Networks = () => {
                     {activeTab === 'all' && (
                         <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-3 px-1 flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
-                            Wired Networks
+                            {t('site.networks.section_wired_title')}
                             <span className="text-slate-700 normal-case font-bold tracking-normal">— {wiredRows.length} VLANs</span>
                         </h2>
                     )}

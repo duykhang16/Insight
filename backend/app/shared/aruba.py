@@ -29,68 +29,74 @@ class ArubaService:
         data: Any = None,
         json_data: Any = None,
         headers: Optional[Dict[str, str]] = None,
-        target_domain: Optional[str] = None
+        target_domain: Optional[str] = None,
+        use_master_auto: bool = False
     ) -> httpx.Response:
         """
         Executes a request to the Aruba API with automatic auth injection and header spoofing.
+        If use_master_auto is True, it will attempt to use the master token and retry once on 401.
         """
-        base_url = f"https://{target_domain}" if target_domain else ARUBA_BASE_URL
-        if not endpoint.startswith("http"):
-             url = f"{base_url}/{endpoint.lstrip('/')}"
-        else:
-            url = endpoint
+        effective_token = aruba_token
+        if use_master_auto and not effective_token:
+            from app.features.master.service import get_master_token_auto
+            effective_token = await get_master_token_auto()
 
-        # Prepare Auth
-        auth_headers = await self._get_auth_headers(aruba_token)
+        async def _do_call(token: Optional[str]):
+            base_url = f"https://{target_domain}" if target_domain else ARUBA_BASE_URL
+            if not endpoint.startswith("http"):
+                 url = f"{base_url}/{endpoint.lstrip('/')}"
+            else:
+                url = endpoint
 
-        # Prepare Request Headers
-        final_headers = {
-            "User-Agent": CHROME_USER_AGENT,
-            "Accept": "application/json, text/plain, */*",
-            "Accept-Language": "en-us",
-            "X-Ion-Api-Version": ARUBA_API_VERSION,
-            "X-Ion-Client-Type": ARUBA_CLIENT_TYPE,
-            "X-Ion-Client-Platform": ARUBA_CLIENT_PLATFORM,
-        }
-        final_headers.update(auth_headers)
-        if headers:
-            final_headers.update(headers)
+            # Prepare Auth
+            auth_headers = await self._get_auth_headers(token)
 
-        # Dynamic Header Spoofing
-        parsed_target = urlparse(url)
-        target_host = parsed_target.netloc
+            # Prepare Request Headers
+            f_headers = {
+                "User-Agent": CHROME_USER_AGENT,
+                "Accept": "application/json, text/plain, */*",
+                "Accept-Language": "en-us",
+                "X-Ion-Api-Version": ARUBA_API_VERSION,
+                "X-Ion-Client-Type": ARUBA_CLIENT_TYPE,
+                "X-Ion-Client-Platform": ARUBA_CLIENT_PLATFORM,
+            }
+            f_headers.update(auth_headers)
+            if headers:
+                f_headers.update(headers)
 
-        origin_val = f"{parsed_target.scheme}://{target_host}"
-        referer_val = f"{origin_val}/"
+            parsed_target = urlparse(url)
+            t_host = parsed_target.netloc
+            f_headers["Origin"] = f"{parsed_target.scheme}://{t_host}"
+            f_headers["Referer"] = f"{f_headers['Origin']}/"
+            f_headers["Host"] = t_host
 
-        final_headers["Origin"] = origin_val
-        final_headers["Referer"] = referer_val
-        final_headers["Host"] = target_host
+            async with httpx.AsyncClient(timeout=30.0, follow_redirects=True, verify=False) as client:
+                return await client.request(
+                    method=method,
+                    url=url,
+                    headers=f_headers,
+                    data=data,
+                    json=json_data
+                )
 
-        print(f"[ARUBA SERVICE] Final URL: {url}")
-        print(f"[ARUBA SERVICE] Target Host: {target_host}")
-        token_present = "Yes" if final_headers.get("Authorization") or final_headers.get("authorization") else "No"
-        print(f"[ARUBA SERVICE] Token Presence: {token_present}")
+        resp = await _do_call(effective_token)
 
-        # Execute Request
-        async with httpx.AsyncClient(
-            timeout=30.0,
-            follow_redirects=True,
-            verify=False
-        ) as client:
-            resp = await client.request(
-                method=method,
-                url=url,
-                headers=final_headers,
-                data=data,
-                json=json_data
-            )
+        # If we get unauthorized and we are using master auto, try one refresh
+        if resp.status_code in [401, 403] and use_master_auto:
+            print(f"[ARUBA SERVICE] Received {resp.status_code}. Attempting SILENT RE-LOGIN refresh...")
+            from app.features.master.service import refresh_token_locked
+            ok = await refresh_token_locked()
+            if ok:
+                from app.features.master.service import get_master_token_auto
+                new_token = await get_master_token_auto()
+                if new_token and new_token != effective_token:
+                    print(f"[ARUBA SERVICE] Refresh success, retrying with new token...")
+                    resp = await _do_call(new_token)
 
-            # If we get unauthorized
-            if resp.status_code in [401, 403]:
-                print(f"[ARUBA SERVICE] Received {resp.status_code}. Token might be expired.")
+        if resp.status_code in [401, 403]:
+            print(f"[ARUBA SERVICE] Final response {resp.status_code}. Token might be invalid.")
 
-            return resp
+        return resp
 
 # Singleton instance
 aruba_service = ArubaService()

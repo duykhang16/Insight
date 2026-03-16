@@ -21,7 +21,8 @@ async def get_live_account_sites(aruba_token: str) -> List[Dict[str, Any]]:
         res = await aruba_service.call_api(
             method="GET",
             endpoint="/api/sites",
-            aruba_token=aruba_token
+            aruba_token=aruba_token,
+            use_master_auto=True
         )
 
         if res.status_code in [401, 403]:
@@ -29,7 +30,8 @@ async def get_live_account_sites(aruba_token: str) -> List[Dict[str, Any]]:
             res = await aruba_service.call_api(
                 method="GET",
                 endpoint="/api/v1/sites",
-                aruba_token=aruba_token
+                aruba_token=aruba_token,
+                use_master_auto=True
             )
 
         if res.status_code in [401, 403]:
@@ -67,7 +69,8 @@ async def fetch_site_config_live(site_id: str, aruba_token: str) -> Dict[str, An
         res_nets = await aruba_service.call_api(
             method="GET",
             endpoint=f"/api/sites/{site_id}/networksSummary",
-            aruba_token=aruba_token
+            aruba_token=aruba_token,
+            use_master_auto=True
         )
 
         if res_nets.status_code in [401, 403]:
@@ -75,7 +78,8 @@ async def fetch_site_config_live(site_id: str, aruba_token: str) -> Dict[str, An
             res_nets = await aruba_service.call_api(
                 method="GET",
                 endpoint=f"/api/v1/sites/{site_id}/networksSummary",
-                aruba_token=aruba_token
+                aruba_token=aruba_token,
+                use_master_auto=True
             )
 
         if res_nets.status_code in [401, 403]:
@@ -87,7 +91,8 @@ async def fetch_site_config_live(site_id: str, aruba_token: str) -> Dict[str, An
         res_guest = await aruba_service.call_api(
             method="GET",
             endpoint=f"/api/sites/{site_id}/guestPortalSettings",
-            aruba_token=aruba_token
+            aruba_token=aruba_token,
+            use_master_auto=True
         )
 
         # Safe JSON parsing
@@ -372,7 +377,6 @@ async def apply_config_live(target_site_id: str, operations: List[Dict[str, Any]
                     continue
 
                 # Settle time
-                import asyncio
                 await asyncio.sleep(0.8)
 
                 # --- Pass 2: "Full Update" (PUT) ---
@@ -466,7 +470,6 @@ async def sync_ssids_passwords(source_network_name: str, new_password: str, targ
         "Content-Type": "application/json"
     }
 
-    import asyncio
     results = []
 
     async def update_site_ssid(client: httpx.AsyncClient, site_id: str):
@@ -554,7 +557,6 @@ async def sync_ssids_config(source_site_id: str, source_network_name: str, targe
         "Content-Type": "application/json"
     }
 
-    import asyncio
     results = []
 
     # 1. Fetch source network config
@@ -657,7 +659,6 @@ async def sync_ssids_delete(source_network_name: str, target_site_ids: List[str]
         "Content-Type": "application/json"
     }
 
-    import asyncio
     results = []
 
     async def delete_site_ssid(client: httpx.AsyncClient, site_id: str):
@@ -740,7 +741,6 @@ async def sync_ssids_create(
         "Content-Type": "application/json"
     }
 
-    import asyncio
     results = []
 
     # 1. Base Configuration representing the complete desired state
@@ -1121,7 +1121,8 @@ async def batch_site_provision(
     configured_location: dict,
     target_zone_ids: List[str],
     master_token: str,
-    actor_email: str = "anonymous"
+    actor_email: str = "anonymous",
+    template_id: Optional[str] = None,
 ) -> List[Dict]:
     api_headers = {"Authorization": f"Bearer {master_token}", "X-ION-API-VERSION": "23"}
     url = f"https://portal.instant-on.hpe.com/api/sites/{source_site_id}/siteCloning"
@@ -1139,7 +1140,6 @@ async def batch_site_provision(
                 "timezoneIana": timezone_iana,
                 "configuredLocation": configured_location
             }
-
             try:
                 res = await client.post(url, headers=api_headers, json=payload, timeout=30.0)
                 if res.status_code in [200, 201]:

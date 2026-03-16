@@ -1,16 +1,51 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User, LogOut, RefreshCw, ChevronUp, Power } from 'lucide-react';
+import { LogOut, RefreshCw, ChevronsUpDown, Moon, Sun, Languages } from 'lucide-react';
 import { useSite } from '../../context/SiteContext';
 import { useSettings } from '../../context/SettingsContext';
+import { useLanguage } from '../../context/LanguageContext';
+import { useTheme } from '../../context/ThemeContext';
+
+// Sync status indicator
+const SyncIndicator = ({ isSyncing, lastUpdated }) => {
+    const { t } = useLanguage();
+
+    const formattedTime = lastUpdated instanceof Date
+        ? lastUpdated.toLocaleTimeString()
+        : (lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : '--:--:--');
+
+    return (
+        <div className="flex items-center gap-1.5 mt-0.5">
+            <div className="relative flex items-center justify-center">
+                {isSyncing ? (
+                    <RefreshCw size={8} className="text-blue-400 animate-spin" />
+                ) : (
+                    <>
+                        <span className="absolute inline-flex h-2 w-2 rounded-full bg-emerald-500/20 animate-ping"></span>
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.5)]"></span>
+                    </>
+                )}
+            </div>
+            <span className="text-[10px] font-medium th-text-muted whitespace-nowrap">
+                {isSyncing ? t('common.syncing') : 'Live'}
+            </span>
+            <span className="text-[10px] font-mono th-text-muted opacity-50">
+                {formattedTime}
+            </span>
+        </div>
+    );
+};
 
 const UserWidget = ({ onLogout }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const { selectedSiteId, sites } = useSite();
-    const { isAutoRefreshEnabled, toggleAutoRefresh } = useSettings();
+    const { selectedSiteId, sites, lastUpdated, loadingSites } = useSite();
+    const { isAutoRefreshEnabled } = useSettings();
+    const { t, language, toggleLanguage } = useLanguage();
+    const { theme, toggleTheme } = useTheme();
     const dropdownRef = useRef(null);
 
-    const userEmail = sessionStorage.getItem('insight_user_email') || 'it.admin@insight.local';
-    const currentSite = sites.find(s => s.siteId === selectedSiteId)?.siteName || 'No Site Selected';
+    const userEmail = sessionStorage.getItem('insight_user_email') || 'user@insight.local';
+    const userName = userEmail.split('@')[0];
+    const userInitials = userName.slice(0, 2).toUpperCase();
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -23,41 +58,76 @@ const UserWidget = ({ onLogout }) => {
     }, []);
 
     return (
-        <div className="relative border-t border-slate-800 bg-slate-900/50" ref={dropdownRef}>
+        <div className="relative mx-2 mb-2" ref={dropdownRef}>
             {/* Dropdown Menu */}
             {isOpen && (
-                <div className="absolute bottom-full left-0 w-full mb-2 px-2 animate-fade-in z-50">
-                    <div className="bg-slate-800 border border-slate-700 shadow-xl rounded-xl overflow-hidden py-1">
-                        <div className="px-4 py-3 border-b border-slate-700/50">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">Signed in as</p>
-                            <p className="text-xs font-bold text-white truncate" title={userEmail}>{userEmail}</p>
+                <div
+                    className="absolute bottom-full left-0 w-full mb-1.5 z-50"
+                    style={{ animation: 'userDropdownIn 0.15s ease-out forwards' }}
+                >
+                    <style>{`
+                        @keyframes userDropdownIn {
+                            from { opacity: 0; transform: translateY(4px) scale(0.97); }
+                            to { opacity: 1; transform: translateY(0) scale(1); }
+                        }
+                    `}</style>
+                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 shadow-lg dark:shadow-2xl dark:shadow-black/30 rounded-xl overflow-hidden">
+                        {/* User info header */}
+                        <div className="px-3 py-3 border-b border-slate-100 dark:border-white/5">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                    {userInitials}
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-xs font-semibold text-slate-800 dark:text-white truncate">{userName}</p>
+                                    <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate">{userEmail}</p>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="p-2">
+                        {/* Settings: Theme & Language */}
+                        <div className="p-1 border-b border-slate-100 dark:border-white/5">
+                            {/* Theme toggle */}
                             <button
-                                onClick={toggleAutoRefresh}
-                                className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-slate-700/50 transition-colors group"
+                                onClick={toggleTheme}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors group"
                             >
-                                <div className="flex items-center gap-3">
-                                    <Power size={14} className={isAutoRefreshEnabled ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-500'} />
-                                    <span className="text-xs font-bold text-slate-300 group-hover:text-white">Auto-refresh (60s)</span>
-                                </div>
-                                <div className={`w-8 h-4 rounded-full transition-colors relative ${isAutoRefreshEnabled ? 'bg-emerald-500/20' : 'bg-slate-700'}`}>
-                                    <div className={`absolute top-0.5 w-3 h-3 rounded-full transition-all ${isAutoRefreshEnabled ? 'left-4 bg-emerald-400' : 'left-0.5 bg-slate-500'}`}></div>
-                                </div>
+                                {theme === 'dark' ? (
+                                    <Sun size={14} className="opacity-60 group-hover:opacity-100 group-hover:text-amber-500 transition-all" />
+                                ) : (
+                                    <Moon size={14} className="opacity-60 group-hover:opacity-100 group-hover:text-blue-500 transition-all" />
+                                )}
+                                <span className="flex-1 text-left">
+                                    {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                                </span>
+                            </button>
+
+                            {/* Language toggle */}
+                            <button
+                                onClick={toggleLanguage}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors group"
+                            >
+                                <Languages size={14} className="opacity-60 group-hover:opacity-100 transition-opacity" />
+                                <span className="flex-1 text-left">
+                                    {language === 'vi' ? 'English' : 'Tiếng Việt'}
+                                </span>
+                                <span className="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500">
+                                    {language}
+                                </span>
                             </button>
                         </div>
 
-                        <div className="p-2 border-t border-slate-700/50">
+                        {/* Logout */}
+                        <div className="p-1">
                             <button
                                 onClick={() => {
                                     setIsOpen(false);
                                     onLogout();
                                 }}
-                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-rose-500/10 text-rose-400 transition-colors group"
+                                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-400 transition-colors group"
                             >
-                                <LogOut size={14} className="group-hover:text-rose-300" />
-                                <span className="text-xs font-bold group-hover:text-rose-300">Log out</span>
+                                <LogOut size={14} className="opacity-60 group-hover:opacity-100 transition-opacity" />
+                                {t('common.logout')}
                             </button>
                         </div>
                     </div>
@@ -67,20 +137,24 @@ const UserWidget = ({ onLogout }) => {
             {/* Widget Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full p-4 flex items-center gap-3 hover:bg-slate-800/50 transition-colors focus:outline-none group"
+                className={`w-full p-2.5 flex items-center gap-3 rounded-xl transition-all duration-150 focus:outline-none group ${
+                    isOpen
+                        ? 'bg-slate-100 dark:bg-white/5'
+                        : 'hover:bg-slate-100 dark:hover:bg-white/5'
+                }`}
             >
-                <div className="w-10 h-10 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
-                    <User size={18} />
+                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-sm group-hover:shadow-md transition-shadow">
+                    {userInitials}
                 </div>
                 <div className="flex-1 min-w-0 text-left">
-                    <div className="text-sm font-bold text-white truncate">{userEmail.split('@')[0]}</div>
-                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-500 truncate mt-0.5">
-                        {currentSite}
+                    <div className="text-xs font-semibold th-text-primary truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        {userName}
                     </div>
+                    <SyncIndicator isSyncing={loadingSites} lastUpdated={lastUpdated} />
                 </div>
-                <ChevronUp
+                <ChevronsUpDown
                     size={16}
-                    className={`text-slate-500 transition-transform duration-200 ${isOpen ? 'rotate-180 text-white' : ''}`}
+                    className="th-text-muted opacity-40 group-hover:opacity-70 transition-opacity shrink-0"
                 />
             </button>
         </div>

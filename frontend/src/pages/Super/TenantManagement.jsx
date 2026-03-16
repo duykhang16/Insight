@@ -1,71 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, Pencil, Trash2, UserCheck, AlertTriangle, X, Check, ChevronDown } from 'lucide-react';
+import { Plus, Pencil, Trash2, UserCheck, AlertTriangle, X, Check } from 'lucide-react';
 import apiClient from '../../api/apiClient';
-
-// ── helpers ──────────────────────────────────────────────────────────────────
-
-const badge = (text, color) => (
-  <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-semibold ${color}`}>
-    {text}
-  </span>
-);
+import { useLanguage } from '../../context/LanguageContext';
+import { DataTable } from '@/components/ui/data-table';
+import { Badge } from '@/components/ui/badge';
 
 // ── sub-components ────────────────────────────────────────────────────────────
-
-function TenantRow({ tenant, allUsers, onEdit, onDelete, onAssignAdmin, refreshing }) {
-  const admin = allUsers.find(u => u.email === tenant.admin_email);
-
-  return (
-    <tr className="border-t border-slate-800 hover:bg-slate-800/40 transition-colors">
-      <td className="px-4 py-3 font-medium text-white">{tenant.name}</td>
-      <td className="px-4 py-3 text-slate-400 text-sm">{tenant.note || '—'}</td>
-      <td className="px-4 py-3">
-        {tenant.admin_email ? (
-          <div>
-            <div className="text-sm text-blue-400">{tenant.admin_email}</div>
-            {admin && <div className="text-xs text-slate-500">{admin.isApproved ? 'Approved' : 'Pending'}</div>}
-          </div>
-        ) : (
-          badge('Chưa có Admin', 'bg-yellow-900/40 text-yellow-400')
-        )}
-      </td>
-      <td className="px-4 py-3 text-slate-400 text-sm">{tenant.user_count ?? 0}</td>
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => onAssignAdmin(tenant)}
-            className="p-1.5 rounded text-slate-400 hover:text-blue-400 hover:bg-slate-700 transition-colors"
-            title="Gán Tenant Admin"
-          >
-            <UserCheck className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => onEdit(tenant)}
-            className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
-            title="Chỉnh sửa"
-          >
-            <Pencil className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => onDelete(tenant)}
-            className="p-1.5 rounded text-slate-400 hover:text-red-400 hover:bg-slate-700 transition-colors"
-            title="Xóa"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-      </td>
-    </tr>
-  );
-}
 
 function Modal({ title, onClose, children }) {
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="bg-[#0F172A] border border-slate-700 rounded-lg w-full max-w-md shadow-xl">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700">
-          <h2 className="text-sm font-semibold text-white">{title}</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+      <div className="th-bg-surface border th-border rounded-lg w-full max-w-md shadow-xl mx-4">
+        <div className="flex items-center justify-between px-5 py-4 border-b th-border">
+          <h2 className="text-sm font-semibold th-text-primary">{title}</h2>
+          <button onClick={onClose} className="text-slate-400 hover:th-text-primary transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -78,6 +26,7 @@ function Modal({ title, onClose, children }) {
 // ── main component ────────────────────────────────────────────────────────────
 
 export default function TenantManagement() {
+  const { t } = useLanguage();
   const [tenants, setTenants] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -113,7 +62,7 @@ export default function TenantManagement() {
       setTenants(tenantsRes.data);
       setAllUsers(usersRes.data);
     } catch (e) {
-      setError(e?.response?.data?.detail || 'Không thể tải dữ liệu.');
+      setError(e?.response?.data?.detail || t('super.tenants.error_load_data'));
     } finally {
       setLoading(false);
     }
@@ -130,28 +79,28 @@ export default function TenantManagement() {
     setSubmitting(true);
     try {
       await apiClient.post('/super/tenants', { name: formName, note: formNote });
-      showToast('Tạo tenant thành công.');
+      showToast(t('super.tenants.toast_create_success'));
       setCreateModal(false);
       setFormName(''); setFormNote('');
       fetchData();
     } catch (e) {
-      showToast(e?.response?.data?.detail || 'Lỗi tạo tenant.', 'error');
+      showToast(e?.response?.data?.detail || t('super.tenants.toast_create_error'), 'error');
     } finally {
       setSubmitting(false);
     }
   };
 
   // ── edit tenant
-  const openEdit = (t) => { setEditTarget(t); setFormName(t.name); setFormNote(t.note || ''); };
+  const openEdit = (tenant) => { setEditTarget(tenant); setFormName(tenant.name); setFormNote(tenant.note || ''); };
   const handleEdit = async () => {
     setSubmitting(true);
     try {
       await apiClient.put(`/super/tenants/${editTarget.id}`, { name: formName, note: formNote });
-      showToast('Cập nhật thành công.');
+      showToast(t('super.tenants.toast_update_success'));
       setEditTarget(null);
       fetchData();
     } catch (e) {
-      showToast(e?.response?.data?.detail || 'Lỗi cập nhật.', 'error');
+      showToast(e?.response?.data?.detail || t('super.tenants.toast_update_error'), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -162,18 +111,18 @@ export default function TenantManagement() {
     setSubmitting(true);
     try {
       await apiClient.delete(`/super/tenants/${deleteTarget.id}`);
-      showToast('Đã xóa tenant.');
+      showToast(t('super.tenants.toast_delete_success'));
       setDeleteTarget(null);
       fetchData();
     } catch (e) {
-      showToast(e?.response?.data?.detail || 'Lỗi xóa tenant.', 'error');
+      showToast(e?.response?.data?.detail || t('super.tenants.toast_delete_error'), 'error');
     } finally {
       setSubmitting(false);
     }
   };
 
   // ── assign admin
-  const openAssign = (t) => { setAssignTarget(t); setAssignEmail(t.admin_email || ''); setAssignWarning(''); };
+  const openAssign = (tenant) => { setAssignTarget(tenant); setAssignEmail(tenant.admin_email || ''); setAssignWarning(''); };
   const handleAssign = async () => {
     if (!assignEmail) return;
     setSubmitting(true);
@@ -181,33 +130,102 @@ export default function TenantManagement() {
       const res = await apiClient.post(`/super/tenants/${assignTarget.id}/assign-admin`, { admin_email: assignEmail });
       if (res.data.warning) setAssignWarning(res.data.warning);
       else {
-        showToast('Đã gán Tenant Admin.');
+        showToast(t('super.tenants.toast_assign_success'));
         setAssignTarget(null);
         setAssignWarning('');
         fetchData();
       }
     } catch (e) {
-      showToast(e?.response?.data?.detail || 'Lỗi gán admin.', 'error');
+      showToast(e?.response?.data?.detail || t('super.tenants.toast_assign_error'), 'error');
     } finally {
       setSubmitting(false);
     }
   };
 
   const confirmAssignDespiteWarning = async () => {
-    // user acknowledged the warning — force assign
     setSubmitting(true);
     try {
       await apiClient.post(`/super/tenants/${assignTarget.id}/assign-admin`, { admin_email: assignEmail });
-      showToast('Đã gán Tenant Admin (override).');
+      showToast(t('super.tenants.toast_assign_override_success'));
       setAssignTarget(null);
       setAssignWarning('');
       fetchData();
     } catch (e) {
-      showToast(e?.response?.data?.detail || 'Lỗi gán admin.', 'error');
+      showToast(e?.response?.data?.detail || t('super.tenants.toast_assign_error'), 'error');
     } finally {
       setSubmitting(false);
     }
   };
+
+  // ── column definitions ──
+  const columns = [
+    {
+      key: 'name',
+      label: t('super.tenants.table_header_name'),
+      sortable: true,
+      className: 'font-medium th-text-primary',
+    },
+    {
+      key: 'note',
+      label: t('super.tenants.table_header_notes'),
+      className: 'text-slate-400 text-sm',
+      render: (tenant) => tenant.note || '—',
+    },
+    {
+      key: 'admin_email',
+      label: t('super.tenants.table_header_admin'),
+      sortable: true,
+      render: (tenant) => {
+        const admin = allUsers.find(u => u.email === tenant.admin_email);
+        if (tenant.admin_email) {
+          return (
+            <div>
+              <div className="text-sm text-blue-400">{tenant.admin_email}</div>
+              {admin && (
+                <div className="text-xs text-slate-500">
+                  {admin.isApproved ? t('super.tenants.status_approved') : t('super.tenants.status_pending')}
+                </div>
+              )}
+            </div>
+          );
+        }
+        return <Badge variant="outline" className="bg-yellow-900/40 text-yellow-400 border-yellow-500/30">{t('super.tenants.no_admin_badge')}</Badge>;
+      },
+    },
+    {
+      key: 'user_count',
+      label: t('super.tenants.table_header_users'),
+      sortable: true,
+      className: 'text-slate-400 text-sm',
+      render: (tenant) => tenant.user_count ?? 0,
+    },
+  ];
+
+  const renderActions = (tenant) => (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => openAssign(tenant)}
+        className="p-1.5 rounded text-slate-400 hover:text-blue-400 hover:bg-slate-700 transition-colors"
+        title={t('super.tenants.button_tooltip_assign')}
+      >
+        <UserCheck className="w-4 h-4" />
+      </button>
+      <button
+        onClick={() => openEdit(tenant)}
+        className="p-1.5 rounded text-slate-400 hover:th-text-primary hover:bg-slate-700 transition-colors"
+        title={t('super.tenants.button_tooltip_edit')}
+      >
+        <Pencil className="w-4 h-4" />
+      </button>
+      <button
+        onClick={() => setDeleteTarget(tenant)}
+        className="p-1.5 rounded text-slate-400 hover:text-red-400 hover:bg-slate-700 transition-colors"
+        title={t('super.tenants.button_tooltip_delete')}
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
+    </div>
+  );
 
   // ── render ────────────────────────────────────────────────────────────────
 
@@ -216,14 +234,14 @@ export default function TenantManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-white">Tenant Management</h1>
-          <p className="text-xs text-slate-500 mt-0.5">Quản lý danh sách khách hàng / công ty và Tenant Admin của từng tenant.</p>
+          <h1 className="text-lg font-bold th-text-primary">{t('super.tenants.title')}</h1>
+          <p className="text-xs text-slate-500 mt-0.5">{t('super.tenants.subtitle')}</p>
         </div>
         <button
           onClick={() => { setCreateModal(true); setFormName(''); setFormNote(''); }}
-          className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition-colors"
+          className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 th-text-primary text-sm rounded transition-colors"
         >
-          <Plus className="w-4 h-4" /> Thêm Tenant
+          <Plus className="w-4 h-4" /> {t('super.tenants.add_button')}
         </button>
       </div>
 
@@ -245,71 +263,49 @@ export default function TenantManagement() {
       )}
 
       {/* Table */}
-      <div className="bg-[#0F172A] border border-slate-800 rounded-lg overflow-hidden">
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-500" />
-          </div>
-        ) : tenants.length === 0 ? (
-          <div className="text-center py-12 text-slate-500 text-sm">Chưa có tenant nào.</div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-slate-800/60">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Tên Tenant</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Ghi chú</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Tenant Admin</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Users</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Hành động</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tenants.map(t => (
-                <TenantRow
-                  key={t.id}
-                  tenant={t}
-                  allUsers={allUsers}
-                  onEdit={openEdit}
-                  onDelete={setDeleteTarget}
-                  onAssignAdmin={openAssign}
-                />
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+      <DataTable
+        columns={columns}
+        data={tenants}
+        keyExtractor={t => t.id}
+        emptyMessage={t('super.tenants.empty_state')}
+        loading={loading}
+        searchable
+        searchKeys={['name', 'admin_email', 'note']}
+        searchPlaceholder={`${t('super.tenants.table_header_name')}, ${t('super.tenants.table_header_admin')}...`}
+        actions={renderActions}
+      />
 
       {/* Create modal */}
       {createModal && (
-        <Modal title="Thêm Tenant mới" onClose={() => setCreateModal(false)}>
+        <Modal title={t('super.tenants.modal_create_title')} onClose={() => setCreateModal(false)}>
           <div className="space-y-3">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Tên Tenant *</label>
+              <label className="block text-xs text-slate-400 mb-1">{t('super.tenants.modal_create_name_label')}</label>
               <input
-                className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                placeholder="VD: Công ty ABC"
+                className="w-full th-bg-elevated border th-border rounded px-3 py-2 text-sm th-text-primary placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                placeholder={t('super.tenants.modal_create_name_placeholder')}
                 value={formName}
                 onChange={e => setFormName(e.target.value)}
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Ghi chú</label>
+              <label className="block text-xs text-slate-400 mb-1">{t('super.tenants.modal_create_notes_label')}</label>
               <textarea
-                className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                className="w-full th-bg-elevated border th-border rounded px-3 py-2 text-sm th-text-primary placeholder-slate-500 focus:outline-none focus:border-blue-500"
                 rows={2}
-                placeholder="Tuỳ chọn"
+                placeholder={t('super.tenants.modal_create_notes_placeholder')}
                 value={formNote}
                 onChange={e => setFormNote(e.target.value)}
               />
             </div>
             <div className="flex justify-end gap-2 pt-1">
-              <button onClick={() => setCreateModal(false)} className="px-3 py-2 text-sm text-slate-400 hover:text-white transition-colors">Hủy</button>
+              <button onClick={() => setCreateModal(false)} className="px-3 py-2 text-sm text-slate-400 hover:th-text-primary transition-colors">{t('super.tenants.modal_create_cancel')}</button>
               <button
                 onClick={handleCreate}
                 disabled={!formName.trim() || submitting}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm rounded transition-colors"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 th-text-primary text-sm rounded transition-colors"
               >
-                {submitting ? 'Đang tạo...' : 'Tạo'}
+                {submitting ? t('super.tenants.modal_create_submitting') : t('super.tenants.modal_create_submit')}
               </button>
             </div>
           </div>
@@ -318,33 +314,33 @@ export default function TenantManagement() {
 
       {/* Edit modal */}
       {editTarget && (
-        <Modal title={`Chỉnh sửa: ${editTarget.name}`} onClose={() => setEditTarget(null)}>
+        <Modal title={`${t('super.tenants.modal_edit_title')}: ${editTarget.name}`} onClose={() => setEditTarget(null)}>
           <div className="space-y-3">
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Tên Tenant *</label>
+              <label className="block text-xs text-slate-400 mb-1">{t('super.tenants.modal_edit_name_label')}</label>
               <input
-                className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full th-bg-elevated border th-border rounded px-3 py-2 text-sm th-text-primary focus:outline-none focus:border-blue-500"
                 value={formName}
                 onChange={e => setFormName(e.target.value)}
               />
             </div>
             <div>
-              <label className="block text-xs text-slate-400 mb-1">Ghi chú</label>
+              <label className="block text-xs text-slate-400 mb-1">{t('super.tenants.modal_edit_notes_label')}</label>
               <textarea
-                className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                className="w-full th-bg-elevated border th-border rounded px-3 py-2 text-sm th-text-primary focus:outline-none focus:border-blue-500"
                 rows={2}
                 value={formNote}
                 onChange={e => setFormNote(e.target.value)}
               />
             </div>
             <div className="flex justify-end gap-2 pt-1">
-              <button onClick={() => setEditTarget(null)} className="px-3 py-2 text-sm text-slate-400 hover:text-white transition-colors">Hủy</button>
+              <button onClick={() => setEditTarget(null)} className="px-3 py-2 text-sm text-slate-400 hover:th-text-primary transition-colors">{t('super.tenants.modal_edit_cancel')}</button>
               <button
                 onClick={handleEdit}
                 disabled={!formName.trim() || submitting}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm rounded transition-colors"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 th-text-primary text-sm rounded transition-colors"
               >
-                {submitting ? 'Đang lưu...' : 'Lưu'}
+                {submitting ? t('super.tenants.modal_edit_submitting') : t('super.tenants.modal_edit_submit')}
               </button>
             </div>
           </div>
@@ -353,24 +349,24 @@ export default function TenantManagement() {
 
       {/* Delete confirm modal */}
       {deleteTarget && (
-        <Modal title="Xác nhận xóa Tenant" onClose={() => setDeleteTarget(null)}>
+        <Modal title={t('super.tenants.modal_delete_title')} onClose={() => setDeleteTarget(null)}>
           <div className="space-y-4">
-            <p className="text-sm text-slate-300">
-              Bạn có chắc muốn xóa tenant <span className="font-semibold text-white">"{deleteTarget.name}"</span>?
+            <p className="text-sm th-text-secondary">
+              {t('super.tenants.modal_delete_confirm_text')} <span className="font-semibold th-text-primary">"{deleteTarget.name}"</span>?
               {deleteTarget.admin_email && (
                 <span className="block mt-1 text-yellow-400 text-xs">
-                  Tenant này đang có Tenant Admin: {deleteTarget.admin_email}
+                  {t('super.tenants.modal_delete_has_admin_text')} {deleteTarget.admin_email}
                 </span>
               )}
             </p>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setDeleteTarget(null)} className="px-3 py-2 text-sm text-slate-400 hover:text-white transition-colors">Hủy</button>
+              <button onClick={() => setDeleteTarget(null)} className="px-3 py-2 text-sm text-slate-400 hover:th-text-primary transition-colors">{t('super.tenants.modal_delete_cancel')}</button>
               <button
                 onClick={handleDelete}
                 disabled={submitting}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm rounded transition-colors"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 th-text-primary text-sm rounded transition-colors"
               >
-                {submitting ? 'Đang xóa...' : 'Xóa'}
+                {submitting ? t('super.tenants.modal_delete_submitting') : t('super.tenants.modal_delete_submit')}
               </button>
             </div>
           </div>
@@ -379,27 +375,27 @@ export default function TenantManagement() {
 
       {/* Assign admin modal */}
       {assignTarget && (
-        <Modal title={`Gán Tenant Admin: ${assignTarget.name}`} onClose={() => { setAssignTarget(null); setAssignWarning(''); }}>
+        <Modal title={`${t('super.tenants.modal_assign_title')}: ${assignTarget.name}`} onClose={() => { setAssignTarget(null); setAssignWarning(''); }}>
           <div className="space-y-4">
             {assignWarning && (
               <div className="bg-yellow-900/30 border border-yellow-700 text-yellow-300 text-xs px-3 py-2 rounded flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
                 <div>
-                  <div className="font-semibold mb-1">Cảnh báo</div>
+                  <div className="font-semibold mb-1">{t('super.tenants.modal_assign_warning_title')}</div>
                   <div>{assignWarning}</div>
                   <div className="mt-2 flex gap-2">
                     <button
                       onClick={confirmAssignDespiteWarning}
                       disabled={submitting}
-                      className="px-3 py-1.5 bg-yellow-700 hover:bg-yellow-600 text-white text-xs rounded transition-colors"
+                      className="px-3 py-1.5 bg-yellow-700 hover:bg-yellow-600 th-text-primary text-xs rounded transition-colors"
                     >
-                      Xác nhận chuyển
+                      {t('super.tenants.modal_assign_warning_confirm')}
                     </button>
                     <button
                       onClick={() => setAssignWarning('')}
-                      className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs rounded transition-colors"
+                      className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 th-text-secondary text-xs rounded transition-colors"
                     >
-                      Chọn lại
+                      {t('super.tenants.modal_assign_warning_cancel')}
                     </button>
                   </div>
                 </div>
@@ -409,16 +405,16 @@ export default function TenantManagement() {
             {!assignWarning && (
               <>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Chọn Tenant Admin</label>
+                  <label className="block text-xs text-slate-400 mb-1">{t('super.tenants.modal_assign_label')}</label>
                   {adminCandidates.length === 0 ? (
-                    <p className="text-xs text-slate-500">Không có user nào có role tenant_admin.</p>
+                    <p className="text-xs text-slate-500">{t('super.tenants.modal_assign_no_candidates')}</p>
                   ) : (
                     <select
-                      className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+                      className="w-full th-bg-elevated border th-border rounded px-3 py-2 text-sm th-text-primary focus:outline-none focus:border-blue-500"
                       value={assignEmail}
                       onChange={e => setAssignEmail(e.target.value)}
                     >
-                      <option value="">-- Chọn email --</option>
+                      <option value="">{t('super.tenants.modal_assign_select_placeholder')}</option>
                       {adminCandidates.map(u => (
                         <option key={u.email} value={u.email}>{u.email}</option>
                       ))}
@@ -428,16 +424,16 @@ export default function TenantManagement() {
                 <div className="flex justify-end gap-2">
                   <button
                     onClick={() => { setAssignTarget(null); setAssignWarning(''); }}
-                    className="px-3 py-2 text-sm text-slate-400 hover:text-white transition-colors"
+                    className="px-3 py-2 text-sm text-slate-400 hover:th-text-primary transition-colors"
                   >
-                    Hủy
+                    {t('super.tenants.modal_assign_cancel')}
                   </button>
                   <button
                     onClick={handleAssign}
                     disabled={!assignEmail || submitting}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm rounded transition-colors"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 th-text-primary text-sm rounded transition-colors"
                   >
-                    {submitting ? 'Đang gán...' : 'Gán Admin'}
+                    {submitting ? t('super.tenants.modal_assign_submitting') : t('super.tenants.modal_assign_submit')}
                   </button>
                 </div>
               </>
