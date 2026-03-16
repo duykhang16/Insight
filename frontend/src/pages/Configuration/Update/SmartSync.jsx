@@ -4,7 +4,7 @@ import styles from './Update.module.css';
 import { useLanguage } from '../../../context/LanguageContext';
 import { toast } from 'sonner';
 import {
-    Activity, Shield, Rocket, Server, Sliders, CheckCircle, Wifi, Search, XCircle, Lock, Network, RotateCcw, Layers, Database, ChevronRight, AlertCircle, ArrowLeft
+    Activity, Shield, Rocket, Server, Sliders, CheckCircle, Wifi, Search, XCircle, Lock, Network, RotateCcw, Layers, Database, ChevronRight, AlertCircle, ArrowLeft, Globe
 } from 'lucide-react';
 import SSIDSelector from './SSIDSelector';
 
@@ -600,6 +600,20 @@ const SmartSync = () => {
                                                         Deep Config sẽ sao chép toàn bộ thuộc tính của SSID từ Site mẫu (VLAN, Radio, Rate, Isolation,...) đè lên các Site đích.
                                                     </p>
                                                 </div>
+                                                {/* Guest Portal indicator */}
+                                                {selectedSSIDName && compiledSSIDs.find(s => s.networkName === selectedSSIDName)?.isGuestPortalEnabled && (
+                                                    <div className="p-4 bg-purple-500/5 border border-purple-500/15 rounded-2xl flex items-start gap-3">
+                                                        <Globe size={16} className="text-purple-500 shrink-0 mt-0.5" />
+                                                        <div>
+                                                            <p className="text-[11px] font-bold text-purple-600 dark:text-purple-400 mb-1">
+                                                                Guest Portal Detected
+                                                            </p>
+                                                            <p className="text-[10px] text-purple-500/80 dark:text-purple-400/70 leading-relaxed">
+                                                                SSID này có Guest Portal. Cài đặt Guest Portal (trang chào mừng / captive portal bên ngoài) cũng sẽ được đồng bộ từ Site nguồn sang các Site đích.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
 

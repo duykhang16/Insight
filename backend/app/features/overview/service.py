@@ -353,6 +353,7 @@ class OverviewService:
                 "conditionCount": len(conditions),
                 "majorCount":     major_count,
                 "minorCount":     minor_count,
+                "counters":       _extract_counters(h_health),
             })
 
         return {

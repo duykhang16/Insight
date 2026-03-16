@@ -197,6 +197,11 @@ const Health = () => {
         selectedEntry ? (selectedEntry.conditions || []) : allConditions,
         [selectedEntry, allConditions]);
 
+    // Counters: use selected entry's counters when a chart point is clicked
+    const displayCounters = useMemo(() =>
+        selectedEntry ? (selectedEntry.counters || {}) : (data?.counters || {}),
+        [selectedEntry, data]);
+
     // ReferenceLine x must exactly match the XAxis dataKey value at that index
     const selectedLabel = selectedIndex != null
         ? (unifiedData[selectedIndex]?.label ?? null)
@@ -455,9 +460,9 @@ const Health = () => {
 
             {/* Counter Boxes — uses BE flat counters */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                {getCounterBox(t('sidebar.clients'), data?.counters?.clients)}
-                {getCounterBox(t('sidebar.networks'), data?.counters?.networks)}
-                {getCounterBox(t('sidebar.devices'), data?.counters?.devices)}
+                {getCounterBox(t('sidebar.clients'), displayCounters?.clients)}
+                {getCounterBox(t('sidebar.networks'), displayCounters?.networks)}
+                {getCounterBox(t('sidebar.devices'), displayCounters?.devices)}
             </div>
 
             {/* Conditions Table */}

@@ -22,6 +22,7 @@ from app.features.master.routes import router as master_router
 from app.features.super.routes import router as super_router
 from app.features.templates.routes import router as templates_router
 from app.features.monitoring.routes import router as monitoring_router
+from app.core.routes import router as tasks_router
 
 
 
@@ -103,6 +104,7 @@ app.include_router(master_router, prefix="/api/v1", tags=["master"])        # /a
 app.include_router(super_router, prefix="/api/v1/super", tags=["super"])
 app.include_router(templates_router, prefix="/api/v1", tags=["templates"])
 app.include_router(monitoring_router, prefix="/api/v1/monitoring", tags=["monitoring"])
+app.include_router(tasks_router)                                             # /api/v1/tasks
 
 
 @app.get("/health", tags=["System"])

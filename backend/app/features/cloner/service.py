@@ -294,6 +294,18 @@ async def apply_config_live(target_site_id: str, operations: List[Dict[str, Any]
     async with httpx.AsyncClient(verify=False) as client:
         base_url = f"https://portal.instant-on.hpe.com/api/sites/{target_site_id}/networksSummary"
 
+        # Pre-check: Fetch existing networks on target site to detect duplicates
+        existing_network_names = set()
+        try:
+            res_existing = await client.get(base_url, headers=headers, timeout=15.0)
+            if res_existing.status_code == 200:
+                existing_data = res_existing.json()
+                existing_nets = existing_data.get("elements", []) if isinstance(existing_data, dict) else (existing_data if isinstance(existing_data, list) else [])
+                existing_network_names = {n.get("networkName", "").lower() for n in existing_nets if isinstance(n, dict) and n.get("networkName")}
+                print(f"[CLONER] Target site has {len(existing_network_names)} existing networks: {existing_network_names}")
+        except Exception as e:
+            print(f"[CLONER] Warning: Could not pre-check target networks: {e}")
+
         for op in operations:
             try:
                 full_payload = op.get("payload", {})
@@ -302,6 +314,17 @@ async def apply_config_live(target_site_id: str, operations: List[Dict[str, Any]
                 if "_guest_portal_settings" in full_payload:
                     guest_portal_settings = full_payload.pop("_guest_portal_settings")
 
+                # Duplicate check: Skip if network name already exists on target
+                op_name = op.get("name", "")
+                if op_name.lower() in existing_network_names:
+                    results.append({
+                        "name": op_name,
+                        "type": op["type"],
+                        "status": "SKIPPED (DUPLICATE)",
+                        "detail": f"Network '{op_name}' already exists on the target site."
+                    })
+                    print(f"[CLONER] SKIPPED (DUPLICATE): '{op_name}' already exists on target site")
+                    continue
 
                 # Pass 1: "Rich Identity Create" (POST)
                 # For Guest/Captive networks, the initial POST is almost the full config.
@@ -405,7 +428,9 @@ async def apply_config_live(target_site_id: str, operations: List[Dict[str, Any]
                 results.append({"name": op["name"], "type": op["type"], "status": "ERROR", "detail": str(e)})
 
         # --- Handle GUEST_PORTAL (Single Final Pass after all networks) ---
-        if guest_portal_settings:
+        # Only apply if at least one network was successfully created
+        has_network_success = any("SUCCESS" in r.get("status", "") for r in results)
+        if guest_portal_settings and has_network_success:
             try:
                 portal_url = f"https://portal.instant-on.hpe.com/api/sites/{target_site_id}/guestPortalSettings"
                 print(f"[CLONER] GUEST_PORTAL (Final Pass based on embedded data): PUT")
@@ -415,6 +440,7 @@ async def apply_config_live(target_site_id: str, operations: List[Dict[str, Any]
                 res_p = await client.put(portal_url, headers=headers, json=clean_portal, timeout=15.0)
 
                 if res_p.status_code in [200, 204]:
+                    # Append as supplemental info, not a standalone operation
                     results.append({"name": "Guest Portal Settings", "type": "GUEST_PORTAL", "status": "SUCCESS (GUEST_PORTAL)"})
                 else:
                     results.append({
@@ -426,6 +452,8 @@ async def apply_config_live(target_site_id: str, operations: List[Dict[str, Any]
             except Exception as e:
                 print(f"[CLONER] ERROR applying Guest Portal: {str(e)}")
                 results.append({"name": "Guest Portal Settings", "type": "GUEST_PORTAL", "status": "ERROR", "detail": str(e)})
+        elif guest_portal_settings and not has_network_success:
+            print(f"[CLONER] GUEST_PORTAL skipped — no network was successfully created")
 
     return results
 
@@ -540,7 +568,9 @@ async def sync_ssids_passwords(source_network_name: str, new_password: str, targ
     return exec_results
 
 async def sync_ssids_config(source_site_id: str, source_network_name: str, target_site_ids: List[str], aruba_token: str) -> List[Dict[str, Any]]:
-    """Deep clone an SSID config using the provided token."""
+    """Deep clone an SSID config using the provided token.
+    Also syncs Guest Portal settings (internal/external) if the source SSID has isGuestPortalEnabled.
+    """
     headers = {
         "Authorization": f"Bearer {aruba_token}",
         "Accept": "application/json, text/plain, */*",
@@ -556,6 +586,7 @@ async def sync_ssids_config(source_site_id: str, source_network_name: str, targe
     results = []
 
     # 1. Fetch source network config
+    source_guest_portal = None
     async with httpx.AsyncClient(verify=False) as client:
         source_nets_url = f"https://portal.instant-on.hpe.com/api/sites/{source_site_id}/networksSummary"
         try:
@@ -567,6 +598,22 @@ async def sync_ssids_config(source_site_id: str, source_network_name: str, targe
         except Exception as e:
             from fastapi import HTTPException
             raise HTTPException(status_code=400, detail=f"Source fetch error: {str(e)}")
+
+        # 1b. If the source SSID has Guest Portal enabled, fetch the portal settings
+        source_net_check = next((n for n in source_networks if n.get("networkName") == source_network_name and n.get("isWireless")), None)
+        if source_net_check and source_net_check.get("isGuestPortalEnabled"):
+            try:
+                portal_url = f"https://portal.instant-on.hpe.com/api/sites/{source_site_id}/guestPortalSettings"
+                res_portal = await client.get(portal_url, headers=headers, timeout=15.0)
+                if res_portal.status_code == 200:
+                    source_guest_portal = res_portal.json()
+                    # Strip site-specific 'id' field
+                    source_guest_portal.pop("id", None)
+                    print(f"[CLONER] Fetched source guest portal settings (type: {source_guest_portal.get('guestPortalType', 'unknown')})")
+                else:
+                    print(f"[CLONER] Warning: Failed to fetch source guest portal ({res_portal.status_code})")
+            except Exception as e:
+                print(f"[CLONER] Warning: Exception fetching source guest portal: {e}")
 
     source_net = next((n for n in source_networks if n.get("networkName") == source_network_name and n.get("isWireless")), None)
     if not source_net:
@@ -610,15 +657,9 @@ async def sync_ssids_config(source_site_id: str, source_network_name: str, targe
         if not target_net:
             return {"target": site_id, "name": source_network_name, "status": "SKIPPED", "detail": "SSID not found on this site"}
 
-        # 4. Prepare and execute update
+        # 4. Prepare and execute network config update
         net_id = target_net.get("networkId") or target_net.get("id")
-
-        # Merge target-specific data back in if necessary?
-        # Actually user wants deep config sync, so overwriting with source config is expected.
-        # But we MUST preserve the target's identity
         update_payload = dict(base_put_payload)
-
-        # Explicit modifications
         update_url = f"https://portal.instant-on.hpe.com/api/sites/{site_id}/networksSummary/{net_id}"
 
         put_headers = headers.copy()
@@ -626,12 +667,43 @@ async def sync_ssids_config(source_site_id: str, source_network_name: str, targe
 
         try:
             res_put = await client.put(update_url, headers=put_headers, json=update_payload, timeout=15.0)
-            if res_put.status_code in [200, 204]:
-                return {"target": site_id, "name": source_network_name, "status": "SUCCESS", "detail": "Deep configuration synced"}
-            else:
+            if res_put.status_code not in [200, 204]:
                 return {"target": site_id, "name": source_network_name, "status": "ERROR", "detail": f"Update failed: {res_put.status_code} - {res_put.text[:200]}"}
         except Exception as e:
             return {"target": site_id, "name": source_network_name, "status": "ERROR", "detail": f"Update request error: {str(e)}"}
+
+        # 5. Sync Guest Portal settings if source has them
+        portal_status = ""
+        if source_guest_portal:
+            try:
+                await asyncio.sleep(0.5)  # Settle time
+                portal_url = f"https://portal.instant-on.hpe.com/api/sites/{site_id}/guestPortalSettings"
+                portal_type = source_guest_portal.get("guestPortalType", "unknown")
+
+                # Build clean portal payload based on type
+                portal_payload = {"kind": "guestPortalSettings", "guestPortalType": portal_type}
+
+                if portal_type == "internalAck" and "internalAckPageSettings" in source_guest_portal:
+                    portal_payload["internalAckPageSettings"] = source_guest_portal["internalAckPageSettings"]
+                elif portal_type == "external" and "externalPageSettings" in source_guest_portal:
+                    # For external, send only the relevant fields (strip nulls from response-only fields)
+                    ext_src = source_guest_portal["externalPageSettings"]
+                    ext_clean = {k: v for k, v in ext_src.items() if k not in ["socialLoginDomainsMap", "canDisableAuthentication", "provider", "region"]}
+                    portal_payload["externalPageSettings"] = ext_clean
+
+                print(f"[CLONER] GUEST_PORTAL: PUT -> {site_id} (type: {portal_type})")
+                res_portal = await client.put(portal_url, headers=put_headers, json=portal_payload, timeout=15.0)
+
+                if res_portal.status_code in [200, 204]:
+                    portal_status = f" + Guest Portal ({portal_type}) synced"
+                else:
+                    portal_status = f" | Guest Portal FAILED [{res_portal.status_code}]"
+                    print(f"[CLONER] Guest Portal PUT failed: {res_portal.text[:200]}")
+            except Exception as e:
+                portal_status = f" | Guest Portal error: {str(e)}"
+                print(f"[CLONER] Guest Portal exception: {e}")
+
+        return {"target": site_id, "name": source_network_name, "status": "SUCCESS", "detail": f"Deep configuration synced{portal_status}"}
 
     async with httpx.AsyncClient(verify=False) as client:
         exec_results = []
