@@ -2,7 +2,7 @@ import React from 'react';
 import { ArrowDown, ArrowUp, Network } from 'lucide-react';
 import NetworkRow from './NetworkRow';
 
-const NetworkTable = ({ data, sortConfig, onSort, loading }) => {
+const NetworkTable = ({ data, sortConfig, onSort, loading, onNetworkSelect }) => {
     const SortIcon = ({ column }) => {
         if (sortConfig.key !== column)
             return <ArrowDown size={12} className="opacity-20 ml-1 inline" />;
@@ -51,7 +51,7 @@ const NetworkTable = ({ data, sortConfig, onSort, loading }) => {
                         ))}
 
                         {!loading && data.map(net => (
-                            <NetworkRow key={net.id} net={net} />
+                            <NetworkRow key={net.id} net={net} onSelect={onNetworkSelect} />
                         ))}
 
                         {!loading && data.length === 0 && (

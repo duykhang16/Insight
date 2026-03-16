@@ -20,7 +20,7 @@ const getUsage = (u) =>
     USAGE_CONFIG[u?.toLowerCase()] || { label: u || 'Employee', color: 'bg-slate-700 text-slate-400 border-white/5' };
 
 // --- Component ---
-const WirelessTable = ({ data, loading }) => {
+const WirelessTable = ({ data, loading, onNetworkSelect }) => {
     const [sortConfig, setSortConfig] = useState({ key: 'clients', direction: 'desc' });
 
     const handleSort = (key) => {
@@ -106,7 +106,18 @@ const WirelessTable = ({ data, loading }) => {
                             const health = getHealth(ssid.health);
                             const usageCfg = getUsage(ssid.usage);
                             return (
-                                <tr key={ssid.id} className="hover:bg-white/[0.02] transition-colors group">
+                                <tr
+                                    key={ssid.id}
+                                    className="cursor-pointer hover:bg-white/[0.02] transition-colors group"
+                                    onClick={() => onNetworkSelect?.(ssid.id)}
+                                    onKeyDown={(event) => {
+                                        if (event.key === 'Enter' || event.key === ' ') {
+                                            event.preventDefault();
+                                            onNetworkSelect?.(ssid.id);
+                                        }
+                                    }}
+                                    tabIndex={0}
+                                >
                                     {/* Network Name */}
                                     <td className="px-8 py-5">
                                         <div className="flex items-center gap-3">

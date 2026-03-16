@@ -108,7 +108,7 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
         }
 
         setIsConfigurationOpen(true);
-        navigate(`/site/${siteId}/configuration/overview`);
+        navigate(`/site/${siteId}/configuration/overview${location.search}`);
     };
 
     useEffect(() => {
@@ -270,27 +270,27 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
                     </button>
                     {isConfigurationOpen && (
                         <div className="pb-2 space-y-1">
-                            <NavLink to={`/site/${siteId}/configuration/overview`} className={getSubNavLinkClass}>
+                            <NavLink to={`/site/${siteId}/configuration/overview${location.search}`} className={getSubNavLinkClass}>
                                 <Settings2 className="w-4 h-4 mr-2" />
                                 Overview
                             </NavLink>
-                            <NavLink to={`/site/${siteId}/configuration/ip-assignment`} className={getSubNavLinkClass}>
+                            <NavLink to={`/site/${siteId}/configuration/ip-assignment${location.search}`} className={getSubNavLinkClass}>
                                 <Settings2 className="w-4 h-4 mr-2" />
                                 IP Assignment
                             </NavLink>
-                            <NavLink to={`/site/${siteId}/configuration/network-assignment`} className={getSubNavLinkClass}>
+                            <NavLink to={`/site/${siteId}/configuration/network-assignment${location.search}`} className={getSubNavLinkClass}>
                                 <Settings2 className="w-4 h-4 mr-2" />
                                 Network Assignment
                             </NavLink>
-                            <NavLink to={`/site/${siteId}/configuration/access-control`} className={getSubNavLinkClass}>
+                            <NavLink to={`/site/${siteId}/configuration/access-control${location.search}`} className={getSubNavLinkClass}>
                                 <Settings2 className="w-4 h-4 mr-2" />
                                 Access Control
                             </NavLink>
-                            <NavLink to={`/site/${siteId}/configuration/schedule`} className={getSubNavLinkClass}>
+                            <NavLink to={`/site/${siteId}/configuration/schedule${location.search}`} className={getSubNavLinkClass}>
                                 <Settings2 className="w-4 h-4 mr-2" />
                                 Schedule
                             </NavLink>
-                            <NavLink to={`/site/${siteId}/configuration/wireless-options`} className={getSubNavLinkClass}>
+                            <NavLink to={`/site/${siteId}/configuration/wireless-options${location.search}`} className={getSubNavLinkClass}>
                                 <Settings2 className="w-4 h-4 mr-2" />
                                 Wireless Options
                             </NavLink>

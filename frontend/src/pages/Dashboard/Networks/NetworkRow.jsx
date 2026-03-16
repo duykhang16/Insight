@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wifi, Plug, Users, Lock, Radio } from 'lucide-react';
+import { Wifi, Plug, Users } from 'lucide-react';
 
 // --- Helpers ---
 const TYPE_CONFIG = {
@@ -19,12 +19,19 @@ const BAND_LABEL = {
 const getBandLabel = (band) => BAND_LABEL[band?.toLowerCase()] || band || null;
 
 // --- SSID Chip (inline inside wired row) ---
-const SsidChip = ({ ssid }) => (
-    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-bold transition-opacity ${
-        ssid.isEnabled
-            ? 'bg-blue-500/10 border-blue-500/20 text-blue-300'
-            : 'bg-slate-800 border-white/5 text-slate-600 opacity-50'
-    }`}>
+const SsidChip = ({ ssid, onSelect }) => (
+    <button
+        type="button"
+        onClick={(event) => {
+            event.stopPropagation();
+            onSelect?.(ssid.id);
+        }}
+        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-bold transition-opacity ${
+            ssid.isEnabled
+                ? 'bg-blue-500/10 border-blue-500/20 text-blue-300'
+                : 'bg-slate-800 border-white/5 text-slate-600 opacity-50'
+        } hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-cyan-400/60`}
+    >
         <Wifi size={10} />
         <span className="font-black">{ssid.name}</span>
         {getBandLabel(ssid.band) && (
@@ -35,15 +42,25 @@ const SsidChip = ({ ssid }) => (
                 {ssid.clients}
             </span>
         )}
-    </div>
+    </button>
 );
 
 // --- Main Wired Network Row ---
-const NetworkRow = ({ net }) => {
+const NetworkRow = ({ net, onSelect }) => {
     const typeConfig = getTypeConfig(net.type);
 
     return (
-        <tr className="hover:bg-white/[0.02] transition-colors group">
+        <tr
+            className="cursor-pointer hover:bg-white/[0.02] transition-colors group"
+            onClick={() => onSelect?.(net.id)}
+            onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onSelect?.(net.id);
+                }
+            }}
+            tabIndex={0}
+        >
 
             {/* Network Name */}
             <td className="px-8 py-5">
@@ -81,12 +98,12 @@ const NetworkRow = ({ net }) => {
                 {net.ssids.length === 0 ? (
                     <span className="text-slate-700 text-xs font-bold">No SSIDs</span>
                 ) : (
-                    <div className="flex flex-wrap gap-1.5">
-                        {net.ssids.map(ssid => (
-                            <SsidChip key={ssid.id} ssid={ssid} />
-                        ))}
-                    </div>
-                )}
+                        <div className="flex flex-wrap gap-1.5">
+                            {net.ssids.map(ssid => (
+                                <SsidChip key={ssid.id} ssid={ssid} onSelect={onSelect} />
+                            ))}
+                        </div>
+                    )}
             </td>
 
             {/* Clients */}

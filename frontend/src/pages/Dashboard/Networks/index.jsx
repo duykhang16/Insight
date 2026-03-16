@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Search, Network, Wifi, Users } from 'lucide-react';
 import apiClient from '../../../api/apiClient';
 import { useSite } from '../../../context/SiteContext';
@@ -10,6 +11,7 @@ import { useSettings } from '../../../context/SettingsContext';
 import SyncIndicator from '../../../components/SyncIndicator';
 
 const Networks = () => {
+    const navigate = useNavigate();
     const [networksData, setNetworksData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -21,6 +23,11 @@ const Networks = () => {
 
     const { selectedSiteId, sites, fetchSites } = useSite();
     const { isAutoRefreshEnabled } = useSettings();
+
+    const handleNetworkSelect = (networkId) => {
+        if (!selectedSiteId || !networkId) return;
+        navigate(`/site/${selectedSiteId}/configuration/overview?networkId=${encodeURIComponent(networkId)}`);
+    };
 
     useEffect(() => {
         if (sites.length === 0) fetchSites();
@@ -193,7 +200,7 @@ const Networks = () => {
                             <span className="text-slate-700 normal-case font-bold tracking-normal">— {wirelessRows.length} SSIDs</span>
                         </h2>
                     )}
-                    <WirelessTable data={wirelessRows} loading={loading} />
+                    <WirelessTable data={wirelessRows} loading={loading} onNetworkSelect={handleNetworkSelect} />
                 </div>
             )}
 
@@ -215,6 +222,7 @@ const Networks = () => {
                             direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
                         }))}
                         loading={loading}
+                        onNetworkSelect={handleNetworkSelect}
                     />
                 </div>
             )}

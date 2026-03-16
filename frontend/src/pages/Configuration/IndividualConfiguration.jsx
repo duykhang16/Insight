@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Eye, EyeOff, LoaderCircle, Save, Trash2, Wifi, ShieldAlert, Router } from 'lucide-react';
-import { useLocation, useParams } from 'react-router-dom';
+import { useLocation, useParams, useSearchParams } from 'react-router-dom';
 import apiClient from '../../api/apiClient';
 import { useSite } from '../../context/SiteContext';
 
@@ -136,6 +136,7 @@ const ActionButtons = ({ onUpdate, onCancel, saving, disabled }) => (
 const IndividualConfiguration = () => {
     const { siteId } = useParams();
     const location = useLocation();
+    const [searchParams, setSearchParams] = useSearchParams();
     const { sites, fetchSites } = useSite();
     const userRole = sessionStorage.getItem('userRole') || 'viewer';
     const [networks, setNetworks] = useState([]);
@@ -150,6 +151,7 @@ const IndividualConfiguration = () => {
     const [notificationVisible, setNotificationVisible] = useState(false);
     const pageTopRef = useRef(null);
     const lastSelectedNetworkIdRef = useRef('');
+    const requestedNetworkId = searchParams.get('networkId') || '';
 
     const selectedSite = useMemo(
         () => sites.find((site) => String(site.siteId || site.id) === String(siteId)),
@@ -235,13 +237,15 @@ const IndividualConfiguration = () => {
                 clearNotification();
                 const response = await apiClient.get(`/config/sites/${siteId}/individual/networks`);
                 const combinedNetworks = Array.isArray(response.data?.networks) ? response.data.networks : [];
-
-                const firstNetwork = combinedNetworks[0] || null;
+                const initialNetwork =
+                    combinedNetworks.find((network) => String(network.id) === String(requestedNetworkId)) ||
+                    combinedNetworks[0] ||
+                    null;
                 setNetworks(combinedNetworks);
-                setSelectedNetworkId(firstNetwork?.id || '');
+                setSelectedNetworkId(initialNetwork?.id || '');
                 setForm(
-                    firstNetwork
-                        ? (firstNetwork.networkKind === 'wired' ? buildWiredForm(firstNetwork) : buildWirelessForm(firstNetwork))
+                    initialNetwork
+                        ? (initialNetwork.networkKind === 'wired' ? buildWiredForm(initialNetwork) : buildWirelessForm(initialNetwork))
                         : null
                 );
                 setIsDirty(false);
@@ -259,6 +263,32 @@ const IndividualConfiguration = () => {
 
         loadNetworks();
     }, [siteId]);
+
+    useEffect(() => {
+        if (!requestedNetworkId || networks.length === 0) return;
+
+        const requestedNetwork = networks.find((network) => String(network.id) === String(requestedNetworkId));
+        if (requestedNetwork && String(selectedNetworkId) !== String(requestedNetwork.id)) {
+            setSelectedNetworkId(requestedNetwork.id);
+        }
+    }, [networks, requestedNetworkId, selectedNetworkId]);
+
+    useEffect(() => {
+        const currentQueryNetworkId = searchParams.get('networkId') || '';
+        const nextSelectedNetworkId = selectedNetworkId ? String(selectedNetworkId) : '';
+
+        if (currentQueryNetworkId === nextSelectedNetworkId) {
+            return;
+        }
+
+        const nextSearchParams = new URLSearchParams(searchParams);
+        if (nextSelectedNetworkId) {
+            nextSearchParams.set('networkId', nextSelectedNetworkId);
+        } else {
+            nextSearchParams.delete('networkId');
+        }
+        setSearchParams(nextSearchParams, { replace: true });
+    }, [searchParams, selectedNetworkId, setSearchParams]);
 
     useEffect(() => {
         if (!selectedNetworkId) {
