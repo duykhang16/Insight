@@ -85,7 +85,7 @@ const BatchAccountAccess = () => {
     }, []);
 
     const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    const canStart = isEmailValid && (selectedZones.size > 0 || selectedSites.size > 0) && !isRunning && !isPrechecking;
+    const canStart = isEmailValid && (selectedZones.size > 0 || selectedSites.length > 0) && !isRunning && !isPrechecking;
 
     const handleSelectAll = () => {
         if (selectedZones.size === zones.length && zones.length > 0) {
@@ -203,7 +203,7 @@ const BatchAccountAccess = () => {
             return;
         }
 
-        setLogs(prev => [...prev, { id: 'init', status: 'running', msg: `Initiating batch sequence for ${finalTargets.length} sites...` }]);
+        setLogs([...initialLogs, { id: 'init', status: 'running', msg: `Initiating batch sequence for ${finalTargets.length} sites...` }]);
 
         try {
             const payload = {
@@ -226,9 +226,10 @@ const BatchAccountAccess = () => {
                     status: r.status === 'SUCCESS' ? 'ok' : 'error',
                     msg: `Site ${r.target}: ${r.status === 'SUCCESS' ? 'Operation Successful' : (r.detail?.message || r.detail || 'Failed')}`
                 }));
-                setLogs(prev => [
-                    ...prev,
-                    { id: 'done', status: 'ok', msg: `Batch sequence completed. Processed ${results.length} sites.` },
+                setLogs([
+                    ...initialLogs,
+                    { id: 'init-done', status: 'ok', msg: `Batch sequence for ${finalTargets.length} sites completed.` },
+                    { id: 'done', status: 'ok', msg: `Processed ${results.length} sites — ${successCount} succeeded, ${results.length - successCount} failed.` },
                     ...formattedLogs
                 ]);
                 toast.success(
@@ -519,7 +520,7 @@ const BatchAccountAccess = () => {
                             </div>
                         )}
                         {/* Preview UI */}
-                        {(selectedZones.size > 0 || selectedSites.size > 0) && !isRunning && !isPrechecking && (
+                        {(selectedZones.size > 0 || selectedSites.length > 0) && !isRunning && !isPrechecking && (
                             <div className={`p-4 rounded-xl border flex items-start gap-4 animate-fade-in ${mode === 'add'
                                 ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30'
                                 : 'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/30'

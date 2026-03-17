@@ -2,11 +2,11 @@
 from fastapi import APIRouter, HTTPException, Request, Depends
 from typing import List, Dict, Any
 from app.shared.auth_deps import require_internal_admin, require_zone_access, require_zone_admin, get_current_insight_user
-from app.database.zones_crud import get_all_member_emails_in_zone
+from app.database.member_permissions_crud import get_all_member_emails_in_zone
 from . import service
 from .schemas import (
     ZoneCreateRequest, ZoneUpdateRequest, ZoneSitesUpdateRequest,
-    ZoneMemberAddRequest, ZoneMemberUpdateRequest,
+    ZoneMemberAddRequest, ZoneMemberUpdateRequest, ZoneMemberSitesUpdateRequest,
     ZoneResponse, ZoneListItem,
 )
 
@@ -87,7 +87,7 @@ async def delete_zone(
     ok = await service.delete_zone(zone_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Zone không tồn tại.")
-    return {"message": f"Zone {zone_id} đã được xóa."}
+    return {"message": f"Zone {zone_id} đã được xóa. Sites chuyển về Unassigned."}
 
 
 # ── Site assignment ────────────────────────────────────────────────────────
@@ -121,7 +121,14 @@ async def add_member(zone_id: str, payload: ZoneMemberAddRequest, request: Reque
     mapped_role = "manager" if sys_role in ["super_admin", "tenant_admin", "manager"] else "viewer"
 
     try:
-        zone = await service.add_member(zone_id, payload.email, mapped_role, caller["email"])
+        zone = await service.add_member(
+            zone_id=zone_id,
+            email=payload.email,
+            zone_role=mapped_role,
+            assigned_by=caller["email"],
+            all_sites=payload.all_sites,
+            allowed_site_ids=payload.allowed_site_ids,
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     if not zone:
@@ -133,18 +140,45 @@ async def add_member(zone_id: str, payload: ZoneMemberAddRequest, request: Reque
 async def update_member(zone_id: str, email: str, payload: ZoneMemberUpdateRequest, request: Request):
     caller = await require_zone_admin(zone_id, request)
     
-    from app.database.auth_crud import get_user_by_email
-    target_user = await get_user_by_email(email)
-    if not target_user:
-        raise HTTPException(status_code=404, detail="User không tồn tại.")
-        
-    sys_role = target_user.get("role", "viewer")
-    mapped_role = "manager" if sys_role in ["super_admin", "tenant_admin", "manager"] else "viewer"
+    # Update role if provided
+    if payload.zone_role is not None:
+        from app.database.auth_crud import get_user_by_email
+        target_user = await get_user_by_email(email)
+        if not target_user:
+            raise HTTPException(status_code=404, detail="User không tồn tại.")
+        sys_role = target_user.get("role", "viewer")
+        mapped_role = "manager" if sys_role in ["super_admin", "tenant_admin", "manager"] else "viewer"
+        try:
+            zone = await service.update_member_role(zone_id, email, mapped_role)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        if not zone:
+            raise HTTPException(status_code=404, detail="Zone hoặc member không tồn tại.")
 
-    try:
-        zone = await service.update_member_role(zone_id, email, mapped_role)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    # Update site permissions if provided
+    if payload.all_sites is not None:
+        zone = await service.update_member_sites(
+            zone_id, email, payload.all_sites, payload.allowed_site_ids
+        )
+        if not zone:
+            raise HTTPException(status_code=404, detail="Zone hoặc member không tồn tại.")
+
+    zone = await service.get_zone_detail(zone_id)
+    return zone
+
+
+@router.put("/{zone_id}/members/{email}/sites")
+async def update_member_sites(
+    zone_id: str,
+    email: str,
+    payload: ZoneMemberSitesUpdateRequest,
+    request: Request,
+):
+    """Dedicated endpoint to update a member's site-level permission."""
+    await require_zone_admin(zone_id, request)
+    zone = await service.update_member_sites(
+        zone_id, email, payload.all_sites, payload.allowed_site_ids
+    )
     if not zone:
         raise HTTPException(status_code=404, detail="Zone hoặc member không tồn tại.")
     return zone

@@ -4,10 +4,12 @@ import { useLanguage } from '../../../context/LanguageContext';
 import { toast } from 'sonner';
 import {
     Trash2, Play, Square, AlertTriangle, CheckCircle,
-    XCircle, ShieldAlert, List, RefreshCw, KeyRound, AlertOctagon, CheckSquare, Square as SquareIcon, Map, Search
+    XCircle, ShieldAlert, List, RefreshCw, KeyRound, AlertOctagon, CheckSquare, Square as SquareIcon, Map, Search,
+    Eraser
 } from 'lucide-react';
 
 const CHALLENGE_WORD = 'DELETE';
+const CLEAR_CHALLENGE_WORD = 'CLEAR';
 const REQUIRED_PASSKEY = 'AITC-ADMIN';
 
 const BatchDelete = () => {
@@ -38,6 +40,10 @@ const BatchDelete = () => {
     const [progress, setProgress] = useState(0);
     const mountedRef = useRef(true);
     const progressRef = useRef(null);
+
+    // Clear modal state
+    const [showClearModal, setShowClearModal] = useState(false);
+    const [clearChallengeInput, setClearChallengeInput] = useState('');
 
     const scanZones = async () => {
         setIsLoadingZones(true);
@@ -216,8 +222,7 @@ const BatchDelete = () => {
                     status: r.status === 'SUCCESS' ? 'ok' : 'error',
                     msg: `Site ${r.target}: ${r.status === 'SUCCESS' ? 'Deleted Successfully' : (r.detail?.message || r.detail || 'Failed')}`
                 }));
-                setLogs(prev => [
-                    ...prev,
+                setLogs([
                     { id: 'done', status: 'ok', msg: `Batch deletion completed. Processed ${results.length} sites.` },
                     ...formattedLogs
                 ]);
@@ -243,6 +248,96 @@ const BatchDelete = () => {
                 setIsRunning(false);
                 scanZones();
                 scanSites();
+            }
+        }
+    };
+
+    // ── Clear Sites handler ──────────────────────────────────────────────
+    const handleOpenClearModal = () => {
+        setClearChallengeInput('');
+        setShowClearModal(true);
+    };
+
+    const canConfirmClear = clearChallengeInput === CLEAR_CHALLENGE_WORD && !isRunning;
+
+    const handleClearStart = async () => {
+        setShowClearModal(false);
+        setIsRunning(true);
+        setProgress(0);
+
+        progressRef.current = setInterval(() => {
+            setProgress(p => p < 80 ? p + 3 : p);
+        }, 200);
+
+        const adminSiteIds = new Set(sites.map(s => s.id));
+        const finalTargets = new Set(selectedSites);
+        let skipCount = 0;
+
+        targetZones.forEach(z => {
+            (z.site_ids || []).forEach(sid => {
+                if (adminSiteIds.has(sid)) {
+                    finalTargets.add(sid);
+                } else {
+                    skipCount++;
+                }
+            });
+        });
+
+        const initialLogs = [];
+        if (skipCount > 0) {
+            initialLogs.push({ id: 'security-skip', status: 'error', msg: `Skipped ${skipCount} sites with insufficient permissions.` });
+        }
+
+        const finalTargetArray = Array.from(finalTargets).filter(id => typeof id === 'string' && id.length > 0);
+
+        if (finalTargetArray.length === 0) {
+            setLogs([...initialLogs, { id: 'done', status: 'error', msg: 'Zero authorized targets. Aborting.' }]);
+            setIsRunning(false);
+            clearInterval(progressRef.current);
+            return;
+        }
+
+        setLogs([...initialLogs, { id: 'init', status: 'running', msg: `🧹 Clearing networks from ${finalTargetArray.length} sites...` }]);
+
+        try {
+            const res = await apiClient.post('/cloner/batch-site-clear', {
+                target_zone_ids: [],
+                target_site_ids: finalTargetArray
+            });
+
+            if (!mountedRef.current) return;
+            clearInterval(progressRef.current);
+            setProgress(100);
+
+            if (res.data?.status === 'success') {
+                const results = res.data.results || [];
+                const successCount = results.filter(r => r.status === 'SUCCESS').length;
+                const totalSSIDs = results.reduce((sum, r) => sum + (r.ssids_deleted || 0), 0);
+                const totalWired = results.reduce((sum, r) => sum + (r.wired_deleted || 0), 0);
+                const gpResetCount = results.filter(r => r.guest_portal_reset).length;
+                const formattedLogs = results.map((r, idx) => ({
+                    id: `res-${idx}`,
+                    status: r.status === 'SUCCESS' ? 'ok' : 'error',
+                    msg: `Site ${r.target}: ${r.detail}`
+                }));
+                setLogs([
+                    { id: 'done', status: 'ok', msg: `✅ Full wipe done. ${successCount}/${results.length} sites — ${totalSSIDs} SSIDs xóa, ${totalWired} wired xóa, ${gpResetCount} guest portal reset.` },
+                    ...formattedLogs
+                ]);
+                toast.success(`🧹 Wiped ${totalSSIDs} SSIDs + ${totalWired} wired from ${successCount} sites`, { duration: 6000 });
+            } else {
+                setLogs([{ id: 'err', status: 'error', msg: `Unexpected status: ${res.data?.status}` }]);
+            }
+        } catch (err) {
+            if (!mountedRef.current) return;
+            clearInterval(progressRef.current);
+            setProgress(0);
+            const errMsg = err.response?.data?.detail || err.message;
+            setLogs([{ id: 'err-catch', status: 'error', msg: `Error: ${errMsg}` }]);
+            toast.error(`Clear failed: ${errMsg}`);
+        } finally {
+            if (mountedRef.current) {
+                setIsRunning(false);
             }
         }
     };
@@ -523,11 +618,18 @@ const BatchDelete = () => {
                                 </>
                             )
                         )}
-                        <div className="mt-4 pt-2 border-t border-slate-100 dark:border-white/5">
+                        <div className="mt-4 pt-2 border-t border-slate-100 dark:border-white/5 flex gap-3">
+                            <button
+                                onClick={handleOpenClearModal}
+                                disabled={(selectedZones.size === 0 && selectedSites.length === 0) || isRunning}
+                                className="flex-1 h-12 bg-gradient-to-r from-amber-500 to-orange-500 th-text-primary font-black uppercase tracking-[0.15em] text-xs rounded-2xl shadow-[0_10px_30px_rgba(245,158,11,0.2)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-25 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                <Eraser size={16} /> Clear {totalExecutionSites} sites
+                            </button>
                             <button
                                 onClick={handleOpenModal}
-                                disabled={(selectedZones.size === 0 && selectedSites.size === 0) || isRunning}
-                                className="w-full h-12 bg-gradient-to-r from-rose-600 to-red-600 th-text-primary font-black uppercase tracking-[0.2em] text-xs rounded-2xl shadow-[0_10px_30px_rgba(225,29,72,0.2)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-25 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                disabled={(selectedZones.size === 0 && selectedSites.length === 0) || isRunning}
+                                className="flex-1 h-12 bg-gradient-to-r from-rose-600 to-red-600 th-text-primary font-black uppercase tracking-[0.15em] text-xs rounded-2xl shadow-[0_10px_30px_rgba(225,29,72,0.2)] hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-25 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
                                 <Trash2 size={16} /> {t('batch_delete.delete_sites')} {totalExecutionSites} {t('batch_delete.sites')}
                             </button>
@@ -545,7 +647,7 @@ const BatchDelete = () => {
                             <div className="space-y-2 py-1">
                                 <div className="flex justify-between items-center">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                                        {isRunning ? 'Deleting...' : 'Completed'}
+                                        {isRunning ? 'Processing...' : 'Completed'}
                                     </span>
                                     <span className="text-sm font-mono font-black text-rose-500">{progress}%</span>
                                 </div>
@@ -640,6 +742,58 @@ const BatchDelete = () => {
                                 className="h-12 bg-rose-600 hover:bg-rose-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 th-text-primary font-black uppercase tracking-widest text-xs rounded-xl shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
                                 <KeyRound size={16} className={canConfirmDestruction ? 'animate-pulse' : ''} /> {t('batch_delete.destroy')}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Clear Sites Confirmation Modal */}
+            {showClearModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md">
+                    <div className="bg-white dark:bg-slate-900 max-w-md w-full rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col animate-fade-in relative">
+                        <div className="h-2 w-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500" />
+
+                        <div className="p-6 pb-2">
+                            <div className="w-12 h-12 bg-amber-100 dark:bg-amber-500/20 rounded-full flex items-center justify-center text-amber-600 dark:text-amber-400 mb-4 mx-auto shadow-[0_0_20px_rgba(245,158,11,0.3)]">
+                                <Eraser size={24} />
+                            </div>
+                            <h2 className="text-xl font-black text-center text-slate-900 dark:text-white mb-2">Clear All Networks</h2>
+                            <p className="text-sm text-center text-slate-600 dark:text-slate-400 mb-2">
+                                Xóa trắng tất cả SSIDs/Networks trên <strong className="text-amber-600 dark:text-amber-400">{totalExecutionSites}</strong> sites.
+                            </p>
+                            <p className="text-xs text-center text-slate-500 dark:text-slate-400 mb-6">
+                                Sites vẫn tồn tại, chỉ config bên trong bị xóa. Dùng để test áp Template.
+                            </p>
+
+                            <div className="flex flex-col gap-2 mb-4">
+                                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 text-center">
+                                    Nhập <span className="font-mono bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 px-1 py-0.5 rounded select-all">{CLEAR_CHALLENGE_WORD}</span> để xác nhận
+                                </label>
+                                <input
+                                    type="text"
+                                    value={clearChallengeInput}
+                                    onChange={e => setClearChallengeInput(e.target.value)}
+                                    placeholder={CLEAR_CHALLENGE_WORD}
+                                    autoFocus
+                                    className="w-full text-center bg-white dark:bg-black/50 border-2 border-slate-300 dark:border-slate-800 focus:border-amber-500 dark:focus:border-amber-500 rounded-xl px-4 py-3 text-lg font-black tracking-widest text-slate-900 dark:text-amber-500 placeholder:th-text-secondary dark:placeholder:text-slate-700 focus:outline-none transition-colors"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 p-6 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-white/5">
+                            <button
+                                onClick={() => setShowClearModal(false)}
+                                className="h-12 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-600 font-bold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 active:scale-95 transition-all"
+                            >
+                                Hủy
+                            </button>
+                            <button
+                                onClick={handleClearStart}
+                                disabled={!canConfirmClear}
+                                className="h-12 bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 dark:disabled:bg-slate-700 th-text-primary font-black uppercase tracking-widest text-xs rounded-xl shadow-lg active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                <Eraser size={16} className={canConfirmClear ? 'animate-pulse' : ''} /> Clear Now
                             </button>
                         </div>
                     </div>

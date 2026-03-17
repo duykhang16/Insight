@@ -626,6 +626,14 @@ export const vi = {
         }
     },
     zones: {
+        // Site-level permission
+        all_sites_access: "Tất cả site",
+        sites_label: "site",
+        allow_all_sites: "Cho phép truy cập tất cả site",
+        no_sites_in_zone: "Zone này chưa có site nào",
+        specific_sites: "Chỉ site cụ thể",
+        site_permission_saved: "Đã cập nhật quyền site",
+
         dashboard: {
             title: "Zone của tôi",
             zone_count_label: "zone",

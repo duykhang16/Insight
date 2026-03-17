@@ -1,10 +1,12 @@
-"""MongoDB CRUD operations for the zones collection."""
+"""MongoDB CRUD operations for the zones collection.
+
+Note: Member operations have been moved to member_permissions_crud.py.
+This module only handles zone CRUD and site_ids management.
+"""
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any, List
 from bson import ObjectId
 from .connection import get_database
-
-VALID_ZONE_ROLES = {"admin", "operator", "viewer"}
 
 
 def _serialize(doc: Dict[str, Any]) -> Dict[str, Any]:
@@ -25,7 +27,6 @@ async def create_zone(name: str, created_by: str, description: Optional[str] = N
         "created_at": now,
         "updated_at": now,
         "site_ids": [],
-        "members": [],
     }
     result = await db.zones.insert_one(doc)
     doc["_id"] = str(result.inserted_id)
@@ -38,22 +39,25 @@ async def get_all_zones() -> List[Dict[str, Any]]:
     return [_serialize(z) async for z in cursor]
 
 
-async def get_zones_for_member(email: str) -> List[Dict[str, Any]]:
-    """Return zones where the given email is a member."""
+async def get_zones_by_ids(zone_ids: List[str]) -> List[Dict[str, Any]]:
+    """Return zones matching the given IDs."""
     db = get_database()
-    cursor = db.zones.find({"members.email": email}).sort("created_at", -1)
+    object_ids = []
+    for zid in zone_ids:
+        try:
+            object_ids.append(ObjectId(zid))
+        except Exception:
+            pass
+    if not object_ids:
+        return []
+    cursor = db.zones.find({"_id": {"$in": object_ids}}).sort("created_at", -1)
     return [_serialize(z) async for z in cursor]
 
 
-async def get_zones_for_tenant_admin(email: str) -> List[Dict[str, Any]]:
-    """Return zones where email is a member OR the creator (created_by)."""
+async def get_zones_for_creator(email: str) -> List[Dict[str, Any]]:
+    """Return zones created by this email."""
     db = get_database()
-    cursor = db.zones.find({
-        "$or": [
-            {"members.email": email},
-            {"created_by": email},
-        ]
-    }).sort("created_at", -1)
+    cursor = db.zones.find({"created_by": email}).sort("created_at", -1)
     return [_serialize(z) async for z in cursor]
 
 
@@ -86,6 +90,7 @@ async def update_zone(zone_id: str, updates: Dict[str, Any]) -> bool:
 
 
 async def delete_zone(zone_id: str) -> bool:
+    """Delete a zone document. Caller should also clean up zone_member_permissions."""
     db = get_database()
     try:
         result = await db.zones.delete_one({"_id": ObjectId(zone_id)})
@@ -123,95 +128,20 @@ async def add_sites_to_zone(zone_id: str, site_ids: List[str]) -> bool:
     return result.matched_count > 0
 
 
-async def add_zone_member(zone_id: str, email: str, zone_role: str, assigned_by: str) -> bool:
-    """Add a member to a zone. Upserts if already a member (updates role)."""
-    db = get_database()
-    now = datetime.now(timezone.utc)
-    try:
-        # Remove existing entry for this email first (upsert pattern)
-        await db.zones.update_one(
-            {"_id": ObjectId(zone_id)},
-            {"$pull": {"members": {"email": email}}}
-        )
-        result = await db.zones.update_one(
-            {"_id": ObjectId(zone_id)},
-            {
-                "$push": {"members": {
-                    "email": email,
-                    "zone_role": zone_role,
-                    "assigned_by": assigned_by,
-                    "assigned_at": now,
-                }},
-                "$set": {"updated_at": now},
-            }
-        )
-    except Exception:
-        return False
-    return result.matched_count > 0
-
-
-async def update_zone_member_role(zone_id: str, email: str, zone_role: str) -> bool:
-    db = get_database()
-    try:
-        result = await db.zones.update_one(
-            {"_id": ObjectId(zone_id), "members.email": email},
-            {
-                "$set": {
-                    "members.$.zone_role": zone_role,
-                    "updated_at": datetime.now(timezone.utc),
-                }
-            }
-        )
-    except Exception:
-        return False
-    return result.modified_count > 0
-
-
-async def remove_zone_member(zone_id: str, email: str) -> bool:
+async def remove_site_from_zone(zone_id: str, site_id: str) -> bool:
+    """Remove a single site from a zone's site_ids."""
     db = get_database()
     try:
         result = await db.zones.update_one(
             {"_id": ObjectId(zone_id)},
             {
-                "$pull": {"members": {"email": email}},
+                "$pull": {"site_ids": site_id},
                 "$set": {"updated_at": datetime.now(timezone.utc)},
             }
         )
     except Exception:
         return False
-    return result.matched_count > 0
-
-
-async def get_zone_role_for_user(zone_id: str, email: str) -> Optional[str]:
-    """Return zone_role for email in the given zone, or None if not a member."""
-    db = get_database()
-    try:
-        doc = await db.zones.find_one(
-            {"_id": ObjectId(zone_id), "members.email": email},
-            {"members.$": 1}
-        )
-    except Exception:
-        return None
-    if not doc or not doc.get("members"):
-        return None
-    return doc["members"][0].get("zone_role")
-
-
-async def get_all_member_emails_in_zone(zone_id: str) -> List[str]:
-    """Return list of all member emails in a zone (for log filtering)."""
-    zone = await get_zone_by_id(zone_id)
-    if not zone:
-        return []
-    return [m["email"] for m in zone.get("members", [])]
-
-
-async def get_site_ids_for_user_zones(email: str) -> List[str]:
-    """Return union of all site_ids across zones where email is a member."""
-    zones = await get_zones_for_member(email)
-    site_ids: set = set()
-    for z in zones:
-        site_ids.update(z.get("site_ids", []))
-    return list(site_ids)
+    return result.modified_count > 0
 
 
 async def get_site_ids_for_zones(zone_ids: List[str]) -> List[str]:

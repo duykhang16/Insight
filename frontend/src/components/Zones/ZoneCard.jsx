@@ -274,6 +274,8 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, onEditZone, allUse
               members={zone.members || []}
               onUpdated={onUpdated}
               isGlobalAdmin={isGlobalAdmin}
+              zoneSiteIds={zone.site_ids || []}
+              zoneSiteNames={zone._siteNames || {}}
             />
             {isGlobalAdmin && (
               <>

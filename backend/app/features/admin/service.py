@@ -188,7 +188,7 @@ class AdminService:
         is_super = caller.get("role") == "super_admin" or caller.get("email") in SUPER_ADMIN_EMAILS
 
         if zone_id:
-            from app.database.zones_crud import get_all_member_emails_in_zone
+            from app.database.member_permissions_crud import get_all_member_emails_in_zone
             member_emails = await get_all_member_emails_in_zone(zone_id)
             if member_emails:
                 query["$or"] = [
@@ -212,17 +212,20 @@ class AdminService:
                 for u in child_users:
                     visible_emails.add(u["email"])
             
-            # Include zone member emails
+            # Include zone member emails from all zones this user has access to
+            from app.database.member_permissions_crud import get_zone_ids_for_member, get_all_member_emails_in_zone
             if caller_role == "tenant_admin":
-                from app.database.zones_crud import get_zones_for_tenant_admin
-                zones = await get_zones_for_tenant_admin(caller_email)
+                # Tenant admin: get zones they created + zones they're member of
+                from app.database.zones_crud import get_zones_for_creator
+                created_zones = await get_zones_for_creator(caller_email)
+                member_zone_ids = await get_zone_ids_for_member(caller_email)
+                all_zone_ids = set(str(z["_id"]) for z in created_zones) | set(member_zone_ids)
             else:
-                from app.database.zones_crud import get_zones_for_member
-                zones = await get_zones_for_member(caller_email)
+                all_zone_ids = set(await get_zone_ids_for_member(caller_email))
             
-            for z in zones:
-                for m in z.get("members", []):
-                    visible_emails.add(m["email"])
+            for zid in all_zone_ids:
+                zone_member_emails = await get_all_member_emails_in_zone(zid)
+                visible_emails.update(zone_member_emails)
             
             email_list = list(visible_emails)
             query["$or"] = [

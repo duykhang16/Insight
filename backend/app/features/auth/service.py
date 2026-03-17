@@ -40,9 +40,9 @@ class AuthService:
         role = user.get("role", "viewer")
         _ADMIN_ROLES = {"super_admin", "tenant_admin"}
         if role not in _ADMIN_ROLES:
-            from app.database.zones_crud import get_zones_for_member
-            zones = await get_zones_for_member(email)
-            if not zones:
+            from app.database.member_permissions_crud import get_zone_ids_for_member
+            zone_ids = await get_zone_ids_for_member(email)
+            if not zone_ids:
                 raise HTTPException(
                     status_code=403,
                     detail="Bạn chưa được phân quyền quản lý Zone nào. Vui lòng liên hệ Admin.",
@@ -202,16 +202,14 @@ class AuthService:
 
     @staticmethod
     async def _check_zone_admin(email: str, role: str) -> bool:
-        """Check if user is a zone admin (only for manager/viewer roles)."""
+        """Check if user is a zone manager (only for manager/viewer roles)."""
         if role in ("super_admin", "tenant_admin"):
             return False
-        from app.database.zones_crud import get_zones_for_member
-        zones = await get_zones_for_member(email)
+        from app.database.member_permissions_crud import get_zones_for_member
+        permissions = await get_zones_for_member(email)
         return any(
-            m.get("zone_role") == "admin"
-            for z in zones
-            for m in z.get("members", [])
-            if m.get("email") == email
+            p.get("zone_role") == "manager"
+            for p in permissions
         )
 
     @staticmethod

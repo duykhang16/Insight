@@ -35,6 +35,7 @@ _NETS_ENDPOINTS = [
     "/api/v1/sites/{site_id}/networksSummary",
 ]
 _GUEST_ENDPOINT = "/api/sites/{site_id}/guestPortalSettings"
+_WIRED_ENDPOINT = "/api/sites/{site_id}/wiredNetworks"
 
 
 class ConfigService:
@@ -90,7 +91,20 @@ class ConfigService:
         except Exception as exc:
             print(f"[CONFIG] Không lấy được guestPortalSettings: {exc}")
 
-        # --- Bước 3: Parse và chuẩn hoá networksSummary ---
+        # --- Bước 3a: Lấy wiredNetworks (cấu hình VLAN, wired policies) ---
+        wired_networks = None
+        try:
+            wired_response = await aruba_service.call_api(
+                method="GET",
+                endpoint=_WIRED_ENDPOINT.format(site_id=site_id),
+                aruba_token=aruba_token,
+            )
+            if wired_response.status_code == 200:
+                wired_networks = wired_response.json()
+        except Exception as exc:
+            print(f"[CONFIG] Không lấy được wiredNetworks: {exc}")
+
+        # --- Bước 4: Parse và chuẩn hoá networksSummary ---
         try:
             raw = nets_response.json()
             # Aruba có thể trả về list thẳng hoặc {"elements": [...]}
@@ -122,8 +136,9 @@ class ConfigService:
             networks.append(normalised)
 
         return {
-            "networks":     networks,
-            "guest_portal": guest_portal,
+            "networks":        networks,
+            "guest_portal":    guest_portal,
+            "wired_networks":  wired_networks,
         }
 
     async def get_site_ssids(

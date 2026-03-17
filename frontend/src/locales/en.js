@@ -626,6 +626,14 @@ export const en = {
         }
     },
     zones: {
+        // Site-level permission
+        all_sites_access: "All sites",
+        sites_label: "sites",
+        allow_all_sites: "Allow access to all sites",
+        no_sites_in_zone: "No sites in this zone",
+        specific_sites: "Specific sites only",
+        site_permission_saved: "Site permissions updated",
+
         dashboard: {
             title: "My Zones",
             zone_count_label: "zones",

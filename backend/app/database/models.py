@@ -201,11 +201,24 @@ class LogResponse(BaseModel):
 
 # ===== ZONE & MASTER ACCOUNT MODELS =====
 
-class ZoneMemberDocument(BaseModel):
+class ZoneMemberPermissionDocument(BaseModel):
+    """Standalone document in zone_member_permissions collection.
+    
+    Each document = one member's permission in one zone.
+    Supports site-level granular access control.
+    """
+    id: Optional[str] = Field(None, alias="_id")
+    zone_id: str = Field(..., description="Reference to zones._id")
     email: str
-    zone_role: str = Field(..., description="admin | operator | viewer")
+    zone_role: str = Field(..., description="manager | viewer")
+    all_sites: bool = Field(True, description="True = see all sites in zone")
+    allowed_site_ids: List[str] = Field(default_factory=list, description="Only used when all_sites=False")
     assigned_by: str
     assigned_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    class Config:
+        populate_by_name = True
 
 
 class ZoneDocument(BaseModel):
@@ -217,7 +230,7 @@ class ZoneDocument(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     site_ids: List[str] = Field(default_factory=list)
-    members: List[ZoneMemberDocument] = Field(default_factory=list)
+    # members[] removed — now in zone_member_permissions collection
 
     class Config:
         populate_by_name = True
@@ -378,28 +391,9 @@ class LogResponse(BaseModel):
     result_detail: Optional[Dict[str, Any]] = None
 
 
-# ===== ZONE & MASTER ACCOUNT MODELS =====
-
-class ZoneMemberDocument(BaseModel):
-    email: str
-    zone_role: str = Field(..., description="admin | operator | viewer")
-    assigned_by: str
-    assigned_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-
-class ZoneDocument(BaseModel):
-    id: Optional[str] = Field(None, alias="_id")
-    name: str
-    description: Optional[str] = None
-    color: str = Field("#3B82F6", description="Hex color for UI card")
-    created_by: str
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    site_ids: List[str] = Field(default_factory=list)
-    members: List[ZoneMemberDocument] = Field(default_factory=list)
-
-    class Config:
-        populate_by_name = True
+# ===== ZONE & MASTER ACCOUNT MODELS (v2) =====
+# Note: ZoneMemberPermissionDocument and ZoneDocument defined above.
+# Kept here for backward compat reference only.
 
 
 class MasterConfigDocument(BaseModel):
@@ -427,12 +421,32 @@ class MasterStatusResponse(BaseModel):
 # ===== TEMPLATE MODELS =====
 
 class TemplateDocument(BaseModel):
-    """Template là vỏ rỗng — chỉ lưu tên và màu để đánh badge."""
+    """Template — config blueprint for grouping and managing site configurations.
+
+    Stores network config (SSIDs, VLANs, policies, guest portal) as JSON.
+    Every site must belong to exactly 1 template.
+    Default "General" template has config_data=None.
+    """
     id: Optional[str] = Field(None, alias="_id")
     name: str
     description: Optional[str] = None
     color: str = Field("#10B981", description="Màu badge hiển thị trên UI")
+    is_default: bool = Field(False, description="True = General template (auto-created, không xóa)")
+
+    # Ownership & hierarchy
     owner_id: str = Field(..., description="Email tenant admin sở hữu template")
+    zone_id: Optional[str] = Field(None, description="Zone cha chứa template này")
+
+    # Site grouping
+    site_ids: List[str] = Field(default_factory=list, description="Sites assigned to this template")
+
+    # Config storage (networks only, NO devices)
+    config_data: Optional[Dict[str, Any]] = Field(None, description="JSON config: {networks: [...], guest_portal: {...}}")
+    source_site_id: Optional[str] = Field(None, description="Site gốc mà config được trích xuất từ đó")
+    config_version: int = Field(0, description="Auto-increment mỗi lần update config")
+    config_updated_at: Optional[datetime] = Field(None, description="Lần cuối config_data thay đổi")
+
+    # Metadata
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -440,21 +454,19 @@ class TemplateDocument(BaseModel):
         populate_by_name = True
 
 
-class SiteTemplateLink(BaseModel):
-    """Liên kết site_id ↔ template. Lưu tên/màu tại đây để tra nhanh không cần join."""
-    site_id: str
-    template_id: str
-    template_name: str
-    template_color: str = "#10B981"
-    owner_id: str
-    assigned_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-
 class TemplateResponse(BaseModel):
     id: str
     name: str
     description: Optional[str] = None
     color: str
+    is_default: bool = False
     owner_id: str
+    zone_id: Optional[str] = None
+    site_ids: List[str] = Field(default_factory=list)
+    site_count: int = 0
+    has_config: bool = False
+    source_site_id: Optional[str] = None
+    config_version: int = 0
+    config_updated_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None

@@ -117,15 +117,15 @@ class OverviewService:
 
             # --- Bước 4: Zone filter — non-global-admin chỉ thấy sites trong zones của mình ---
             from app.config import SUPER_ADMIN_EMAILS
-            from app.database.zones_crud import get_site_ids_for_user_zones
+            from app.database.member_permissions_crud import get_effective_site_ids_for_user
 
             is_global_admin = insight_app_role in ("super_admin", "tenant_admin") or (caller_email in SUPER_ADMIN_EMAILS)
             if not is_global_admin and caller_email:
-                allowed_ids = await get_site_ids_for_user_zones(caller_email)
+                allowed_ids = await get_effective_site_ids_for_user(caller_email)
                 allowed_set = set(allowed_ids)
                 sites = [s for s in sites if s.get("siteId") in allowed_set]
 
-            # --- Bước 5: Template Enrichment ---
+            # --- Bước 5: Template Enrichment (using templates.site_ids) ---
             if caller_email:
                 try:
                     from app.features.templates.service import get_site_template_map

@@ -67,17 +67,13 @@ async def execute_template_sync(
     if not payload.target_site_ids:
         raise HTTPException(status_code=400, detail="No target site IDs provided.")
 
-    # 1. Fetch template config
-    from app.features.templates.service import get_template, assign_site_to_template
-    tpl = await get_template(payload.template_id, user["email"])
-    if not tpl:
-        raise HTTPException(status_code=404, detail="Template not found")
-
-    config = tpl.get("config_payload", {})
+    # 1. Fetch raw template config from DB
+    from app.features.templates.service import get_template_config_for_cloner, assign_site_to_template
+    config = await get_template_config_for_cloner(payload.template_id, user["email"])
     if not config:
-        raise HTTPException(status_code=400, detail="Template has no config")
+        raise HTTPException(status_code=400, detail="Template has no config or not found")
 
-    # 2. Execute Clone
+    # 2. Execute Clone — push config to each target site
     import asyncio
     results = []
     for sid in payload.target_site_ids:
@@ -98,8 +94,8 @@ async def execute_template_sync(
 
 
 async def _get_zone_filtered_sites(email: str, all_sites: List[Dict]) -> List[Dict]:
-    from app.database.zones_crud import get_site_ids_for_user_zones
-    allowed_site_ids = await get_site_ids_for_user_zones(email)
+    from app.database.member_permissions_crud import get_effective_site_ids_for_user
+    allowed_site_ids = await get_effective_site_ids_for_user(email)
     if not allowed_site_ids:
         return []
     allowed_set = set(allowed_site_ids)
@@ -121,26 +117,24 @@ def _require_manager_or_higher(user: Dict[str, Any]):
 
 
 async def _require_zone_admin_or_higher(user: Dict[str, Any]):
-    """Block manager/viewer from destructive batch operations unless they are zone admin.
+    """Block manager/viewer from destructive batch operations unless they are zone manager.
 
-    Passes for: super_admin, tenant_admin, or manager/viewer with zone_role='admin'.
-    Raises 403 for manager/viewer without any zone admin assignment.
+    Passes for: super_admin, tenant_admin, or manager with zone_role='manager'.
+    Raises 403 for viewer without any zone manager assignment.
     """
     role = user.get("role", "")
     if role in ("super_admin", "tenant_admin"):
         return
-    from app.database.zones_crud import get_zones_for_member
-    zones = await get_zones_for_member(user["email"])
-    is_zone_admin = any(
-        m.get("zone_role") == "admin"
-        for z in zones
-        for m in z.get("members", [])
-        if m.get("email") == user["email"]
+    from app.database.member_permissions_crud import get_zones_for_member
+    permissions = await get_zones_for_member(user["email"])
+    is_zone_manager = any(
+        p.get("zone_role") == "manager"
+        for p in permissions
     )
-    if not is_zone_admin:
+    if not is_zone_manager:
         raise HTTPException(
             status_code=403,
-            detail="Thao tác này yêu cầu quyền Zone Admin trở lên."
+            detail="Thao tác này yêu cầu quyền Zone Manager trở lên."
         )
 
 
@@ -178,9 +172,8 @@ async def preview_clone(
     if source == "live":
         config = await fetch_site_config_live(site_id, master_token)
     elif source == "template":
-        from app.features.templates.service import get_template
-        tpl = await get_template(site_id, user["email"])
-        config = tpl.get("config_payload", {}) if tpl else None
+        from app.features.templates.service import get_template_config_for_cloner
+        config = await get_template_config_for_cloner(site_id, user["email"])
     else:
         config = await fetch_site_config(site_id)
 
@@ -506,6 +499,30 @@ async def execute_batch_site_delete(
         raise HTTPException(status_code=400, detail="Resolved 0 sites from the provided inputs.")
 
     results = await cloner_service.batch_site_delete(final_site_ids, master_token, actor_email=user["email"])
+    return {"status": "success", "results": results}
+
+@router.post("/batch-site-clear")
+async def execute_batch_clear_sites(
+    payload: BatchDeleteRequest,
+    user: Dict[str, Any] = Depends(get_current_insight_user),
+    master_token: str = Depends(require_master_token),
+):
+    """Clear all networks (SSIDs) from selected sites, leaving them blank."""
+    _require_manager_or_higher(user)
+    target_zone_ids = payload.target_zone_ids
+    target_site_ids = payload.target_site_ids
+    if not target_zone_ids and not target_site_ids:
+        raise HTTPException(status_code=400, detail="No target zones or sites provided.")
+    
+    from app.features.zones.service import resolve_sites_from_groups
+    resolved_sites = await resolve_sites_from_groups(target_zone_ids) if target_zone_ids else []
+    
+    final_site_ids = list(set(resolved_sites + target_site_ids))
+    
+    if not final_site_ids:
+        raise HTTPException(status_code=400, detail="Resolved 0 sites from the provided inputs.")
+
+    results = await cloner_service.batch_clear_site_networks(final_site_ids, master_token, actor_email=user["email"])
     return {"status": "success", "results": results}
 
 @router.post("/batch-site-provision")

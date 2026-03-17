@@ -63,6 +63,11 @@ async def lifespan(app: FastAPI):
     start_token_manager()
     print("INFO: Master token manager started.")
 
+    # Ensure template indexes
+    from app.database.templates_crud import ensure_indexes as ensure_template_indexes
+    await ensure_template_indexes()
+    print("INFO: Template indexes ensured.")
+
     yield
     await close_mongo_connection()
 

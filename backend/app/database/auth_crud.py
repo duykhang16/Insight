@@ -114,9 +114,9 @@ async def authenticate_user(email: str, password: str) -> "AuthResult":
     # Zone check: non-admins must belong to at least one zone
     _ADMIN_ROLES = {"super_admin", "tenant_admin"}
     if user.get("role") not in _ADMIN_ROLES:
-        from app.database.zones_crud import get_zones_for_member
-        zones = await get_zones_for_member(user["email"])
-        if not zones:
+        from app.database.member_permissions_crud import get_zone_ids_for_member
+        zone_ids = await get_zone_ids_for_member(user["email"])
+        if not zone_ids:
             return AuthResult(error="no_zones")
 
     return AuthResult(user=user)
