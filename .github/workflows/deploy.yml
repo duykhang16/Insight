@@ -46,7 +46,7 @@ jobs:
 
           echo "Checking MongoDB..."
           for i in $(seq 1 12); do
-            if docker exec insight_mongodb mongosh --eval "db.adminCommand('ping').ok" --quiet 2>/dev/null; then
+            if docker exec insight_mongodb mongo --eval "db.adminCommand('ping').ok" --quiet 2>/dev/null; then
               echo "MongoDB OK"
               break
             fi
