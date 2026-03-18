@@ -63,7 +63,7 @@ const DeleteSSID = () => {
     const loadZones = async () => {
         try {
             const userRole = sessionStorage.getItem('userRole') || 'viewer';
-            const endpoint = (userRole === 'admin' || userRole === 'super_admin') ? '/zones' : '/zones/my';
+            const endpoint = (userRole === 'tenant_admin') ? '/zones' : '/zones/my';
             const res = await apiClient.get(endpoint);
             setZones(res.data || []);
         } catch (error) {

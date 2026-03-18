@@ -115,12 +115,16 @@ class OverviewService:
                     "historyDurationSeconds": node.get("historyDurationSeconds", 86400),
                 })
 
-            # --- Bước 4: Zone filter — non-global-admin chỉ thấy sites trong zones của mình ---
+            # --- Bước 4: Zone filter — non-tenant-admin chỉ thấy sites trong zones của mình ---
             from app.config import SUPER_ADMIN_EMAILS
             from app.database.member_permissions_crud import get_effective_site_ids_for_user
 
-            is_global_admin = insight_app_role in ("super_admin", "tenant_admin") or (caller_email in SUPER_ADMIN_EMAILS)
-            if not is_global_admin and caller_email:
+            # Super admin is system-level — should NOT see tenant site data
+            if insight_app_role == "super_admin":
+                return []
+
+            is_tenant_admin = insight_app_role == "tenant_admin"
+            if not is_tenant_admin and caller_email:
                 allowed_ids = await get_effective_site_ids_for_user(caller_email)
                 allowed_set = set(allowed_ids)
                 sites = [s for s in sites if s.get("siteId") in allowed_set]

@@ -143,9 +143,11 @@ async def list_live_sites(
     user: Dict[str, Any] = Depends(get_current_insight_user),
     master_token: str = Depends(require_master_token),
 ):
-    from app.shared.auth_deps import is_admin_role
+    role = user.get("role", "")
+    if role == "super_admin":
+        return []  # Super admin is system-level, no tenant site data
     all_sites = await get_live_account_sites(master_token)
-    if not is_admin_role(user):
+    if role not in ("tenant_admin",):
         all_sites = await _get_zone_filtered_sites(user["email"], all_sites)
     return all_sites
 
@@ -155,9 +157,11 @@ async def list_target_sites(
     user: Dict[str, Any] = Depends(get_current_insight_user),
     master_token: str = Depends(require_master_token),
 ):
-    from app.shared.auth_deps import is_admin_role
+    role = user.get("role", "")
+    if role == "super_admin":
+        return []  # Super admin is system-level, no tenant site data
     all_sites = await get_live_account_sites(master_token)
-    if not is_admin_role(user):
+    if role not in ("tenant_admin",):
         all_sites = await _get_zone_filtered_sites(user["email"], all_sites)
     return all_sites
 

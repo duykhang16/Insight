@@ -52,9 +52,9 @@ async def create_zone(
 
 async def _verify_zone_ownership(zone_id: str, user: Dict[str, Any]):
     """Tenant isolation: tenant_admin can only access zones they created.
-    super_admin bypasses this check."""
+    super_admin is blocked entirely (system-level, no tenant data access)."""
     if user.get("role") == "super_admin":
-        return  # Super admin can access all zones
+        raise HTTPException(status_code=403, detail="Super Admin không quản lý Zone. Đăng nhập bằng Tenant Admin.")
     zone = await service.get_zone_detail(zone_id)
     if not zone:
         raise HTTPException(status_code=404, detail="Zone không tồn tại.")
@@ -66,10 +66,10 @@ async def _verify_zone_ownership(zone_id: str, user: Dict[str, Any]):
 async def get_zone(zone_id: str, request: Request):
     user = await get_current_insight_user(request)
     role = user.get("role", "viewer")
-    # Tenant admin: verify zone ownership
-    if role == "tenant_admin":
+    # Super admin or tenant admin: verify zone ownership (super blocked, tenant scoped)
+    if role in ("super_admin", "tenant_admin"):
         await _verify_zone_ownership(zone_id, user)
-    elif role not in ("super_admin",):
+    else:
         # manager/viewer: must be a zone member
         await require_zone_access(zone_id, request)
     zone = await service.get_zone_detail(zone_id)
@@ -82,10 +82,8 @@ async def get_zone(zone_id: str, request: Request):
 async def update_zone(zone_id: str, payload: ZoneUpdateRequest, request: Request):
     user = await get_current_insight_user(request)
     role = user.get("role", "viewer")
-    if role == "tenant_admin":
+    if role in ("super_admin", "tenant_admin"):
         await _verify_zone_ownership(zone_id, user)
-    elif role == "super_admin":
-        pass  # Super admin can update any zone
     else:
         await require_zone_admin(zone_id, request)
     updates = payload.model_dump(exclude_none=True)
@@ -139,12 +137,12 @@ async def add_member(zone_id: str, payload: ZoneMemberAddRequest, request: Reque
     caller = await get_current_insight_user(request)
     role = caller.get("role", "viewer")
     
-    # Tenant isolation: ownership check
-    if role == "tenant_admin":
+    # Tenant isolation + super admin block
+    if role in ("super_admin", "tenant_admin"):
         await _verify_zone_ownership(zone_id, caller)
-    elif role != "super_admin":
+    else:
         await require_zone_admin(zone_id, request)
-    
+
     from app.database.auth_crud import get_user_by_email
     target_user = await get_user_by_email(payload.email)
     if not target_user:
@@ -174,10 +172,10 @@ async def update_member(zone_id: str, email: str, payload: ZoneMemberUpdateReque
     caller = await get_current_insight_user(request)
     role = caller.get("role", "viewer")
     
-    # Tenant isolation: ownership check
-    if role == "tenant_admin":
+    # Tenant isolation + super admin block
+    if role in ("super_admin", "tenant_admin"):
         await _verify_zone_ownership(zone_id, caller)
-    elif role != "super_admin":
+    else:
         await require_zone_admin(zone_id, request)
     
     # Update role if provided
@@ -217,9 +215,9 @@ async def update_member_sites(
     """Dedicated endpoint to update a member's site-level permission."""
     caller = await get_current_insight_user(request)
     role = caller.get("role", "viewer")
-    if role == "tenant_admin":
+    if role in ("super_admin", "tenant_admin"):
         await _verify_zone_ownership(zone_id, caller)
-    elif role != "super_admin":
+    else:
         await require_zone_admin(zone_id, request)
     zone = await service.update_member_sites(
         zone_id, email, payload.all_sites, payload.allowed_site_ids
@@ -233,9 +231,9 @@ async def update_member_sites(
 async def remove_member(zone_id: str, email: str, request: Request):
     caller = await get_current_insight_user(request)
     role = caller.get("role", "viewer")
-    if role == "tenant_admin":
+    if role in ("super_admin", "tenant_admin"):
         await _verify_zone_ownership(zone_id, caller)
-    elif role != "super_admin":
+    else:
         await require_zone_admin(zone_id, request)
     ok = await service.remove_member(zone_id, email)
     if not ok:
@@ -255,9 +253,9 @@ async def get_zone_logs(
     """Return audit logs filtered to members of this zone."""
     user = await get_current_insight_user(request)
     role = user.get("role", "viewer")
-    if role == "tenant_admin":
+    if role in ("super_admin", "tenant_admin"):
         await _verify_zone_ownership(zone_id, user)
-    elif role != "super_admin":
+    else:
         await require_zone_access(zone_id, request)
 
     from app.database.connection import get_database

@@ -71,14 +71,13 @@ async def _build_zone_list_item(z: Dict[str, Any]) -> ZoneListItem:
 async def list_zones(caller_email: str, caller_role: str = "super_admin") -> List[ZoneListItem]:
     """Admin route: list zones visible to this admin.
     
-    - super_admin: sees ALL zones globally
+    - super_admin: NO access (DEV-level, not a tenant)
     - tenant_admin: sees ONLY zones they created (tenant isolation)
     """
     if caller_role == "super_admin":
-        zones = await zones_crud.get_all_zones()
-    else:
-        # Tenant admin → only their own zones
-        zones = await zones_crud.get_all_zones_by_owner(caller_email)
+        return []  # Super admin is system-level, no tenant data
+    # Tenant admin → only their own zones
+    zones = await zones_crud.get_all_zones_by_owner(caller_email)
     results = []
     for z in zones:
         results.append(await _build_zone_list_item(z))
@@ -86,14 +85,14 @@ async def list_zones(caller_email: str, caller_role: str = "super_admin") -> Lis
 
 
 async def list_my_zones(caller_email: str, caller_role: str) -> List[ZoneListItem]:
-    """My Zones: super sees all, tenant sees own, others see member-only.
+    """My Zones: scoped by role.
     
-    - super_admin: all zones
+    - super_admin: NO access (DEV-level, not a tenant)
     - tenant_admin: zones they created (owns)
     - manager/viewer: zones they are a member of
     """
     if caller_role == "super_admin":
-        zones = await zones_crud.get_all_zones()
+        return []  # Super admin is system-level, no tenant data
     elif caller_role == "tenant_admin":
         # Only zones owned by this tenant admin
         zones = await zones_crud.get_all_zones_by_owner(caller_email)
