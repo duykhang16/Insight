@@ -1,53 +1,82 @@
 name: Auto Deploy INSIGHT
 
-# Kịch bản này sẽ tự động chạy khi tạo một bản "Release" mới trên GitHub
 on:
   release:
     types: [published]
 
+env:
+  PROJECT_DIR: /home/cuong-deploy/Insight
+  COMPOSE_DOCKER_CLI_BUILD: 1
+  DOCKER_BUILDKIT: 1
+
 jobs:
   deploy:
-    # Chỉ định chạy trên con Runner mà anh sắp cài đặt trên Ubuntu
-    runs-on: self-hosted 
-    
+    name: Deploy to Production
+    runs-on: self-hosted
+    timeout-minutes: 15
+
     steps:
-      - name: Deploy Code
+      - name: Pull latest code
         run: |
-          # Di chuyển vào thư mục dự án
-          cd /home/cuong-deploy/Insight
-          
-          # 2. Xóa bỏ mọi thay đổi phát sinh trên server để tránh lỗi khi cập nhật code
-          # Điều này giúp lệnh pull luôn mượt mà
+          cd ${{ env.PROJECT_DIR }}
+          git fetch --all --prune
           git reset --hard origin/main
-          
-          # 3. Kéo code mới nhất từ nhánh main của GitHub về VPS
-          git pull origin main
-          
-          # 4. Restart Docker daemon để fix lỗi runc (can't get final child's PID)
-          # Container có restart policy "unless-stopped" sẽ tự lên lại
-          echo "=== Restarting Docker daemon ==="
-          sudo systemctl restart docker
-          sleep 15
-          echo "=== Docker restarted, checking containers ==="
-          docker ps
-          
-          # 5. Dọn dẹp toàn bộ Docker không dùng (images, containers, build cache)
-          docker system prune -af
-          docker builder prune -af
-          
-          # 5.5 Kiểm tra dung lượng ổ đĩa trước khi build
-          echo "=== Disk usage before build ==="
-          df -h /
-          
-          # 6. Yêu cầu Docker dựng lại (Build) các Image mới và khởi chạy container
-          docker compose up -d --build
-          
-          # 7. Kết nối container MongoDB (chạy bên ngoài) vào mạng insight-net
-          # để backend có thể resolve hostname "MongoDB"
-          docker network connect insight-net MongoDB || true
-          
-          # 8. Restart backend sau khi MongoDB đã join network
-          docker restart insight_backend
-          
-          # 9. Xóa bỏ các bản build cũ (dangling images) để tiết kiệm 30GB SSD của VPS
+          git log -1 --oneline
+
+      - name: Verify environment
+        run: |
+          cd ${{ env.PROJECT_DIR }}
+          docker --version
+          docker compose version
+          if [ ! -f .env ]; then
+            echo "ERROR: .env file not found"
+            exit 1
+          fi
+          df -h / | tail -1
+
+      - name: Build and deploy
+        run: |
+          cd ${{ env.PROJECT_DIR }}
+          docker compose up -d --build --remove-orphans
+          docker compose ps
+
+      - name: Health check
+        run: |
+          cd ${{ env.PROJECT_DIR }}
+
+          echo "Checking MongoDB..."
+          for i in $(seq 1 12); do
+            if docker exec insight_mongodb mongosh --eval "db.adminCommand('ping').ok" --quiet 2>/dev/null; then
+              echo "MongoDB OK"
+              break
+            fi
+            [ $i -eq 12 ] && echo "MongoDB FAILED" && docker logs insight_mongodb --tail 20 && exit 1
+            sleep 5
+          done
+
+          echo "Checking Backend..."
+          for i in $(seq 1 12); do
+            if curl -sf http://localhost:3003/health > /dev/null 2>&1; then
+              echo "Backend OK"
+              break
+            fi
+            [ $i -eq 12 ] && echo "Backend FAILED" && docker logs insight_backend --tail 30 && exit 1
+            sleep 5
+          done
+
+          echo "Checking Frontend..."
+          for i in $(seq 1 6); do
+            if curl -sf http://localhost:3002/ > /dev/null 2>&1; then
+              echo "Frontend OK"
+              break
+            fi
+            [ $i -eq 6 ] && echo "Frontend FAILED" && docker logs insight_frontend --tail 20 && exit 1
+            sleep 5
+          done
+
+      - name: Cleanup
+        run: |
           docker image prune -f
+          df -h / | tail -1
+          docker compose -f ${{ env.PROJECT_DIR }}/docker-compose.yml ps
+          echo "Deploy complete: ${{ github.event.release.tag_name }}"

@@ -70,3 +70,6 @@ eslint_utf8.txt
 .agent/
 .gemini/
 docs/
+
+# --- One-time scripts (not for git) ---
+scripts/setup-ubuntu.sh

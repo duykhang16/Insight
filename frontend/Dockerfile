@@ -1,27 +1,20 @@
-# Stage 1: Build the React application
-FROM node:20-alpine as build
-
+FROM node:20-alpine AS deps
 WORKDIR /app
-
-# Install dependencies
 COPY package.json package-lock.json* ./
-RUN npm ci || npm install
+RUN npm ci --ignore-scripts && npm cache clean --force
 
-# Copy the rest of the application code
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json package-lock.json* ./
 COPY . .
-
-# Build the application
 RUN npm run build
 
-# Stage 2: Serve the application using Nginx
-FROM nginx:alpine
-
-# Copy built assets
-COPY --from=build /app/dist /usr/share/nginx/html
-
-# We need a custom nginx configuration to support React Router (SPA fallback) and API proxy
+FROM nginx:1.27-alpine AS runtime
+RUN rm -rf /etc/nginx/conf.d/default.conf /usr/share/nginx/html/*
 COPY nginx.conf /etc/nginx/conf.d/default.conf
-
+COPY --from=build /app/dist /usr/share/nginx/html
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:80/ || exit 1
 EXPOSE 80
-
 CMD ["nginx", "-g", "daemon off;"]

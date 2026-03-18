@@ -1,27 +1,13 @@
-# Exclude everything from build context by default
-**
-
-# Allow specific source files
-!backend/
-!frontend/
-!docker-compose.yml
+# Root .dockerignore — Not used by Docker Compose (each service has its own context)
+# Kept for safety in case of manual docker build from root
+.git
+.github
+.agent
+.gemini
+.vscode
+docs
+scripts
+*.md
+.env
+.env.*
 !.env.example
-
-# Exclude heavy/unnecessary files from context
-**/node_modules
-**/venv
-**/.venv
-**/__pycache__
-**/dist
-**/*.log
-**/*.txt
-!**/requirements.txt
-**/*.bak
-**/.git
-**/.vscode
-**/.idea
-**/.env
-**/.dockerignore
-**/.gitignore
-**/README.md
-**/docs
