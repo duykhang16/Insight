@@ -892,4 +892,15 @@ export const en = {
         tab_database: "Database",
         tab_traffic: "Traffic"
     },
+    account: {
+        change_password: "Change Password",
+        old_password: "Current Password",
+        new_password: "New Password",
+        confirm_password: "Confirm New Password",
+        save_password: "Save Password",
+        password_changed: "Password changed successfully.",
+        password_change_failed: "Failed to change password.",
+        password_min_length: "New password must be at least 8 characters.",
+        password_mismatch: "Passwords do not match.",
+    },
 };

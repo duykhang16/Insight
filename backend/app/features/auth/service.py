@@ -198,6 +198,39 @@ class AuthService:
             "permissions": permissions,
         }
 
+    # ── Change password ────────────────────────────────────────────
+
+    async def change_password(self, email: str, old_password: str, new_password: str) -> dict:
+        """Change password for an authenticated user."""
+        if not old_password:
+            raise HTTPException(status_code=400, detail="Mật khẩu cũ là bắt buộc.")
+        if not new_password or len(new_password) < 8:
+            raise HTTPException(status_code=400, detail="Mật khẩu mới phải ít nhất 8 ký tự.")
+
+        from app.database.auth_crud import verify_password
+        user = await get_user_by_email(email)
+        if not user:
+            raise HTTPException(status_code=404, detail="Tài khoản không tồn tại.")
+
+        password_hash = user.get("password_hash")
+        if not password_hash:
+            raise HTTPException(status_code=400, detail="Tài khoản chưa có mật khẩu. Sử dụng chức năng đặt mật khẩu lần đầu.")
+
+        if not verify_password(old_password, password_hash):
+            raise HTTPException(status_code=401, detail="Mật khẩu cũ không chính xác.")
+
+        from app.database.connection import get_database
+        db = get_database()
+        await db.users.update_one(
+            {"email": email},
+            {"$set": {"password_hash": hash_password(new_password)}}
+        )
+
+        return {
+            "status": "success",
+            "message": "Đổi mật khẩu thành công.",
+        }
+
     # ── Shared helpers ─────────────────────────────────────────────
 
     @staticmethod
@@ -220,3 +253,4 @@ class AuthService:
 
 
 auth_service = AuthService()
+

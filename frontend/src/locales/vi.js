@@ -892,4 +892,15 @@ export const vi = {
         tab_database: "Cơ sở dữ liệu",
         tab_traffic: "Lưu lượng"
     },
+    account: {
+        change_password: "Đổi mật khẩu",
+        old_password: "Mật khẩu hiện tại",
+        new_password: "Mật khẩu mới",
+        confirm_password: "Xác nhận mật khẩu mới",
+        save_password: "Lưu mật khẩu",
+        password_changed: "Đổi mật khẩu thành công.",
+        password_change_failed: "Đổi mật khẩu thất bại.",
+        password_min_length: "Mật khẩu mới phải ít nhất 8 ký tự.",
+        password_mismatch: "Mật khẩu xác nhận không khớp.",
+    },
 };

@@ -68,36 +68,35 @@ async def _build_zone_list_item(z: Dict[str, Any]) -> ZoneListItem:
 
 # ── Zone CRUD ───────────────────────────────────────────────────────────────
 
-async def list_zones(caller_email: str, is_global_admin: bool) -> List[ZoneListItem]:
-    if is_global_admin:
+async def list_zones(caller_email: str, caller_role: str = "super_admin") -> List[ZoneListItem]:
+    """Admin route: list zones visible to this admin.
+    
+    - super_admin: sees ALL zones globally
+    - tenant_admin: sees ONLY zones they created (tenant isolation)
+    """
+    if caller_role == "super_admin":
         zones = await zones_crud.get_all_zones()
     else:
-        # Get zone_ids where user is a member
-        zone_ids = await perms_crud.get_zone_ids_for_member(caller_email)
-        zones = await zones_crud.get_zones_by_ids(zone_ids) if zone_ids else []
+        # Tenant admin → only their own zones
+        zones = await zones_crud.get_all_zones_by_owner(caller_email)
     results = []
     for z in zones:
         results.append(await _build_zone_list_item(z))
     return results
 
 
-async def list_my_zones(caller_email: str, is_super: bool, is_tenant: bool) -> List[ZoneListItem]:
-    """My Zones: super sees all, tenant sees created + member-of, others see member-only."""
-    if is_super:
+async def list_my_zones(caller_email: str, caller_role: str) -> List[ZoneListItem]:
+    """My Zones: super sees all, tenant sees own, others see member-only.
+    
+    - super_admin: all zones
+    - tenant_admin: zones they created (owns)
+    - manager/viewer: zones they are a member of
+    """
+    if caller_role == "super_admin":
         zones = await zones_crud.get_all_zones()
-    elif is_tenant:
-        # Zones created by tenant + zones where tenant is member
-        created = await zones_crud.get_zones_for_creator(caller_email)
-        member_zone_ids = await perms_crud.get_zone_ids_for_member(caller_email)
-        member_zones = await zones_crud.get_zones_by_ids(member_zone_ids) if member_zone_ids else []
-        # Merge unique
-        seen = set()
-        zones = []
-        for z in created + member_zones:
-            zid = str(z["_id"])
-            if zid not in seen:
-                seen.add(zid)
-                zones.append(z)
+    elif caller_role == "tenant_admin":
+        # Only zones owned by this tenant admin
+        zones = await zones_crud.get_all_zones_by_owner(caller_email)
     else:
         zone_ids = await perms_crud.get_zone_ids_for_member(caller_email)
         zones = await zones_crud.get_zones_by_ids(zone_ids) if zone_ids else []

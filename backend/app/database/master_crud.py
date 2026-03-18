@@ -1,16 +1,16 @@
-"""MongoDB CRUD operations for the master_config collection (singleton pattern).
+"""MongoDB CRUD operations for the master_config collection (per-tenant pattern).
 
-Only one document exists at any time. All functions operate on that singleton.
+Each tenant_admin has their own master_config document, identified by linked_by (admin email).
 """
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Any
 from .connection import get_database
 
 
-async def get_master_config() -> Optional[Dict[str, Any]]:
-    """Return the active master config document, or None if not linked."""
+async def get_master_config(admin_email: str) -> Optional[Dict[str, Any]]:
+    """Return the active master config for a specific tenant admin, or None."""
     db = get_database()
-    doc = await db.master_config.find_one({"is_active": True})
+    doc = await db.master_config.find_one({"is_active": True, "linked_by": admin_email})
     if doc and "_id" in doc:
         doc["_id"] = str(doc["_id"])
     return doc
@@ -25,7 +25,7 @@ async def save_master_config(
     refresh_interval_minutes: int = 25,
     extra: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Insert or replace the master config (singleton upsert)."""
+    """Insert or replace the master config for a specific tenant admin."""
     db = get_database()
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(seconds=expires_in_seconds)
@@ -44,15 +44,18 @@ async def save_master_config(
     if extra:
         doc.update(extra)
 
-    # Deactivate any existing config first
-    await db.master_config.update_many({}, {"$set": {"is_active": False}})
+    # Deactivate only THIS admin's existing config (not other tenants!)
+    await db.master_config.update_many(
+        {"linked_by": linked_by},
+        {"$set": {"is_active": False}}
+    )
     result = await db.master_config.insert_one(doc)
     doc["_id"] = str(result.inserted_id)
     return doc
 
 
-async def update_master_token(access_token: str, expires_in_seconds: int, refresh_token: Optional[str] = None) -> bool:
-    """Update the cached token after a successful refresh."""
+async def update_master_token(admin_email: str, access_token: str, expires_in_seconds: int, refresh_token: Optional[str] = None) -> bool:
+    """Update the cached token after a successful refresh for a specific tenant."""
     db = get_database()
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(seconds=expires_in_seconds)
@@ -65,7 +68,7 @@ async def update_master_token(access_token: str, expires_in_seconds: int, refres
         update_fields["refresh_token"] = refresh_token
 
     result = await db.master_config.update_one(
-        {"is_active": True},
+        {"is_active": True, "linked_by": admin_email},
         {
             "$set": update_fields,
             "$unset": {"last_refresh_failed_at": "", "last_refresh_error": ""}
@@ -74,11 +77,11 @@ async def update_master_token(access_token: str, expires_in_seconds: int, refres
     return result.modified_count > 0
 
 
-async def mark_refresh_failure(error_msg: str) -> bool:
-    """Record a failed refresh attempt for back-off logic."""
+async def mark_refresh_failure(admin_email: str, error_msg: str) -> bool:
+    """Record a failed refresh attempt for a specific tenant."""
     db = get_database()
     result = await db.master_config.update_one(
-        {"is_active": True},
+        {"is_active": True, "linked_by": admin_email},
         {
             "$set": {
                 "last_refresh_failed_at": datetime.now(timezone.utc),
@@ -89,22 +92,19 @@ async def mark_refresh_failure(error_msg: str) -> bool:
     return result.modified_count > 0
 
 
-async def deactivate_master_config() -> bool:
-    """Soft-delete: mark master config as inactive (unlink)."""
+async def deactivate_master_config(admin_email: str) -> bool:
+    """Soft-delete: mark THIS tenant's master config as inactive (unlink)."""
     db = get_database()
     result = await db.master_config.update_many(
-        {"is_active": True},
+        {"is_active": True, "linked_by": admin_email},
         {"$set": {"is_active": False}}
     )
     return result.modified_count > 0
 
 
-async def get_master_token() -> Optional[str]:
-    """Return the current master access token if linked and not expired.
-
-    Returns None if not linked or token has expired.
-    """
-    config = await get_master_config()
+async def get_master_token(admin_email: str) -> Optional[str]:
+    """Return the current master access token for a specific tenant if linked and not expired."""
+    config = await get_master_config(admin_email)
     if not config:
         return None
     

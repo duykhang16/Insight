@@ -39,6 +39,13 @@ async def get_all_zones() -> List[Dict[str, Any]]:
     return [_serialize(z) async for z in cursor]
 
 
+async def get_all_zones_by_owner(admin_email: str) -> List[Dict[str, Any]]:
+    """Return all zones owned by a specific tenant admin (for tenant isolation)."""
+    db = get_database()
+    cursor = db.zones.find({"created_by": admin_email}).sort("created_at", -1)
+    return [_serialize(z) async for z in cursor]
+
+
 async def get_zones_by_ids(zone_ids: List[str]) -> List[Dict[str, Any]]:
     """Return zones matching the given IDs."""
     db = get_database()

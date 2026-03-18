@@ -1,7 +1,7 @@
 """Auth dependencies — Insight JWT-based auth + Zone-aware deps.
 
 All routes authenticate via Insight JWT (HS256, 8 h expiry).
-Aruba operations additionally require a linked Master Account.
+Aruba operations additionally require a linked Master Account (per-tenant).
 
 Tier hierarchy:
   super_admin   → DEV-level, full control, creates tenant_admin accounts
@@ -13,7 +13,8 @@ get_current_insight_user   → any authenticated + approved user
 require_super_admin        → super_admin only
 require_internal_admin     → super_admin OR tenant_admin
 is_admin_role(user)        → helper: True if super_admin or tenant_admin
-require_master_token       → returns master Aruba token, 503 if not linked
+resolve_admin_email(user)  → resolve the tenant admin email for Aruba operations
+require_master_token       → returns master Aruba token for caller's tenant, 503 if not linked
 
 Zone deps:
   require_zone_access      → zone member or admin-tier user
@@ -63,6 +64,36 @@ def is_admin_role(user: Dict[str, Any]) -> bool:
     return user.get("role") in ("super_admin", "tenant_admin")
 
 
+def resolve_admin_email(user: Dict[str, Any]) -> str:
+    """Resolve the tenant admin email that owns the Aruba master config.
+    
+    - tenant_admin → own email
+    - manager/viewer → parent_admin_id (the tenant_admin who created them)
+    - super_admin → cannot access Aruba directly (403)
+    """
+    role = user.get("role", "viewer")
+    
+    if role == "tenant_admin":
+        return user["email"]
+    
+    if role in ("manager", "viewer"):
+        admin_email = user.get("parent_admin_id")
+        if not admin_email:
+            raise HTTPException(
+                status_code=403,
+                detail="Tài khoản chưa được gán cho Tenant Admin nào. Liên hệ Admin."
+            )
+        return admin_email
+    
+    if role == "super_admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Super Admin không trực tiếp quản lý site Aruba. Đăng nhập bằng Tenant Admin."
+        )
+    
+    raise HTTPException(status_code=403, detail="Role không hợp lệ.")
+
+
 # ---------------------------------------------------------------------------
 # Admin-tier deps
 # ---------------------------------------------------------------------------
@@ -84,16 +115,25 @@ async def require_internal_admin(request: Request) -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# Master token gate — 503 if master not linked
+# Master token gate — per-tenant, 503 if not linked
 # ---------------------------------------------------------------------------
 
-async def require_master_token() -> str:
-    """Return the active master Aruba Bearer token with auto-refresh.
+async def require_master_token(
+    request: Request,
+    user: Dict[str, Any] = Depends(get_current_insight_user),
+) -> str:
+    """Return the active master Aruba Bearer token for the caller's tenant.
+
+    Resolves admin_email from user context:
+      - tenant_admin → own email
+      - manager/viewer → parent_admin_id
+      - super_admin → 403 (cannot access Aruba directly)
 
     Raises HTTP 503 if master account is not linked or refresh fails.
     """
+    admin_email = resolve_admin_email(user)
     from app.features.master.service import get_master_token_auto
-    token = await get_master_token_auto()
+    token = await get_master_token_auto(admin_email)
     if not token:
         raise HTTPException(
             status_code=503,
@@ -128,10 +168,7 @@ require_admin    = RoleChecker(["super_admin", "tenant_admin"])
 # ---------------------------------------------------------------------------
 
 async def require_zone_access(zone_id: str, request: Request) -> Dict[str, Any]:
-    """Require caller to be a member of the zone (or admin-tier user).
-
-    Used for: GET zone detail, GET zone logs, GET zone members.
-    """
+    """Require caller to be a member of the zone (or admin-tier user)."""
     user = await get_current_insight_user(request)
     if is_admin_role(user):
         return user
@@ -143,10 +180,7 @@ async def require_zone_access(zone_id: str, request: Request) -> Dict[str, Any]:
 
 
 async def require_zone_admin(zone_id: str, request: Request) -> Dict[str, Any]:
-    """Require caller to be a zone-level admin (or admin-tier user).
-
-    Used for: PUT zone, POST/PUT/DELETE zone members.
-    """
+    """Require caller to be a zone-level admin (or admin-tier user)."""
     user = await get_current_insight_user(request)
     if is_admin_role(user):
         return user

@@ -56,6 +56,19 @@ async def set_password(request: Request):
     )
 
 
+@router.post("/change-password")
+async def change_password(request: Request):
+    """Change password for authenticated user — requires old password."""
+    from app.shared.auth_deps import get_current_insight_user
+    user = await get_current_insight_user(request)
+    body = await request.json()
+    return await auth_service.change_password(
+        email=user["email"],
+        old_password=body.get("old_password", ""),
+        new_password=body.get("new_password", ""),
+    )
+
+
 def _extract_token(request: Request) -> str:
     """Extract Bearer token from Authorization header."""
     from fastapi import HTTPException
@@ -63,3 +76,4 @@ def _extract_token(request: Request) -> str:
     if not auth.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Không có token.")
     return auth.split(" ", 1)[1]
+
