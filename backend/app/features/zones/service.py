@@ -57,7 +57,8 @@ async def list_zones(caller_email: str, is_global_admin: bool) -> List[ZoneListI
     if is_global_admin:
         zones = await zones_crud.get_all_zones()
     else:
-        zones = await zones_crud.get_zones_for_member(caller_email)
+        # tenant_admin: sees zones they created or are a member of
+        zones = await zones_crud.get_zones_for_tenant_admin(caller_email)
     return [_serialize_zone_list_item(z) for z in zones]
 
 

@@ -115,12 +115,22 @@ class OverviewService:
                     "historyDurationSeconds": node.get("historyDurationSeconds", 86400),
                 })
 
-            # --- Bước 4: Zone filter — non-global-admin chỉ thấy sites trong zones của mình ---
+            # --- Bước 4: Zone filter — non-super-admin chỉ thấy sites trong zones của mình ---
             from app.config import SUPER_ADMIN_EMAILS
-            from app.database.zones_crud import get_site_ids_for_user_zones
+            from app.database.zones_crud import get_site_ids_for_user_zones, get_zones_for_tenant_admin, get_all_assigned_site_ids
 
-            is_global_admin = insight_app_role in ("super_admin", "tenant_admin") or (caller_email in SUPER_ADMIN_EMAILS)
-            if not is_global_admin and caller_email:
+            is_super = insight_app_role == "super_admin" or (caller_email in SUPER_ADMIN_EMAILS)
+            if is_super:
+                pass  # super_admin sees all
+            elif insight_app_role == "tenant_admin" and caller_email:
+                # tenant_admin sees: sites in their zones + unassigned sites (not in any zone)
+                zones = await get_zones_for_tenant_admin(caller_email)
+                my_site_ids = set()
+                for z in zones:
+                    my_site_ids.update(z.get("site_ids", []))
+                all_assigned = await get_all_assigned_site_ids()
+                sites = [s for s in sites if s.get("siteId") in my_site_ids or s.get("siteId") not in all_assigned]
+            elif caller_email:
                 allowed_ids = await get_site_ids_for_user_zones(caller_email)
                 allowed_set = set(allowed_ids)
                 sites = [s for s in sites if s.get("siteId") in allowed_set]
@@ -129,7 +139,14 @@ class OverviewService:
             if caller_email:
                 try:
                     from app.features.templates.service import get_site_template_map
-                    template_map = await get_site_template_map(caller_email)
+                    # Resolve tenant owner: manager/viewer use parent_admin_id
+                    template_owner = caller_email
+                    if insight_app_role in ("manager", "viewer"):
+                        from app.database.auth_crud import get_user_by_email
+                        caller_user = await get_user_by_email(caller_email)
+                        if caller_user and caller_user.get("parent_admin_id"):
+                            template_owner = caller_user["parent_admin_id"]
+                    template_map = await get_site_template_map(template_owner)
                     for site in sites:
                         sid = site.get("siteId")
                         if sid in template_map:

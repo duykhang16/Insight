@@ -18,6 +18,15 @@ export const ZoneProvider = ({ initialZones, children }) => {
     }, []);
 
     const fetchZones = useCallback(async (silent = false) => {
+        // super_admin doesn't use zone dashboard — skip all zone fetching
+        const role = sessionStorage.getItem('userRole');
+        if (role === 'super_admin') {
+            if (isMounted.current) {
+                setZones([]);
+                if (!silent) setLoadingZones(false);
+            }
+            return [];
+        }
         if (!silent) setLoadingZones(true);
         try {
             const { default: apiClient } = await import('../api/apiClient');

@@ -20,18 +20,20 @@ async def list_zones(
     request: Request,
     user: Dict[str, Any] = Depends(require_internal_admin),
 ):
-    """Admin Master: list all zones."""
-    return await service.list_zones(user["email"], is_global_admin=True)
+    """Admin: list zones. super_admin sees all, tenant_admin sees only their own."""
+    is_super = user.get("role") == "super_admin"
+    return await service.list_zones(user["email"], is_global_admin=is_super)
 
 
 @router.get("/my", response_model=List[ZoneListItem])
 async def list_my_zones(request: Request):
-    """Any approved user: list zones they belong to."""
+    """Any approved user: list zones they belong to. super_admin gets empty (separate UI)."""
     user = await get_current_insight_user(request)
     role = user.get("role", "")
-    is_super = role == "super_admin"
+    if role == "super_admin":
+        return []  # super_admin has separate management UI, not zone-based
     is_tenant = role == "tenant_admin"
-    return await service.list_my_zones(user["email"], is_super=is_super, is_tenant=is_tenant)
+    return await service.list_my_zones(user["email"], is_super=False, is_tenant=is_tenant)
 
 
 @router.post("", response_model=ZoneResponse, status_code=201)
@@ -55,7 +57,20 @@ async def create_zone(
 @router.get("/{zone_id}", response_model=ZoneResponse)
 async def get_zone(zone_id: str, request: Request):
     user = await get_current_insight_user(request)
-    if user.get("role") != "admin":
+    role = user.get("role", "")
+    if role == "super_admin":
+        pass  # super_admin sees everything
+    elif role == "tenant_admin":
+        # tenant_admin can only access zones they created or are member of
+        zone_doc = await service.get_zone_detail(zone_id)
+        if not zone_doc:
+            raise HTTPException(status_code=404, detail="Zone không tồn tại.")
+        is_creator = zone_doc.created_by == user["email"]
+        is_member = any(m.email == user["email"] for m in (zone_doc.members or []))
+        if not is_creator and not is_member:
+            raise HTTPException(status_code=403, detail="Bạn không có quyền truy cập Zone này.")
+        return zone_doc
+    else:
         await require_zone_access(zone_id, request)
     zone = await service.get_zone_detail(zone_id)
     if not zone:
@@ -84,6 +99,13 @@ async def delete_zone(
     request: Request,
     user: Dict[str, Any] = Depends(require_internal_admin),
 ):
+    # tenant_admin can only delete zones they created
+    if user.get("role") == "tenant_admin":
+        zone_doc = await service.get_zone_detail(zone_id)
+        if not zone_doc:
+            raise HTTPException(status_code=404, detail="Zone không tồn tại.")
+        if zone_doc.created_by != user["email"]:
+            raise HTTPException(status_code=403, detail="Bạn chỉ có thể xóa Zone do mình tạo.")
     ok = await service.delete_zone(zone_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Zone không tồn tại.")

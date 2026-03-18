@@ -73,7 +73,7 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
             {/* Brand header */}
             <div className="flex items-center px-4 h-14 border-b th-border">
                 <button
-                    onClick={() => navigate('/zones')}
+                    onClick={() => navigate(userRole === 'super_admin' ? '/super/tenants' : '/zones')}
                     className="flex items-center gap-3 hover:opacity-80 transition-opacity"
                 >
                     <span className="text-lg font-black italic th-text-primary tracking-widest uppercase">INSIGHT</span>
@@ -86,6 +86,7 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
 
             {/* Navigation */}
             <nav className="flex-1 overflow-y-auto pt-3 space-y-0.5">
+                {userRole !== 'super_admin' && (
                 <NavLink to="/zones" end className={getNavLinkClass}>
                     {({ isActive }) => (
                         <>
@@ -95,9 +96,10 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                         </>
                     )}
                 </NavLink>
+                )}
 
                 {/* Configuration accordion */}
-                {canSeeConfig && (
+                {canSeeConfig && userRole !== 'super_admin' && (
                     <div>
                         {/* Accordion trigger */}
                         <button

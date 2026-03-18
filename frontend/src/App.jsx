@@ -226,18 +226,18 @@ function App() {
             <Routes>
             {/* Global routes — use GlobalLayout */}
             <Route element={<GlobalLayout onLogout={handleLogout} userRole={userRole} isZoneAdmin={isZoneAdmin} rolePermissions={rolePermissions} />}>
-              <Route path="/" element={<Navigate to="/zones" replace />} />
+              <Route path="/" element={userRole === 'super_admin' ? <Navigate to="/super/tenants" replace /> : <Navigate to="/zones" replace />} />
               <Route path="/config" element={
                 <ViewerRoute userRole={userRole} isZoneAdmin={isZoneAdmin}>
                   <Configuration rolePermissions={rolePermissions} userRole={userRole} />
                 </ViewerRoute>
               } />
 
-              {/* Zone routes — all logged-in users */}
-              <Route path="/zones" element={<ZoneDashboard />} />
-              <Route path="/zones/:zoneId/templates" element={<ZoneTemplates />} />
-              <Route path="/zones/:zoneId/sites" element={<ZoneSites />} />
-              <Route path="/zones/:zoneId/logs" element={<ZoneLogs />} />
+              {/* Zone routes — tenant_admin, manager, viewer (NOT super_admin) */}
+              <Route path="/zones" element={userRole === 'super_admin' ? <Navigate to="/super/tenants" replace /> : <ZoneDashboard />} />
+              <Route path="/zones/:zoneId/templates" element={userRole === 'super_admin' ? <Navigate to="/super/tenants" replace /> : <ZoneTemplates />} />
+              <Route path="/zones/:zoneId/sites" element={userRole === 'super_admin' ? <Navigate to="/super/tenants" replace /> : <ZoneSites />} />
+              <Route path="/zones/:zoneId/logs" element={userRole === 'super_admin' ? <Navigate to="/super/tenants" replace /> : <ZoneLogs />} />
 
               {/* Admin-only routes */}
               <Route path="/admin/logs" element={
@@ -288,7 +288,7 @@ function App() {
                 </SuperRoute>
               } />
 
-              <Route path="*" element={<Navigate to="/zones" replace />} />
+              <Route path="*" element={userRole === 'super_admin' ? <Navigate to="/super/tenants" replace /> : <Navigate to="/zones" replace />} />
             </Route>
 
             {/* Site-specific routes — use SiteLayout */}

@@ -172,7 +172,7 @@ const ZoneTemplates = () => {
 /**
  * Build an array of { templateId, template, count, isGeneral }
  * from the zone's sites and the full template list.
- * Only includes groups with count > 0. "General" group is always last.
+ * Only includes groups with count > 0. "General" group is always FIRST (default state).
  */
 function buildTemplateGroups(zoneSites, templates) {
   const buckets = {};   // templateId → count
@@ -189,6 +189,16 @@ function buildTemplateGroups(zoneSites, templates) {
 
   const groups = [];
 
+  // General (no template) — always FIRST as default state
+  if (generalCount > 0) {
+    groups.push({
+      templateId: null,
+      template: null,
+      count: generalCount,
+      isGeneral: true,
+    });
+  }
+
   // Templates with sites — preserve order from API
   templates.forEach(tpl => {
     if (buckets[tpl.id]) {
@@ -204,7 +214,6 @@ function buildTemplateGroups(zoneSites, templates) {
   // Orphan templates (in buckets that weren't found in templates list — just in case)
   Object.keys(buckets).forEach(tplId => {
     if (!groups.find(g => g.templateId === tplId)) {
-      // Find template info from site data
       const site = zoneSites.find(s => s.template?.id === tplId);
       groups.push({
         templateId: tplId,
@@ -214,16 +223,6 @@ function buildTemplateGroups(zoneSites, templates) {
       });
     }
   });
-
-  // General (no template) — always last
-  if (generalCount > 0) {
-    groups.push({
-      templateId: null,
-      template: null,
-      count: generalCount,
-      isGeneral: true,
-    });
-  }
 
   return groups;
 }

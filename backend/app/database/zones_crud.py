@@ -231,3 +231,17 @@ async def get_site_ids_for_zones(zone_ids: List[str]) -> List[str]:
     async for doc in cursor:
         site_ids.update(doc.get("site_ids", []))
     return list(site_ids)
+
+
+async def get_all_assigned_site_ids() -> set:
+    """Return set of ALL site_ids assigned to ANY zone (globally).
+    
+    Used to compute 'unassigned' sites — sites not in any zone at all.
+    """
+    db = get_database()
+    cursor = db.zones.find({}, {"site_ids": 1})
+    all_ids = set()
+    async for doc in cursor:
+        all_ids.update(doc.get("site_ids", []))
+    return all_ids
+

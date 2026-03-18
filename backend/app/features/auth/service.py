@@ -1,10 +1,10 @@
 """
-Auth Service — business logic cho authentication flows.
+Auth Service — business logic for authentication flows.
 
-Tách ra khỏi routes để:
-  - Dễ test login/session/refresh flows riêng biệt
-  - Reuse logic check zone_admin, permissions từ nhiều nơi
-  - Routes chỉ parse HTTP input + gọi service
+Separated from routes to:
+  - Easily test login/session/refresh flows independently
+  - Reuse zone_admin, permissions logic across modules
+  - Routes only parse HTTP input + call service
 """
 from typing import Any, Dict, Optional
 
@@ -31,10 +31,10 @@ class AuthService:
         """
         user = await get_user_by_email(email)
         if not user:
-            raise HTTPException(status_code=404, detail="Email không tồn tại trong hệ thống.")
+            raise HTTPException(status_code=404, detail="Email not found.")
 
         if not user.get("isApproved", False):
-            raise HTTPException(status_code=403, detail="Tài khoản chưa được kích hoạt. Vui lòng liên hệ Admin.")
+            raise HTTPException(status_code=403, detail="Account not yet activated. Please contact Admin.")
 
         # Zone check for non-admin roles
         role = user.get("role", "viewer")
@@ -45,7 +45,7 @@ class AuthService:
             if not zones:
                 raise HTTPException(
                     status_code=403,
-                    detail="Bạn chưa được phân quyền quản lý Zone nào. Vui lòng liên hệ Admin.",
+                    detail="You are not assigned to any Zone. Please contact Admin.",
                 )
 
         # Check password status
@@ -77,11 +77,11 @@ class AuthService:
 
         if not result.ok:
             _ERROR_MESSAGES = {
-                "bad_credentials": (401, "Tên đăng nhập hoặc mật khẩu không chính xác."),
-                "not_approved":    (403, "Tài khoản của bạn chưa được kích hoạt. Vui lòng liên hệ Admin Master."),
-                "no_zones":        (403, "Bạn chưa được phân quyền quản lý Zone nào. Vui lòng liên hệ Admin để được cấp quyền."),
+                "bad_credentials": (401, "Incorrect email or password."),
+                "not_approved":    (403, "Your account is not activated. Please contact the Master Admin."),
+                "no_zones":        (403, "You are not assigned to any Zone. Please contact Admin for access."),
             }
-            status_code, detail = _ERROR_MESSAGES.get(result.error, (401, "Xác thực thất bại."))
+            status_code, detail = _ERROR_MESSAGES.get(result.error, (401, "Authentication failed."))
             raise HTTPException(status_code=status_code, detail=detail)
 
         user = result.user
@@ -122,7 +122,7 @@ class AuthService:
 
         user = await get_user_by_email(payload["sub"])
         if not user or not user.get("isApproved", False):
-            raise HTTPException(status_code=403, detail="Tài khoản chưa được phê duyệt.")
+            raise HTTPException(status_code=403, detail="Account not approved.")
 
         email = payload["sub"]
         role = user.get("role", payload.get("role", "viewer"))
@@ -146,7 +146,7 @@ class AuthService:
 
         user = await get_user_by_email(email)
         if not user or not user.get("isApproved", False):
-            raise HTTPException(status_code=403, detail="Tài khoản không hợp lệ.")
+            raise HTTPException(status_code=403, detail="Invalid account.")
 
         role = user.get("role", "viewer")
         new_token = create_insight_token(email=email, role=role)
@@ -161,20 +161,20 @@ class AuthService:
     async def set_password(self, setup_token: str, new_password: str) -> dict:
         """Handle first-login password setup flow."""
         if not setup_token:
-            raise HTTPException(status_code=400, detail="setup_token là bắt buộc.")
+            raise HTTPException(status_code=400, detail="setup_token is required.")
         if not new_password or len(new_password) < 8:
-            raise HTTPException(status_code=400, detail="Mật khẩu mới phải ít nhất 8 ký tự.")
+            raise HTTPException(status_code=400, detail="New password must be at least 8 characters.")
 
         payload = verify_insight_token(setup_token)
         if payload.get("purpose") != _SETUP_TOKEN_PURPOSE:
-            raise HTTPException(status_code=403, detail="Token không hợp lệ cho tác vụ này.")
+            raise HTTPException(status_code=403, detail="Invalid token for this operation.")
 
         email = payload.get("sub")
         user = await get_user_by_email(email)
         if not user:
-            raise HTTPException(status_code=404, detail="Tài khoản không tồn tại.")
+            raise HTTPException(status_code=404, detail="Account not found.")
         if not user.get("must_set_password"):
-            raise HTTPException(status_code=400, detail="Tài khoản này không cần đặt mật khẩu lần đầu.")
+            raise HTTPException(status_code=400, detail="This account does not require first-time password setup.")
 
         from app.database.connection import get_database
         db = get_database()
@@ -197,6 +197,34 @@ class AuthService:
             "is_zone_admin": is_zone_admin,
             "permissions": permissions,
         }
+
+    # ── Change password (authenticated) ────────────────────────────
+
+    async def change_password(self, email: str, current_password: str, new_password: str) -> dict:
+        """Change password for an authenticated user."""
+        if not current_password:
+            raise HTTPException(status_code=400, detail="Current password is required.")
+        if not new_password or len(new_password) < 8:
+            raise HTTPException(status_code=400, detail="New password must be at least 8 characters.")
+
+        user = await get_user_by_email(email)
+        if not user:
+            raise HTTPException(status_code=404, detail="Account not found.")
+
+        # Verify current password
+        from app.database.auth_crud import verify_password
+        if not verify_password(current_password, user.get("password_hash", "")):
+            raise HTTPException(status_code=401, detail="Current password is incorrect.")
+
+        # Update password
+        from app.database.connection import get_database
+        db = get_database()
+        await db.users.update_one(
+            {"email": email},
+            {"$set": {"password_hash": hash_password(new_password)}}
+        )
+
+        return {"status": "success", "message": "Password changed successfully."}
 
     # ── Shared helpers ─────────────────────────────────────────────
 
