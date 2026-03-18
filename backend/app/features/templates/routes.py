@@ -169,6 +169,19 @@ async def re_extract_config(
     return tpl
 
 
+# ── Delete ────────────────────────────────────────────────────────────────
+
+@router.delete("/{template_id}")
+async def delete_template(template_id: str, request: Request):
+    """Delete a template. All its sites are moved back to General."""
+    user = await get_current_insight_user(request)
+    try:
+        result = await service.delete_template(template_id, user["email"])
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 # ── Site assignment ────────────────────────────────────────────────────────
 
 @router.post("/assign")

@@ -199,8 +199,27 @@ async def re_extract_config(
     )
 
 
-# ── Delete (disabled by design — templates cannot be deleted) ───────────────
-# async def delete_template(...) → intentionally NOT implemented
+# ── Delete ──────────────────────────────────────────────────────────────────
+
+async def delete_template(template_id: str, owner_id: str) -> Dict[str, Any]:
+    """Delete a template and move all its sites back to General.
+
+    - Default (General) template cannot be deleted.
+    - All sites assigned to the deleted template are reassigned to General.
+    """
+    deleted = await crud.delete_template(template_id, owner_id)
+    if not deleted:
+        raise ValueError("Template not found, access denied, or is the default template.")
+    # Move orphaned sites → General
+    site_ids = deleted.get("site_ids", [])
+    moved = 0
+    if site_ids:
+        default = await crud.ensure_default_template(owner_id)
+        default_id = str(default.get("_id", default.get("id", "")))
+        for sid in site_ids:
+            await crud.add_site_to_template(default_id, sid)
+            moved += 1
+    return {"deleted_template": deleted["name"], "sites_moved_to_general": moved}
 
 
 # ── Site assignment ─────────────────────────────────────────────────────────

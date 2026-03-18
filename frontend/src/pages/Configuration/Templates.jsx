@@ -8,6 +8,9 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useSite } from '../../context/SiteContext';
+import { toast } from 'sonner';
+import TemplateExtract from './TemplateExtract';
+import Spinner from '../../components/Spinner';
 
 const PRESET_COLORS = [
     '#10B981', '#3B82F6', '#8B5CF6', '#F59E0B', '#EF4444',
@@ -28,12 +31,8 @@ const Templates = () => {
     const [saving, setSaving] = useState(false);
     const [formError, setFormError] = useState('');
 
-    // Extract Modal state
-    const [isExtractOpen, setIsExtractOpen] = useState(false);
-    const [extractData, setExtractData] = useState({ source_site_id: '', name: '', description: '', color: '#10B981' });
-    const [extracting, setExtracting] = useState(false);
-    const [extractError, setExtractError] = useState('');
-    const [extractSiteSearch, setExtractSiteSearch] = useState('');
+    // Extract wizard mode (replaces old modal)
+    const [extractMode, setExtractMode] = useState(false);
 
     // Apply Modal state
     const [isApplyOpen, setIsApplyOpen] = useState(false);
@@ -95,52 +94,27 @@ const Templates = () => {
         }
     };
 
-    // ── Extract ────────────────────────────────────────────────────────
+    // ── Extract (wizard mode) ─────────────────────────────────────────
+    const openExtract = () => setExtractMode(true);
 
-    const openExtract = () => {
-        setExtractData({ source_site_id: '', name: '', description: '', color: '#10B981' });
-        setExtractError('');
-        setExtractSiteSearch('');
-        setIsExtractOpen(true);
-    };
+    // ── Delete ────────────────────────────────────────────────────────
+    const [deleteConfirm, setDeleteConfirm] = useState(null); // template obj or null
+    const [deleting, setDeleting] = useState(false);
 
-    const handleExtract = async (e) => {
-        e.preventDefault();
-        if (!extractData.source_site_id) { setExtractError('Vui lòng chọn site nguồn.'); return; }
-        if (!extractData.name.trim()) { setExtractError('Tên template không được để trống.'); return; }
-        setExtracting(true);
-        setExtractError('');
+    const handleDelete = async () => {
+        if (!deleteConfirm) return;
+        setDeleting(true);
         try {
-            await apiClient.post('/templates/extract', extractData);
-            setIsExtractOpen(false);
+            const res = await apiClient.delete(`/templates/${deleteConfirm.id}`);
+            toast.success(`Đã xóa "${deleteConfirm.name}". ${res.data?.sites_moved_to_general || 0} sites chuyển về General.`, { duration: 5000 });
+            setDeleteConfirm(null);
             loadTemplates();
         } catch (err) {
-            setExtractError(err.response?.data?.detail || 'Không thể trích xuất config từ site.');
+            toast.error(err.response?.data?.detail || 'Không thể xóa template.');
         } finally {
-            setExtracting(false);
+            setDeleting(false);
         }
     };
-
-    const selectSiteForExtract = (site) => {
-        const siteId = site.siteId || site.id || site._id;
-        const siteName = site.siteName || site.name || 'Site';
-        setExtractData(prev => ({
-            ...prev,
-            source_site_id: siteId,
-            name: prev.name || `Template - ${siteName}`,
-            description: prev.description || `Trích xuất từ ${siteName}`,
-        }));
-        setExtractSiteSearch('');
-    };
-
-    const filteredSites = sites.filter(s => {
-        const name = (s.siteName || s.name || '').toLowerCase();
-        return name.includes(extractSiteSearch.toLowerCase());
-    });
-
-    const selectedSite = sites.find(s =>
-        (s.siteId || s.id || s._id) === extractData.source_site_id
-    );
 
     // ── Apply Template ─────────────────────────────────────────────────
 
@@ -188,6 +162,17 @@ const Templates = () => {
     // ── Template list ──────────────────────────────────────────────────
 
     const filtered = templates.filter(t => t.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    // ── Extract wizard full-page ──
+    if (extractMode) {
+        return (
+            <TemplateExtract
+                sites={sites}
+                onClose={() => { setExtractMode(false); loadTemplates(); }}
+                onSuccess={() => loadTemplates()}
+            />
+        );
+    }
 
     return (
         <div className="w-full h-full p-8 space-y-8 animate-fade-in overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-[#020617] rounded-3xl">
@@ -245,7 +230,7 @@ const Templates = () => {
             {/* Grid */}
             {loading ? (
                 <div className="flex flex-col items-center justify-center py-32 space-y-4 opacity-40">
-                    <Activity className="animate-spin text-emerald-500" size={48} />
+                    <Spinner size="xl" className="text-emerald-500" />
                     <p className="text-xs font-black uppercase tracking-[0.3em]">Loading...</p>
                 </div>
             ) : filtered.length === 0 ? (
@@ -317,6 +302,16 @@ const Templates = () => {
                                             <Edit size={15} />
                                         </button>
                                     )}
+                                    {/* Delete button (not for default) */}
+                                    {!tpl.is_default && (
+                                        <button
+                                            onClick={() => setDeleteConfirm(tpl)}
+                                            className="p-2.5 bg-slate-100 dark:bg-white/5 rounded-xl text-slate-500 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all opacity-0 group-hover:opacity-100"
+                                            title="Xóa template"
+                                        >
+                                            <Trash2 size={15} />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
 
@@ -341,6 +336,59 @@ const Templates = () => {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* ── Delete Confirmation Modal ───────────────────────────── */}
+            {deleteConfirm && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md">
+                    <div className="bg-white dark:bg-[#0F172A] w-full max-w-md rounded-[2.5rem] shadow-2xl border border-white/10 overflow-hidden">
+                        <div className="px-8 py-6 border-b border-slate-100 dark:border-white/5">
+                            <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-3">
+                                <Trash2 size={20} className="text-rose-500" />
+                                Xóa Template
+                            </h3>
+                        </div>
+                        <div className="p-8 space-y-5">
+                            <div className="flex items-center gap-3 p-4 rounded-2xl" style={{ backgroundColor: `${deleteConfirm.color}10`, borderColor: `${deleteConfirm.color}30`, border: '1px solid' }}>
+                                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white" style={{ backgroundColor: deleteConfirm.color }}>
+                                    <Layout size={18} />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-slate-800 dark:text-white">{deleteConfirm.name}</p>
+                                    <p className="text-[10px] text-slate-400">{deleteConfirm.site_count} sites</p>
+                                </div>
+                            </div>
+
+                            {deleteConfirm.site_count > 0 && (
+                                <div className="flex items-start gap-3 p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
+                                    <Info size={16} className="text-amber-500 mt-0.5 shrink-0" />
+                                    <p className="text-[11px] text-amber-600 dark:text-amber-400/80 leading-relaxed font-bold">
+                                        <strong>{deleteConfirm.site_count} site(s)</strong> đang thuộc template này sẽ được chuyển về <strong>General</strong>.
+                                    </p>
+                                </div>
+                            )}
+
+                            <div className="flex items-start gap-3 p-4 bg-rose-500/5 border border-rose-500/10 rounded-2xl">
+                                <Trash2 size={16} className="text-rose-500 mt-0.5 shrink-0" />
+                                <p className="text-[11px] text-rose-600 dark:text-rose-400/80 leading-relaxed font-bold">
+                                    Hành động này <strong>không thể hoàn tác</strong>. Config blueprint sẽ bị xóa vĩnh viễn.
+                                </p>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button onClick={() => setDeleteConfirm(null)} disabled={deleting}
+                                    className="flex-1 h-12 bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-300 font-bold rounded-2xl hover:bg-slate-200 dark:hover:bg-white/10 transition-all disabled:opacity-30">
+                                    Hủy
+                                </button>
+                                <button onClick={handleDelete} disabled={deleting}
+                                    className="flex-1 h-12 bg-gradient-to-r from-rose-600 to-red-600 text-white font-black uppercase tracking-widest text-xs rounded-2xl shadow-xl shadow-rose-500/20 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50">
+                                    {deleting ? <Spinner size="sm" /> : <Trash2 size={16} />}
+                                    {deleting ? 'Đang xóa...' : 'Xóa Template'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -428,7 +476,7 @@ const Templates = () => {
                                 disabled={saving}
                                 className="w-full h-14 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-98 transition-all disabled:opacity-50"
                             >
-                                {saving ? <Activity size={18} className="animate-spin" /> : <Save size={18} />}
+                                {saving ? <Spinner size="md" /> : <Save size={18} />}
                                 {saving ? 'Đang lưu...' : (editingTemplate ? 'Cập nhật' : 'Tạo Template')}
                             </button>
                         </form>
@@ -436,166 +484,7 @@ const Templates = () => {
                 </div>
             )}
 
-            {/* ── Extract Modal ────────────────────────────────────────── */}
-            {isExtractOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md">
-                    <div className="bg-white dark:bg-[#0F172A] w-full max-w-lg rounded-[2.5rem] shadow-2xl border border-white/10 overflow-hidden">
-                        {/* Header */}
-                        <div className="px-8 py-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
-                            <div>
-                                <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-3">
-                                    <Download size={20} className="text-blue-500" />
-                                    Trích xuất Config
-                                </h3>
-                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-blue-500 mt-0.5 ml-8">
-                                    Đọc config từ site → Lưu thành Template
-                                </p>
-                            </div>
-                            <button onClick={() => setIsExtractOpen(false)} className="p-2.5 hover:bg-slate-100 dark:hover:bg-white/10 rounded-xl transition-colors">
-                                <XCircle size={20} className="text-slate-400" />
-                            </button>
-                        </div>
-
-                        <form onSubmit={handleExtract} className="p-8 space-y-6">
-                            {extractError && (
-                                <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl text-xs text-rose-500 font-bold">
-                                    {extractError}
-                                </div>
-                            )}
-
-                            {/* Step 1: Select source site */}
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                                    <span className="w-5 h-5 bg-blue-500 text-white rounded-md flex items-center justify-center text-[9px] font-black">1</span>
-                                    Chọn Site nguồn *
-                                </label>
-
-                                {selectedSite ? (
-                                    <div className="flex items-center gap-3 p-4 bg-blue-500/5 border border-blue-500/20 rounded-2xl">
-                                        <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500">
-                                            <Server size={18} />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-bold text-slate-800 dark:text-white truncate">
-                                                {selectedSite.siteName || selectedSite.name}
-                                            </p>
-                                            <p className="text-[10px] text-slate-400 font-mono">
-                                                {extractData.source_site_id}
-                                            </p>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setExtractData(prev => ({ ...prev, source_site_id: '' }))}
-                                            className="p-1.5 text-slate-400 hover:text-rose-500 transition-colors"
-                                        >
-                                            <XCircle size={16} />
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-2">
-                                        <div className="relative">
-                                            <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                                            <input
-                                                type="text"
-                                                autoFocus
-                                                className="w-full h-11 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl pl-10 pr-4 text-sm font-bold focus:border-blue-500/50 transition-all outline-none"
-                                                placeholder="Tìm site..."
-                                                value={extractSiteSearch}
-                                                onChange={e => setExtractSiteSearch(e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="max-h-48 overflow-y-auto custom-scrollbar space-y-1 border border-slate-200 dark:border-white/5 rounded-xl p-2">
-                                            {loadingSites ? (
-                                                <div className="flex items-center justify-center py-6 text-slate-400">
-                                                    <Activity size={16} className="animate-spin mr-2" /> Đang tải sites...
-                                                </div>
-                                            ) : filteredSites.length === 0 ? (
-                                                <p className="text-center py-6 text-xs text-slate-400">Không tìm thấy site nào</p>
-                                            ) : (
-                                                filteredSites.map(site => {
-                                                    const siteId = site.siteId || site.id || site._id;
-                                                    const siteName = site.siteName || site.name || 'Unnamed';
-                                                    return (
-                                                        <button
-                                                            key={siteId}
-                                                            type="button"
-                                                            onClick={() => selectSiteForExtract(site)}
-                                                            className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-blue-500/5 transition-colors text-left group"
-                                                        >
-                                                            <Server size={14} className="text-slate-400 group-hover:text-blue-500 transition-colors flex-shrink-0" />
-                                                            <span className="text-sm font-bold text-slate-700 dark:text-slate-200 truncate group-hover:text-blue-500 transition-colors">
-                                                                {siteName}
-                                                            </span>
-                                                        </button>
-                                                    );
-                                                })
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Step 2: Template info */}
-                            <div className="space-y-4">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                                    <span className="w-5 h-5 bg-blue-500 text-white rounded-md flex items-center justify-center text-[9px] font-black">2</span>
-                                    Đặt tên Template
-                                </label>
-
-                                <input
-                                    required
-                                    type="text"
-                                    maxLength={80}
-                                    className="w-full h-12 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl px-5 text-sm font-bold focus:border-blue-500/50 transition-all outline-none"
-                                    placeholder="VD: Resort Standard, Office V1..."
-                                    value={extractData.name}
-                                    onChange={e => setExtractData({ ...extractData, name: e.target.value })}
-                                />
-
-                                <textarea
-                                    rows={2}
-                                    className="w-full p-4 bg-slate-50 dark:bg-black/20 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-bold focus:border-blue-500/50 transition-all outline-none resize-none"
-                                    placeholder="Mô tả (tùy chọn)..."
-                                    value={extractData.description}
-                                    onChange={e => setExtractData({ ...extractData, description: e.target.value })}
-                                />
-
-                                {/* Color picker */}
-                                <div className="flex flex-wrap gap-2">
-                                    {PRESET_COLORS.map(c => (
-                                        <button
-                                            key={c}
-                                            type="button"
-                                            onClick={() => setExtractData({ ...extractData, color: c })}
-                                            className={`w-8 h-8 rounded-lg transition-all border-2 ${extractData.color === c ? 'border-white scale-110 shadow-lg' : 'border-transparent'}`}
-                                            style={{ backgroundColor: c }}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Info */}
-                            <div className="flex items-start gap-3 p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
-                                <FileCode size={16} className="text-amber-500 mt-0.5 shrink-0" />
-                                <p className="text-[10px] text-amber-600 dark:text-amber-400/80 leading-relaxed font-bold">
-                                    Hệ thống sẽ đọc <strong>networks</strong> (SSIDs, VLANs, security) và <strong>guest portal</strong> config từ site.
-                                    Không lấy thông tin devices hay client data.
-                                </p>
-                            </div>
-
-                            {/* Submit */}
-                            <button
-                                type="submit"
-                                disabled={extracting || !extractData.source_site_id}
-                                className="w-full h-14 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-blue-500/20 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-98 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {extracting ? <Activity size={18} className="animate-spin" /> : <Download size={18} />}
-                                {extracting ? 'Đang trích xuất...' : 'Trích xuất & Tạo Template'}
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            )}
+            {/* Extract modal removed — now uses TemplateExtract wizard (extractMode) */}
 
             {/* ── Apply Template Modal ──────────────────────────────────── */}
             {isApplyOpen && applyTemplate && (
@@ -687,7 +576,7 @@ const Templates = () => {
                                         <div className="max-h-48 overflow-y-auto custom-scrollbar space-y-1 border border-slate-200 dark:border-white/5 rounded-xl p-2">
                                             {loadingSites ? (
                                                 <div className="flex items-center justify-center py-6 text-slate-400">
-                                                    <Activity size={16} className="animate-spin mr-2" /> Đang tải sites...
+                                                    <Spinner size="sm" className="mr-2" /> Đang tải sites...
                                                 </div>
                                             ) : applyFilteredSites.length === 0 ? (
                                                 <p className="text-center py-6 text-xs text-slate-400">Không tìm thấy</p>
@@ -736,7 +625,7 @@ const Templates = () => {
                                         disabled={applying || !applyTargetIds.length}
                                         className="w-full h-14 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-amber-500/20 flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-98 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        {applying ? <Activity size={18} className="animate-spin" /> : <Zap size={18} />}
+                                        {applying ? <Spinner size="md" /> : <Zap size={18} />}
                                         {applying ? 'Đang áp template...' : `Áp cho ${applyTargetIds.length} site${applyTargetIds.length > 1 ? 's' : ''}`}
                                     </button>
                                 </>

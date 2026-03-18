@@ -570,11 +570,16 @@ const BatchAccountAccess = () => {
                             ) : (
                                 <div className="space-y-2">
                                     {logs.map(log => (
-                                        <div key={log.id} className="flex items-start gap-2">
-                                            {log.status === 'running' && <RefreshCw size={12} className="animate-spin text-blue-500 mt-0.5 shrink-0" />}
-                                            {log.status === 'error' && <XCircle size={12} className="text-rose-500 mt-0.5 shrink-0" />}
-                                            {log.status === 'ok' && <CheckCircle size={12} className="text-emerald-500 mt-0.5 shrink-0" />}
-                                            <span className={`${log.status === 'error' ? 'text-rose-600 dark:text-rose-400' : log.status === 'running' ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-slate-600 dark:text-slate-400'} break-all`}>
+                                        <div key={log.id} className={`flex items-start gap-3 p-3.5 rounded-xl border transition-colors ${
+                                            log.status === 'running' ? 'bg-blue-50/50 dark:bg-blue-500/[0.04] border-blue-200 dark:border-blue-500/10' :
+                                            log.status === 'error' ? 'bg-rose-50/70 dark:bg-rose-500/[0.06] border-rose-200 dark:border-rose-500/10' :
+                                            log.status === 'ok' ? 'bg-emerald-50/70 dark:bg-emerald-500/[0.06] border-emerald-200 dark:border-emerald-500/10' :
+                                            'bg-white dark:bg-white/[0.02] border-slate-200 dark:border-white/5'
+                                        }`}>
+                                            {log.status === 'running' && <RefreshCw size={14} className="animate-spin text-blue-500 mt-0.5 shrink-0" />}
+                                            {log.status === 'error' && <XCircle size={14} className="text-rose-500 mt-0.5 shrink-0" />}
+                                            {log.status === 'ok' && <CheckCircle size={14} className="text-emerald-500 mt-0.5 shrink-0" />}
+                                            <span className={`text-[11px] font-medium leading-relaxed ${log.status === 'error' ? 'text-rose-700 dark:text-rose-400' : log.status === 'running' ? 'text-blue-700 dark:text-blue-400 font-bold' : 'text-slate-700 dark:text-slate-300'} break-all`}>
                                                 {log.msg}
                                             </span>
                                         </div>

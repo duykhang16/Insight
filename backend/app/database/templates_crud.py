@@ -199,6 +199,24 @@ async def set_template_sites(template_id: str, site_ids: List[str]) -> bool:
     return result.matched_count > 0
 
 
+async def delete_template(template_id: str, owner_id: str) -> Optional[Dict[str, Any]]:
+    """Delete a template. Refuses to delete the default (General) template.
+    Returns the deleted doc (including site_ids) so the caller can reassign sites.
+    """
+    db = get_database()
+    try:
+        oid = ObjectId(template_id)
+    except Exception:
+        return None
+    doc = await db[COLLECTION].find_one({"_id": oid, "owner_id": owner_id})
+    if not doc:
+        return None
+    if doc.get("is_default"):
+        return None  # never delete General
+    await db[COLLECTION].delete_one({"_id": oid})
+    return _serialize(doc)
+
+
 # ---------------------------------------------------------------------------
 # Site→Template mapping
 # ---------------------------------------------------------------------------
