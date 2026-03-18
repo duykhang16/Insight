@@ -31,7 +31,9 @@ const SsidChip = ({ ssid }) => (
 );
 
 // ── Component ──
-const NetworkTable = ({ data, sortConfig, onSort, loading }) => {
+const NetworkTable = ({ data, sortConfig, onSort, loading, onNetworkSelect }) => {
+    const handleNetworkActivate = (networkId) => onNetworkSelect?.(networkId);
+
     const SortIcon = ({ column }) => {
         if (sortConfig.key !== column) return <ArrowDown size={10} className="opacity-20 ml-0.5 inline" />;
         return sortConfig.direction === 'asc'
@@ -50,7 +52,18 @@ const NetworkTable = ({ data, sortConfig, onSort, loading }) => {
                         <div className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
                             <Plug size={12} />
                         </div>
-                        <p className="th-text-primary font-bold text-sm truncate">{net.name}</p>
+                        {onNetworkSelect ? (
+                            <button
+                                type="button"
+                                onClick={() => handleNetworkActivate(net.id)}
+                                className="th-text-primary font-bold text-sm truncate text-left transition-colors hover:text-amber-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 rounded-sm"
+                                title={net.name}
+                            >
+                                {net.name}
+                            </button>
+                        ) : (
+                            <p className="th-text-primary font-bold text-sm truncate">{net.name}</p>
+                        )}
                     </div>
                     {net.isEnabled ? (
                         <span className="flex items-center gap-1 text-[10px] font-bold uppercase text-emerald-400 shrink-0">
@@ -155,7 +168,18 @@ const NetworkTable = ({ data, sortConfig, onSort, loading }) => {
                                                         <div className="p-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
                                                             <Plug size={12} />
                                                         </div>
-                                                        <p className="th-text-primary font-bold text-xs truncate max-w-[160px]" title={net.name}>{net.name}</p>
+                                                        {onNetworkSelect ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleNetworkActivate(net.id)}
+                                                                className="th-text-primary font-bold text-xs truncate max-w-[160px] text-left transition-colors hover:text-amber-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60 rounded-sm"
+                                                                title={net.name}
+                                                            >
+                                                                {net.name}
+                                                            </button>
+                                                        ) : (
+                                                            <p className="th-text-primary font-bold text-xs truncate max-w-[160px]" title={net.name}>{net.name}</p>
+                                                        )}
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="px-4 py-3">

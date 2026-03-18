@@ -302,12 +302,7 @@ function App() {
               <Route path="devices" element={<SiteDevices />} />
               <Route path="applications" element={<SiteApplications />} />
               <Route path="configuration" element={<Navigate to="overview" replace />} />
-              <Route path="configuration/overview" element={<IndividualConfiguration />} />
-              <Route path="configuration/ip-assignment" element={<IndividualConfiguration />} />
-              <Route path="configuration/network-assignment" element={<IndividualConfiguration />} />
-              <Route path="configuration/access-control" element={<IndividualConfiguration />} />
-              <Route path="configuration/schedule" element={<IndividualConfiguration />} />
-              <Route path="configuration/wireless-options" element={<IndividualConfiguration />} />
+              <Route path="configuration/:section" element={<IndividualConfiguration />} />
               <Route path="configuration/individual" element={<Navigate to="../configuration/overview" replace />} />
               <Route path="configuration/batch" element={<Navigate to="../configuration/overview" replace />} />
               <Route path="cloner" element={<Navigate to="../configuration/overview" replace />} />

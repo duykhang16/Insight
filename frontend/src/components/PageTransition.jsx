@@ -1,6 +1,11 @@
 import { useLocation } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 
+const getConfigurationShellPath = (pathname) => {
+    const match = pathname.match(/^\/site\/([^/]+)\/configuration\/[^/]+$/);
+    return match ? `/site/${match[1]}/configuration` : null;
+};
+
 /**
  * PageTransition — wraps content with a fade+slide-up animation
  * whenever the route changes.
@@ -13,6 +18,16 @@ const PageTransition = ({ children }) => {
 
     useEffect(() => {
         if (location.pathname !== prevPathRef.current) {
+            const previousConfigurationShell = getConfigurationShellPath(prevPathRef.current);
+            const nextConfigurationShell = getConfigurationShellPath(location.pathname);
+
+            if (previousConfigurationShell && previousConfigurationShell === nextConfigurationShell) {
+                setDisplayChildren(children);
+                setTransitionState('enter');
+                prevPathRef.current = location.pathname;
+                return undefined;
+            }
+
             // Route changed — start exit animation
             setTransitionState('exit');
 
