@@ -96,8 +96,14 @@ const Login = ({ onLoginSuccess }) => {
         }, 200);
     };
 
-    // Helper: enter splash phase after auth
+    // Helper: enter splash phase after auth (skip for super_admin — no zone/site data needed)
     const enterSplashPhase = (userEmail) => {
+        const role = sessionStorage.getItem('userRole');
+        if (role === 'super_admin') {
+            // super_admin has separate UI — skip prefetch & splash entirely
+            onLoginSuccess(null);
+            return;
+        }
         const prefetchPromise = prefetchAllData();
         setSplashEmail(userEmail);
         setSplashPrefetchPromise(prefetchPromise);

@@ -35,6 +35,15 @@ class SyncTemplateRequest(BaseModel):
 router = APIRouter(prefix="/api/v1/cloner", tags=["Site Cloner"])
 
 
+def _resolve_tenant_owner(user: Dict[str, Any]) -> str:
+    """Resolve the tenant_admin email who owns templates."""
+    role = user.get("role", "")
+    if role == "tenant_admin":
+        return user["email"]
+    parent = user.get("parent_admin_id")
+    return parent if parent else user["email"]
+
+
 @router.post("/sync-template")
 async def execute_template_sync(
     payload: SyncTemplateRequest,
@@ -46,9 +55,12 @@ async def execute_template_sync(
     if not payload.target_site_ids:
         raise HTTPException(status_code=400, detail="No target site IDs provided.")
 
+    # Resolve tenant owner for template lookup
+    tenant_owner = _resolve_tenant_owner(user)
+
     # 1. Fetch template config
     from app.features.templates.service import get_template, assign_site_to_template
-    tpl = await get_template(payload.template_id, user["email"])
+    tpl = await get_template(payload.template_id, tenant_owner)
     if not tpl:
         raise HTTPException(status_code=404, detail="Template not found")
 
@@ -60,17 +72,15 @@ async def execute_template_sync(
     import asyncio
     results = []
     for sid in payload.target_site_ids:
-        # Transform config to operations for this specific site
         ops = await apply_config_to_site(sid, config)
         res = await apply_config_live(sid, ops, master_token)
         
-        # Check if at least one operation succeeded
         success = any(r.get("status") in ["SUCCESS (POST+PUT)", "SUCCESS (GUEST_PORTAL)"] for r in res)
         if success:
-            await assign_site_to_template(user["email"], sid, payload.template_id)
+            await assign_site_to_template(tenant_owner, sid, payload.template_id)
             
         results.append({"site_id": sid, "results": res})
-        await asyncio.sleep(1.0) # Stability delay
+        await asyncio.sleep(1.0)
 
     return {"status": "success", "results": results}
 
@@ -128,11 +138,21 @@ async def list_live_sites(
     user: Dict[str, Any] = Depends(get_current_insight_user),
     master_token: str = Depends(require_master_token),
 ):
-    from app.shared.auth_deps import is_admin_role
     all_sites = await get_live_account_sites(master_token)
-    if not is_admin_role(user):
-        all_sites = await _get_zone_filtered_sites(user["email"], all_sites)
-    return all_sites
+    user_role = user.get("role", "")
+    if user_role == "super_admin":
+        return all_sites
+    elif user_role == "tenant_admin":
+        # tenant_admin sees: sites in their zones + sites not in ANY zone (unassigned)
+        from app.database.zones_crud import get_zones_for_tenant_admin, get_all_assigned_site_ids
+        zones = await get_zones_for_tenant_admin(user["email"])
+        my_site_ids = set()
+        for z in zones:
+            my_site_ids.update(z.get("site_ids", []))
+        all_assigned = await get_all_assigned_site_ids()
+        return [s for s in all_sites if s.get("siteId") in my_site_ids or s.get("siteId") not in all_assigned]
+    else:
+        return await _get_zone_filtered_sites(user["email"], all_sites)
 
 
 @router.get("/target-sites")
@@ -140,11 +160,20 @@ async def list_target_sites(
     user: Dict[str, Any] = Depends(get_current_insight_user),
     master_token: str = Depends(require_master_token),
 ):
-    from app.shared.auth_deps import is_admin_role
     all_sites = await get_live_account_sites(master_token)
-    if not is_admin_role(user):
-        all_sites = await _get_zone_filtered_sites(user["email"], all_sites)
-    return all_sites
+    user_role = user.get("role", "")
+    if user_role == "super_admin":
+        return all_sites
+    elif user_role == "tenant_admin":
+        from app.database.zones_crud import get_zones_for_tenant_admin, get_all_assigned_site_ids
+        zones = await get_zones_for_tenant_admin(user["email"])
+        my_site_ids = set()
+        for z in zones:
+            my_site_ids.update(z.get("site_ids", []))
+        all_assigned = await get_all_assigned_site_ids()
+        return [s for s in all_sites if s.get("siteId") in my_site_ids or s.get("siteId") not in all_assigned]
+    else:
+        return await _get_zone_filtered_sites(user["email"], all_sites)
 
 
 @router.post("/preview")
@@ -158,7 +187,8 @@ async def preview_clone(
         config = await fetch_site_config_live(site_id, master_token)
     elif source == "template":
         from app.features.templates.service import get_template
-        tpl = await get_template(site_id, user["email"])
+        tenant_owner = _resolve_tenant_owner(user)
+        tpl = await get_template(site_id, tenant_owner)
         config = tpl.get("config_payload", {}) if tpl else None
     else:
         config = await fetch_site_config(site_id)
@@ -195,7 +225,8 @@ async def execute_clone(
         if template_id and any(r.get("status") in ["SUCCESS (POST+PUT)", "SUCCESS (GUEST_PORTAL)"] for r in res):
             try:
                 from app.features.templates.service import assign_site_to_template
-                await assign_site_to_template(user["email"], sid, template_id)
+                tenant_owner = _resolve_tenant_owner(user)
+                await assign_site_to_template(tenant_owner, sid, template_id)
             except: pass # Don't block cloning if assignment fails
             
         await asyncio.sleep(1.0) # Reduced from 2s for template efficiency

@@ -127,13 +127,27 @@ require_admin    = RoleChecker(["super_admin", "tenant_admin"])
 # ---------------------------------------------------------------------------
 
 async def require_zone_access(zone_id: str, request: Request) -> Dict[str, Any]:
-    """Require caller to be a member of the zone (or admin-tier user).
+    """Require caller to be a member of the zone (or super_admin).
 
     Used for: GET zone detail, GET zone logs, GET zone members.
+    tenant_admin must be zone creator or member.
     """
     user = await get_current_insight_user(request)
-    if is_admin_role(user):
+    role = user.get("role", "")
+    if role == "super_admin":
         return user
+    if role == "tenant_admin":
+        # tenant_admin must be creator or member
+        zone = await get_zone_by_id(zone_id)
+        if not zone:
+            raise HTTPException(status_code=404, detail="Zone không tồn tại.")
+        if zone.get("created_by") == user["email"]:
+            return user
+        zone_role = await get_zone_role_for_user(zone_id, user["email"])
+        if zone_role:
+            user["_zone_role"] = zone_role
+            return user
+        raise HTTPException(status_code=403, detail="Bạn không có quyền truy cập vào Zone này.")
     zone_role = await get_zone_role_for_user(zone_id, user["email"])
     if not zone_role:
         raise HTTPException(status_code=403, detail="Bạn không có quyền truy cập vào Zone này.")
@@ -142,16 +156,28 @@ async def require_zone_access(zone_id: str, request: Request) -> Dict[str, Any]:
 
 
 async def require_zone_admin(zone_id: str, request: Request) -> Dict[str, Any]:
-    """Require caller to be a zone-level admin (or admin-tier user).
+    """Require caller to be a zone-level admin (or super_admin).
 
     Used for: PUT zone, POST/PUT/DELETE zone members.
+    tenant_admin must be creator of this zone.
     """
     user = await get_current_insight_user(request)
-    if is_admin_role(user):
+    role = user.get("role", "")
+    if role == "super_admin":
         return user
     zone = await get_zone_by_id(zone_id)
     if not zone:
         raise HTTPException(status_code=404, detail="Zone không tồn tại.")
+    if role == "tenant_admin":
+        # tenant_admin can manage zones they created
+        if zone.get("created_by") == user["email"]:
+            return user
+        # or if they are a member with manager role
+        zone_role = await get_zone_role_for_user(zone_id, user["email"])
+        if zone_role == "manager":
+            user["_zone_role"] = zone_role
+            return user
+        raise HTTPException(status_code=403, detail="Bạn không có quyền quản lý Zone này.")
     zone_role = await get_zone_role_for_user(zone_id, user["email"])
     if zone_role != "manager":
         raise HTTPException(status_code=403, detail="Yêu cầu quyền Zone Manager.")

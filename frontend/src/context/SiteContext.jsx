@@ -53,6 +53,15 @@ export const SiteProvider = ({ initialSites, children }) => {
     };
 
     const fetchSites = useCallback(async (silent = false) => {
+        // super_admin doesn't need site data — skip
+        const role = sessionStorage.getItem('userRole');
+        if (role === 'super_admin') {
+            if (isMounted.current) {
+                setSites([]);
+                if (!silent) setLoadingSites(false);
+            }
+            return;
+        }
         if (!silent) setLoadingSites(true);
         try {
             const { default: apiClient } = await import('../api/apiClient');
