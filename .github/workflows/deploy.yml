@@ -23,25 +23,31 @@ jobs:
           # 3. Kéo code mới nhất từ nhánh main của GitHub về VPS
           git pull origin main
           
-          # 4. Dọn dẹp toàn bộ Docker không dùng (images, containers, build cache)
-          # Giải phóng tối đa dung lượng trên SSD 30GB
+          # 4. Restart Docker daemon để fix lỗi runc (can't get final child's PID)
+          # Container có restart policy "unless-stopped" sẽ tự lên lại
+          echo "=== Restarting Docker daemon ==="
+          sudo systemctl restart docker
+          sleep 15
+          echo "=== Docker restarted, checking containers ==="
+          docker ps
+          
+          # 5. Dọn dẹp toàn bộ Docker không dùng (images, containers, build cache)
           docker system prune -af
           docker builder prune -af
           
-          # 4.5 Kiểm tra dung lượng ổ đĩa trước khi build
+          # 5.5 Kiểm tra dung lượng ổ đĩa trước khi build
           echo "=== Disk usage before build ==="
           df -h /
           
-          # 5. Yêu cầu Docker dựng lại (Build) các Image mới và khởi chạy container
-          # Lệnh này sẽ tự cập nhật các thay đổi trong source code của anh
+          # 6. Yêu cầu Docker dựng lại (Build) các Image mới và khởi chạy container
           docker compose up -d --build
           
-          # 6. Kết nối container MongoDB (chạy bên ngoài) vào mạng insight-net
+          # 7. Kết nối container MongoDB (chạy bên ngoài) vào mạng insight-net
           # để backend có thể resolve hostname "MongoDB"
           docker network connect insight-net MongoDB || true
           
-          # 7. Restart backend sau khi MongoDB đã join network
+          # 8. Restart backend sau khi MongoDB đã join network
           docker restart insight_backend
           
-          # 8. Xóa bỏ các bản build cũ (dangling images) để tiết kiệm 30GB SSD của VPS
+          # 9. Xóa bỏ các bản build cũ (dangling images) để tiết kiệm 30GB SSD của VPS
           docker image prune -f
