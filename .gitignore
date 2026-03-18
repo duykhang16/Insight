@@ -68,3 +68,4 @@ eslint_utf8.txt
 .agent/
 .gemini/
 docs/
+scripts/setup-ubuntu.sh
