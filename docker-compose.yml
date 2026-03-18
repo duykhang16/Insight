@@ -1,6 +1,6 @@
 services:
   mongodb:
-    image: mongo:7
+    image: mongo:4.4
     container_name: insight_mongodb
     restart: unless-stopped
     environment:
@@ -10,11 +10,11 @@ services:
     networks:
       - insight-internal
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping').ok", "--quiet"]
+      test: ["CMD", "mongo", "--eval", "db.adminCommand('ping').ok", "--quiet"]
       interval: 15s
       timeout: 5s
       retries: 5
-      start_period: 10s
+      start_period: 30s
     deploy:
       resources:
         limits:
