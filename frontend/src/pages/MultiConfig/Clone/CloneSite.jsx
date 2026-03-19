@@ -6,6 +6,7 @@ import {
     Layers, Play, Square, AlertTriangle, CheckCircle,
     XCircle, ChevronRight, Globe, Clock, Hash, Tag, Map, RefreshCw, CheckSquare, Square as SquareIcon, Rocket, Layout, Search
 } from 'lucide-react';
+import { getRoleBadgeInfo, loadSitesFromApi, loadZonesFromApi } from '../utils';
 
 const TIMEZONES = [
     { value: 'Asia/Ho_Chi_Minh', label: 'Asia/Ho_Chi_Minh (UTC+7)' },
@@ -24,16 +25,7 @@ const REG_DOMAINS = [
     { value: 'TH', label: 'TH — Thailand' },
 ];
 
-const getRoleBadgeInfo = (roleStr) => {
-    const role = (roleStr || 'UNKNOWN').toLowerCase();
-    switch (role) {
-        case 'administrator':
-        case 'admin':
-            return { text: 'ADMIN', classes: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-700/50' };
-        default:
-            return { text: role.toUpperCase(), classes: 'bg-slate-100 dark:bg-slate-800/40 text-slate-500 border-slate-200 dark:border-slate-700/50' };
-    }
-};
+// getRoleBadgeInfo imported from ../utils
 
 const BatchProvision = () => {
     const { t } = useLanguage();
@@ -74,8 +66,7 @@ const BatchProvision = () => {
     const scanZones = async () => {
         setIsLoadingZones(true);
         try {
-            const res = await apiClient.get('/zones/my');
-            const list = Array.isArray(res.data) ? res.data : [];
+            const list = await loadZonesFromApi(apiClient);
             if (mountedRef.current) setZones(list.sort((a, b) => a.name.localeCompare(b.name)));
         } catch (err) {
             console.error(err);
@@ -86,10 +77,7 @@ const BatchProvision = () => {
     };
 
     useEffect(() => {
-        apiClient.get('/overview/sites').then(res => {
-            const list = Array.isArray(res.data) ? res.data : (res.data?.sites || []);
-            setSites(list.sort((a, b) => (a.siteName || '').localeCompare(b.siteName || '')));
-        }).catch(() => setSites([]));
+        loadSitesFromApi(apiClient).then(list => setSites(list)).catch(() => setSites([]));
 
         apiClient.get('/templates').then(res => {
             setTemplates(res.data || []);

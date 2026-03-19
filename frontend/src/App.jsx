@@ -11,8 +11,8 @@ import SiteClients from './pages/Dashboard/Clients';
 import SiteNetworks from './pages/Dashboard/Networks';
 import SiteDevices from './pages/Dashboard/Devices';
 import SiteApplications from './pages/Dashboard/Applications';
-import Configuration from './pages/Configuration';
-import IndividualConfiguration from './pages/Configuration/IndividualConfiguration';
+import MultiConfig from './pages/MultiConfig';
+import SiteConfig from './pages/SiteConfig';
 import AdminLogs from './pages/Admin/Logs';
 import ZoneManagement from './pages/Admin/ZoneManagement';
 import MasterAccount from './pages/Admin/MasterAccount';
@@ -230,7 +230,7 @@ function App() {
               <Route path="/" element={<Navigate to="/zones" replace />} />
               <Route path="/config" element={
                 <ViewerRoute userRole={userRole} isZoneAdmin={isZoneAdmin}>
-                  <Configuration rolePermissions={rolePermissions} userRole={userRole} />
+                  <MultiConfig rolePermissions={rolePermissions} userRole={userRole} />
                 </ViewerRoute>
               } />
 
@@ -302,7 +302,7 @@ function App() {
               <Route path="devices" element={<SiteDevices />} />
               <Route path="applications" element={<SiteApplications />} />
               <Route path="configuration" element={<Navigate to="overview" replace />} />
-              <Route path="configuration/:section" element={<IndividualConfiguration />} />
+              <Route path="configuration/:section" element={<SiteConfig />} />
               <Route path="configuration/individual" element={<Navigate to="../configuration/overview" replace />} />
               <Route path="configuration/batch" element={<Navigate to="../configuration/overview" replace />} />
               <Route path="cloner" element={<Navigate to="../configuration/overview" replace />} />

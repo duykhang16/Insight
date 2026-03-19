@@ -59,7 +59,7 @@ const HELP_STEPS = {
     },
 };
 
-const Configuration = ({ rolePermissions: propRolePermissions }) => {
+const MultiConfig = ({ rolePermissions: propRolePermissions }) => {
     const { t, language } = useLanguage();
     const [searchParams] = useSearchParams();
 
@@ -294,4 +294,4 @@ const Configuration = ({ rolePermissions: propRolePermissions }) => {
     );
 };
 
-export default Configuration;
+export default MultiConfig;
