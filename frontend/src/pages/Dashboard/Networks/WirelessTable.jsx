@@ -23,8 +23,10 @@ const getUsage = (u) =>
     USAGE_CONFIG[u?.toLowerCase()] || { label: u || 'Employee', color: 'bg-slate-700 text-slate-400 border-white/5' };
 
 // --- Component ---
-const WirelessTable = ({ data, loading }) => {
+const WirelessTable = ({ data, loading, onNetworkSelect }) => {
     const [sortConfig, setSortConfig] = useState({ key: 'clients', direction: 'desc' });
+
+    const handleNetworkActivate = (networkId) => onNetworkSelect?.(networkId);
 
     const handleSort = (key) => {
         setSortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc' }));
@@ -65,7 +67,18 @@ const WirelessTable = ({ data, loading }) => {
                         <div className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 shrink-0">
                             <Wifi size={12} />
                         </div>
-                        <p className="th-text-primary font-bold text-sm truncate">{ssid.name}</p>
+                        {onNetworkSelect ? (
+                            <button
+                                type="button"
+                                onClick={() => handleNetworkActivate(ssid.id)}
+                                className="th-text-primary font-bold text-sm truncate text-left transition-colors hover:text-indigo-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60 rounded-sm"
+                                title={ssid.name}
+                            >
+                                {ssid.name}
+                            </button>
+                        ) : (
+                            <p className="th-text-primary font-bold text-sm truncate">{ssid.name}</p>
+                        )}
                     </div>
                     {ssid.isEnabled ? (
                         <span className="flex items-center gap-1 text-[10px] font-bold uppercase text-emerald-400 shrink-0">
@@ -199,9 +212,20 @@ const WirelessTable = ({ data, loading }) => {
                                                         <div className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 shrink-0">
                                                             <Wifi size={12} />
                                                         </div>
-                                                        <p className="th-text-primary font-bold text-xs truncate max-w-[160px]" title={ssid.name}>
-                                                            {ssid.name}
-                                                        </p>
+                                                        {onNetworkSelect ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleNetworkActivate(ssid.id)}
+                                                                className="th-text-primary font-bold text-xs truncate max-w-[160px] text-left transition-colors hover:text-indigo-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/60 rounded-sm"
+                                                                title={ssid.name}
+                                                            >
+                                                                {ssid.name}
+                                                            </button>
+                                                        ) : (
+                                                            <p className="th-text-primary font-bold text-xs truncate max-w-[160px]" title={ssid.name}>
+                                                                {ssid.name}
+                                                            </p>
+                                                        )}
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="px-4 py-3">

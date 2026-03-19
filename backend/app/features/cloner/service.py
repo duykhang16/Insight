@@ -1,9 +1,16 @@
 import httpx
 import json
 import asyncio
-from typing import List, Dict, Any, Optional
-from datetime import datetime
+from typing import List, Dict, Any, Optional, Callable, Awaitable, TypeVar
+from datetime import datetime, timezone
 from app.database.connection import get_database
+
+BATCH_MAX_CONCURRENCY = 4
+BATCH_SITE_TIMEOUT_SECONDS = 45.0
+BATCH_RETRY_ATTEMPTS = 2
+BATCH_RETRY_DELAY_SECONDS = 1.0
+BATCH_RETRYABLE_STATUS_CODES = {429, 502, 503, 504}
+_BatchItem = TypeVar("_BatchItem")
 
 async def get_live_account_sites(aruba_token: str) -> List[Dict[str, Any]]:
     """Fetch all live sites for the provided token."""
@@ -409,7 +416,6 @@ async def apply_config_live(target_site_id: str, operations: List[Dict[str, Any]
                     continue
 
                 # Settle time
-                import asyncio
                 await asyncio.sleep(0.8)
 
                 # --- Pass 2: "Full Update" (PUT) ---
@@ -508,7 +514,6 @@ async def sync_ssids_passwords(source_network_name: str, new_password: str, targ
         "Content-Type": "application/json"
     }
 
-    import asyncio
     results = []
 
     async def update_site_ssid(client: httpx.AsyncClient, site_id: str):
@@ -598,7 +603,6 @@ async def sync_ssids_config(source_site_id: str, source_network_name: str, targe
         "Content-Type": "application/json"
     }
 
-    import asyncio
     results = []
 
     # 1. Fetch source network config
@@ -743,7 +747,6 @@ async def sync_ssids_delete(source_network_name: str, target_site_ids: List[str]
         "Content-Type": "application/json"
     }
 
-    import asyncio
     results = []
 
     async def delete_site_ssid(client: httpx.AsyncClient, site_id: str):
@@ -826,7 +829,6 @@ async def sync_ssids_create(
         "Content-Type": "application/json"
     }
 
-    import asyncio
     results = []
 
     # 1. Base Configuration representing the complete desired state
@@ -1007,6 +1009,99 @@ async def sync_ssids_create(
 
     return exec_results
 
+
+def _response_detail(response: httpx.Response) -> Any:
+    """Return JSON when possible, otherwise a truncated response body."""
+    try:
+        if response.content:
+            return response.json()
+    except Exception:
+        pass
+    return response.text[:500]
+
+
+def _finalize_batch_result(result: Dict[str, Any]) -> Dict[str, Any]:
+    """Strip internal execution metadata before returning to the caller."""
+    return {
+        key: value
+        for key, value in result.items()
+        if not key.startswith("_")
+    }
+
+
+def _is_retryable_response(status_code: int) -> bool:
+    return status_code in BATCH_RETRYABLE_STATUS_CODES
+
+
+async def _insert_batch_audit_log(
+    *,
+    action: str,
+    actor_email: str,
+    site_id: Optional[str],
+    status: str,
+    detail: Optional[str] = None,
+) -> None:
+    """Persist a business-level audit log entry for a batch site result."""
+    from app.database.auth_crud import insert_audit_log
+
+    log_entry = {
+        "timestamp": datetime.now(timezone.utc),
+        "insight_user_id": actor_email,
+        "admin_master_id": "Master System",
+        "action": action,
+        "site_id": site_id,
+        "status": status,
+    }
+    if detail:
+        log_entry["detail"] = detail
+    await insert_audit_log(log_entry)
+
+
+async def _run_bounded_batch(
+    items: List[_BatchItem],
+    worker: Callable[[_BatchItem], Awaitable[Dict[str, Any]]],
+    *,
+    concurrency: int = BATCH_MAX_CONCURRENCY,
+    timeout_seconds: float = BATCH_SITE_TIMEOUT_SECONDS,
+) -> List[Dict[str, Any]]:
+    """Run per-item work with bounded concurrency and retryable error handling."""
+    if not items:
+        return []
+
+    concurrency = max(1, min(concurrency, len(items)))
+    semaphore = asyncio.Semaphore(concurrency)
+    results: List[Optional[Dict[str, Any]]] = [None] * len(items)
+
+    async def run_one(index: int, item: _BatchItem) -> None:
+        async with semaphore:
+            final_result: Dict[str, Any] = {}
+            for attempt in range(1, BATCH_RETRY_ATTEMPTS + 1):
+                try:
+                    final_result = await asyncio.wait_for(worker(item), timeout=timeout_seconds)
+                except asyncio.TimeoutError:
+                    final_result = {
+                        "status": "ERROR",
+                        "detail": f"Timed out after {timeout_seconds:.0f}s",
+                        "_retryable": attempt < BATCH_RETRY_ATTEMPTS,
+                    }
+                except Exception as exc:
+                    final_result = {
+                        "status": "ERROR",
+                        "detail": f"Request error: {exc}",
+                        "_retryable": attempt < BATCH_RETRY_ATTEMPTS,
+                    }
+
+                if not final_result.get("_retryable"):
+                    break
+
+                await asyncio.sleep(BATCH_RETRY_DELAY_SECONDS * attempt)
+
+            results[index] = _finalize_batch_result(final_result)
+
+    await asyncio.gather(*(run_one(index, item) for index, item in enumerate(items)))
+    return [result or {"status": "ERROR", "detail": "Unknown batch execution error"} for result in results]
+
+
 async def batch_account_precheck(email: str, target_site_ids: List[str], master_token: str) -> List[Dict]:
     api_headers = {"Authorization": f"Bearer {master_token}"}
     existing_sites = []
@@ -1031,56 +1126,78 @@ async def batch_account_precheck(email: str, target_site_ids: List[str], master_
     return existing_sites
 
 async def batch_account_access(action_type: str, email: str, role: str, target_site_ids: List[str], master_token: str, actor_email: str = "anonymous") -> List[Dict]:
-    import asyncio
     api_headers = {"Authorization": f"Bearer {master_token}"}
-    results = []
-    
-    async with httpx.AsyncClient(verify=False) as client:
-        for site_id in target_site_ids:
+    client_limits = httpx.Limits(max_connections=BATCH_MAX_CONCURRENCY, max_keepalive_connections=BATCH_MAX_CONCURRENCY)
+
+    async with httpx.AsyncClient(verify=False, limits=client_limits) as client:
+        async def handle_site(site_id: str) -> Dict[str, Any]:
             url = f"https://portal.instant-on.hpe.com/api/sites/{site_id}/administration?action=addAccount" if action_type == "add" else f"https://portal.instant-on.hpe.com/api/sites/{site_id}/administration?action=removeAccount"
             payload = {"email": email}
             if action_type == "add":
                 payload["roleOnSite"] = role
-                
-            status_text = "ERROR"
+
             try:
                 res = await client.post(url, headers=api_headers, json=payload, timeout=20.0)
                 if res.status_code in [200, 204]:
-                    status_text = "SUCCESS"
-                    results.append({"target": site_id, "status": "SUCCESS", "detail": f"Account {action_type}ed successfully."})
-                else:
-                    data = res.json() if res.content else res.text
-                    results.append({"target": site_id, "status": "ERROR", "detail": data})
-            except Exception as e:
-                results.append({"target": site_id, "status": "ERROR", "detail": str(e)})
+                    return {"target": site_id, "status": "SUCCESS", "detail": f"Account {action_type}ed successfully."}
 
-            await asyncio.sleep(2.0)
-        
+                return {
+                    "target": site_id,
+                    "status": "ERROR",
+                    "detail": _response_detail(res),
+                    "_retryable": _is_retryable_response(res.status_code),
+                }
+            except Exception as e:
+                return {"target": site_id, "status": "ERROR", "detail": str(e), "_retryable": True}
+
+        results = await _run_bounded_batch(target_site_ids, handle_site)
+
+    await asyncio.gather(*(
+        _insert_batch_audit_log(
+            action=f"Batch Account Access ({action_type.capitalize()})",
+            actor_email=actor_email,
+            site_id=result.get("target"),
+            status=result.get("status", "ERROR"),
+            detail=f"Target Email: {email}",
+        )
+        for result in results
+    ))
+
     return results
 
 async def batch_site_delete(target_site_ids: List[str], master_token: str, actor_email: str = "anonymous") -> List[Dict]:
-    import asyncio
     api_headers = {"Authorization": f"Bearer {master_token}"}
-    results = []
-    
-    async with httpx.AsyncClient(verify=False) as client:
-        for site_id in target_site_ids:
-            # We need to hit DELETE /sites/{site_id}
+    client_limits = httpx.Limits(max_connections=BATCH_MAX_CONCURRENCY, max_keepalive_connections=BATCH_MAX_CONCURRENCY)
+
+    async with httpx.AsyncClient(verify=False, limits=client_limits) as client:
+        async def handle_site(site_id: str) -> Dict[str, Any]:
             url = f"https://portal.instant-on.hpe.com/api/sites/{site_id}"
-            status_text = "ERROR"
             try:
                 res = await client.delete(url, headers=api_headers, timeout=20.0)
                 if res.status_code in [200, 204]:
-                    status_text = "SUCCESS"
-                    results.append({"target": site_id, "status": "SUCCESS", "detail": "Site deleted successfully."})
-                else:
-                    data = res.json() if res.content else res.text
-                    results.append({"target": site_id, "status": "ERROR", "detail": data})
-            except Exception as e:
-                results.append({"target": site_id, "status": "ERROR", "detail": str(e)})
+                    return {"target": site_id, "status": "SUCCESS", "detail": "Site deleted successfully."}
 
-            await asyncio.sleep(2.0)
-        
+                return {
+                    "target": site_id,
+                    "status": "ERROR",
+                    "detail": _response_detail(res),
+                    "_retryable": _is_retryable_response(res.status_code),
+                }
+            except Exception as e:
+                return {"target": site_id, "status": "ERROR", "detail": str(e), "_retryable": True}
+
+        results = await _run_bounded_batch(target_site_ids, handle_site)
+
+    await asyncio.gather(*(
+        _insert_batch_audit_log(
+            action="Batch Site Delete",
+            actor_email=actor_email,
+            site_id=result.get("target"),
+            status=result.get("status", "ERROR"),
+        )
+        for result in results
+    ))
+
     return results
 
 async def batch_site_provision(
@@ -1095,57 +1212,60 @@ async def batch_site_provision(
     actor_email: str = "anonymous",
     template_id: Optional[str] = None,
 ) -> List[Dict]:
-    import asyncio
     api_headers = {"Authorization": f"Bearer {master_token}", "X-ION-API-VERSION": "23"}
-    results = []
-    
-    # We need to hit POST /sites/{source_site_id}/siteCloning
     url = f"https://portal.instant-on.hpe.com/api/sites/{source_site_id}/siteCloning"
-    
+    client_limits = httpx.Limits(max_connections=BATCH_MAX_CONCURRENCY, max_keepalive_connections=BATCH_MAX_CONCURRENCY)
+
     from app.database.zones_crud import add_sites_to_zone
-    
-    async with httpx.AsyncClient(verify=False) as client:
-        for i in range(clone_count):
-            padded_index = str(i + 1).zfill(2)
+
+    async with httpx.AsyncClient(verify=False, limits=client_limits) as client:
+        async def handle_clone(index: int) -> Dict[str, Any]:
+            padded_index = str(index + 1).zfill(2)
             site_name = f"{prefix.strip()} - {padded_index}"
-            
             payload = {
                 "siteName": site_name,
                 "regulatoryDomain": regulatory_domain,
                 "timezoneIana": timezone_iana,
                 "configuredLocation": configured_location
             }
-            
-            status_text = "ERROR"
-            new_site_id = None
             try:
                 res = await client.post(url, headers=api_headers, json=payload, timeout=30.0)
                 if res.status_code in [200, 201]:
-                    status_text = "SUCCESS"
                     data = res.json()
                     new_site_id = data.get("siteId") or data.get("id")
-                    results.append({"target": site_name, "status": "SUCCESS", "detail": "Site provisioned successfully.", "new_site_id": new_site_id})
-                    
-                    # Add to target zones
                     if new_site_id and target_zone_ids:
                         for zone_id in target_zone_ids:
                             await add_sites_to_zone(zone_id, [new_site_id])
 
-                    # Assign template badge if template_id is provided
-                    if new_site_id and template_id:
-                        try:
-                            from app.features.templates.service import assign_site_to_template
-                            await assign_site_to_template(actor_email, new_site_id, template_id)
-                        except Exception as tpl_err:
-                            print(f"[PROVISION] Template badge assignment failed for {new_site_id}: {tpl_err}")
-                else:
-                    data = res.json() if res.content else res.text
-                    results.append({"target": site_name, "status": "ERROR", "detail": data})
-            except Exception as e:
-                results.append({"target": site_name, "status": "ERROR", "detail": str(e)})
+                    return {
+                        "target": site_name,
+                        "status": "SUCCESS",
+                        "detail": "Site provisioned successfully.",
+                        "new_site_id": new_site_id,
+                    }
 
-            await asyncio.sleep(2.0)
-            
+                return {
+                    "target": site_name,
+                    "status": "ERROR",
+                    "detail": _response_detail(res),
+                    "_retryable": _is_retryable_response(res.status_code),
+                }
+            except Exception as e:
+                return {"target": site_name, "status": "ERROR", "detail": str(e), "_retryable": True}
+
+        results = await _run_bounded_batch(list(range(clone_count)), handle_clone, timeout_seconds=60.0)
+
+    await asyncio.gather(*(
+        _insert_batch_audit_log(
+            action="Batch Site Provision",
+            actor_email=actor_email,
+            site_id=result.get("new_site_id") if result.get("status") == "SUCCESS" else None,
+            status=result.get("status", "ERROR"),
+            detail=f"Provisioned: {result.get('target')}",
+        )
+        for result in results
+    ))
+
     return results
 
 

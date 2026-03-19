@@ -6,7 +6,7 @@ from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv(usecwd=False))
 
 MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
-DATABASE_NAME = os.getenv("DATABASE_NAME", "insight")
+DATABASE_NAME = os.getenv("DATABASE_NAME", "insights")
 
 # Security — Fernet key source (MUST be set via env var in production)
 _DEFAULT_KEY = "secret-internal-key-change-me"

@@ -1,17 +1,54 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, ArrowLeft, Activity, Bell, Users, Wifi, Monitor, Box, ChevronDown, Search, Server, Check } from 'lucide-react';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Home, ArrowLeft, Activity, Bell, Users, Wifi, Monitor, Box, ChevronDown, Search, Server, Check, SlidersHorizontal } from 'lucide-react';
 import UserWidget from './UserWidget';
 import { useSite } from '../../context/SiteContext';
+import apiClient from '../../api/apiClient';
+import { Button } from '../ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '../ui/dialog';
+
+const CONFIG_DIRTY_STATE_KEY = 'individualConfigurationDirty';
+const CONFIG_DIRTY_EVENT = 'individualConfigurationDirtyChange';
+const CONFIG_DISCARD_EVENT = 'individualConfigurationDiscardChanges';
+
+const CONFIGURATION_SECTIONS = [
+    { key: 'overview', label: 'Overview' },
+    { key: 'ip-assignment', label: 'IP Assignment' },
+    { key: 'network-assignment', label: 'Network Assignment' },
+    { key: 'access-control', label: 'Access Control' },
+    { key: 'schedule', label: 'Schedule' },
+    { key: 'wireless-options', label: 'Wireless Options' },
+];
+
+const WIRED_CONFIGURATION_SECTIONS = [
+    { key: 'overview', label: 'Overview' },
+    { key: 'network-assignment', label: 'Network Assignment' },
+    { key: 'access-control', label: 'Access Control' },
+];
 
 const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { sites, setSelectedSiteId } = useSite();
 
     const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
+    const [isConfigurationOpen, setIsConfigurationOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [zones, setZones] = useState([]);
+    const [hasSwitchDevices, setHasSwitchDevices] = useState(null);
+    const [hasUnsavedConfigurationChanges, setHasUnsavedConfigurationChanges] = useState(
+        () => sessionStorage.getItem(CONFIG_DIRTY_STATE_KEY) === 'true'
+    );
+    const [showLeaveModal, setShowLeaveModal] = useState(false);
     const switcherRef = useRef(null);
+    const pendingNavigationRef = useRef(null);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -22,6 +59,49 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    useEffect(() => {
+        const handleDirtyStateChange = (event) => {
+            setHasUnsavedConfigurationChanges(Boolean(event.detail?.isDirty));
+        };
+
+        window.addEventListener(CONFIG_DIRTY_EVENT, handleDirtyStateChange);
+        return () => window.removeEventListener(CONFIG_DIRTY_EVENT, handleDirtyStateChange);
+    }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const fetchInventoryCapabilities = async () => {
+            if (!siteId) {
+                setHasSwitchDevices(null);
+                return;
+            }
+
+            try {
+                const res = await apiClient.get(`/overview/sites/${siteId}/inventory`);
+                if (cancelled) {
+                    return;
+                }
+
+                const devices = Array.isArray(res.data) ? res.data : [];
+                const hasSwitchLikeDevice = devices.some((device) => {
+                    const deviceType = String(device?.deviceType || '').toLowerCase();
+                    return deviceType === 'switch' || deviceType === 'stack';
+                });
+                setHasSwitchDevices(hasSwitchLikeDevice);
+            } catch (error) {
+                if (!cancelled) {
+                    setHasSwitchDevices(null);
+                }
+            }
+        };
+
+        fetchInventoryCapabilities();
+        return () => {
+            cancelled = true;
+        };
+    }, [siteId]);
 
     // Fetch zones eagerly on mount so we can resolve the parent zone for back-navigation
     useEffect(() => {
@@ -44,7 +124,7 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
         if (setSelectedSiteId) setSelectedSiteId(id);
         setIsSwitcherOpen(false);
         setSearchQuery('');
-        navigate(`/site/${id}`);
+        requestNavigation(`/site/${id}`, { closeConfiguration: true });
     };
 
     const currentSite = sites.find(
@@ -102,6 +182,87 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
     };
 
     const groupedSites = getGroupedSites();
+    const isConfigurationSectionActive = location.pathname.startsWith(`/site/${siteId}/configuration`) || location.pathname === `/site/${siteId}/cloner`;
+    const networkKey = new URLSearchParams(location.search).get('networkKey') || '';
+    const selectedNetworkKind = networkKey.startsWith('wired:')
+        ? 'wired'
+        : networkKey.startsWith('wireless:')
+            ? 'wireless'
+            : '';
+    const configurationSections = selectedNetworkKind === 'wired'
+        ? WIRED_CONFIGURATION_SECTIONS.filter((section) => (
+            section.key !== 'network-assignment' || hasSwitchDevices !== false
+        ))
+        : CONFIGURATION_SECTIONS;
+
+    const isConfigurationPath = location.pathname.startsWith(`/site/${siteId}/configuration`);
+
+    const requestNavigation = (targetPath, { closeConfiguration = true } = {}) => {
+        const currentPath = `${location.pathname}${location.search}`;
+
+        if (targetPath === currentPath) {
+            return;
+        }
+
+        if (hasUnsavedConfigurationChanges && isConfigurationPath) {
+            pendingNavigationRef.current = { targetPath, closeConfiguration };
+            setShowLeaveModal(true);
+            return;
+        }
+
+        if (closeConfiguration) {
+            setIsConfigurationOpen(false);
+        }
+        navigate(targetPath);
+    };
+
+    const handleStayOnPage = () => {
+        pendingNavigationRef.current = null;
+        setShowLeaveModal(false);
+    };
+
+    const handleLeavePage = () => {
+        const pendingNavigation = pendingNavigationRef.current;
+        pendingNavigationRef.current = null;
+        setShowLeaveModal(false);
+        setHasUnsavedConfigurationChanges(false);
+        sessionStorage.setItem(CONFIG_DIRTY_STATE_KEY, 'false');
+        window.dispatchEvent(new CustomEvent(CONFIG_DIRTY_EVENT, {
+            detail: { isDirty: false },
+        }));
+        window.dispatchEvent(new CustomEvent(CONFIG_DISCARD_EVENT));
+
+        if (!pendingNavigation) {
+            return;
+        }
+
+        if (pendingNavigation.closeConfiguration) {
+            setIsConfigurationOpen(false);
+        }
+        navigate(pendingNavigation.targetPath);
+    };
+
+    const handleConfigurationToggle = () => {
+        if (isConfigurationOpen) {
+            setIsConfigurationOpen(false);
+            return;
+        }
+
+        setIsConfigurationOpen(true);
+        requestNavigation(`/site/${siteId}/configuration/overview${location.search}`, { closeConfiguration: false });
+    };
+
+    useEffect(() => {
+        if (isConfigurationSectionActive) {
+            setIsConfigurationOpen(true);
+        }
+    }, [isConfigurationSectionActive]);
+
+    useEffect(() => {
+        if (!location.pathname.startsWith(`/site/${siteId}/configuration`) && location.pathname !== `/site/${siteId}/cloner`) {
+            setIsConfigurationOpen(false);
+        }
+    }, [location.pathname, siteId]);
 
     const getNavLinkClass = ({ isActive }) =>
         `group relative flex items-center px-3 py-2.5 mx-2 text-sm font-medium rounded-lg transition-all duration-150 ${isActive
@@ -109,12 +270,39 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
             : 'th-text-secondary hover:bg-slate-100 dark:hover:bg-white/5 hover:th-text-primary'
         }`;
 
+    const configurationParentClass = 'group relative flex w-full items-center px-3 py-2.5 mx-2 text-sm font-medium rounded-lg transition-all duration-150 th-text-secondary hover:bg-slate-100 dark:hover:bg-white/5 hover:th-text-primary';
+
+    const getConfigurationLinkClass = ({ isActive }) =>
+        `group relative ml-7 mr-2 flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150 ${
+            isActive
+                ? 'bg-blue-600/10 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400'
+                : 'th-text-secondary hover:bg-slate-100 dark:hover:bg-white/5 hover:th-text-primary'
+        }`;
+
     return (
         <div className="flex flex-col w-64 th-bg-sidebar border-r th-border h-full transition-colors duration-200">
+            <Dialog open={showLeaveModal} onOpenChange={(open) => { if (!open) handleStayOnPage(); }}>
+                <DialogContent className="sm:max-w-[520px] border-white/10 bg-slate-800 p-0 text-slate-100" showCloseButton={false}>
+                    <DialogHeader className="px-8 pt-8">
+                        <DialogTitle className="text-5xl font-black tracking-tight text-slate-100">Leave Page?</DialogTitle>
+                        <DialogDescription className="pt-2 text-lg font-semibold text-slate-300">
+                            All changes will be lost.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="mt-6 border-white/10 bg-slate-800/95 px-8 pb-8 pt-4 sm:justify-end">
+                        <Button variant="ghost" size="lg" onClick={handleStayOnPage} className="text-base font-black text-slate-100 hover:bg-slate-700 hover:text-white">
+                            Stay on Page
+                        </Button>
+                        <Button size="lg" onClick={handleLeavePage} className="bg-emerald-500 px-6 text-base font-black text-white hover:bg-emerald-400">
+                            Leave Page
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
             {/* Brand header */}
             <div className="flex items-center px-4 h-14 border-b th-border">
                 <button
-                    onClick={() => navigate('/zones')}
+                    onClick={() => requestNavigation('/zones')}
                     className="flex items-center gap-3 hover:opacity-80 transition-opacity"
                 >
                     <span className="text-lg font-black italic th-text-primary tracking-widest uppercase">INSIGHT</span>
@@ -128,7 +316,7 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
             {/* Back to parent Zone */}
             <div className="px-3 pt-3 pb-1">
                 <button
-                    onClick={() => navigate(parentZone ? `/zones/${parentZone.id || parentZone._id}/sites` : '/zones')}
+                    onClick={() => requestNavigation(parentZone ? `/zones/${parentZone.id || parentZone._id}/sites` : '/zones')}
                     className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold th-text-muted hover:th-text-primary hover:th-bg-surface-alt rounded-md transition-colors"
                 >
                     <ArrowLeft size={14} />
@@ -206,7 +394,7 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
 
             {/* Site-scoped navigation */}
             <nav className="flex-1 overflow-y-auto pt-3 space-y-0.5">
-                <NavLink to={`/site/${siteId}`} end className={getNavLinkClass}>
+                <NavLink to={`/site/${siteId}`} end className={getNavLinkClass} onClick={(event) => { event.preventDefault(); requestNavigation(`/site/${siteId}`); }}>
                     {({ isActive }) => (
                         <>
                             {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
@@ -215,7 +403,7 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
                         </>
                     )}
                 </NavLink>
-                <NavLink to={`/site/${siteId}/health`} className={getNavLinkClass}>
+                <NavLink to={`/site/${siteId}/health`} className={getNavLinkClass} onClick={(event) => { event.preventDefault(); requestNavigation(`/site/${siteId}/health`); }}>
                     {({ isActive }) => (
                         <>
                             {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
@@ -224,7 +412,7 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
                         </>
                     )}
                 </NavLink>
-                <NavLink to={`/site/${siteId}/alerts`} className={getNavLinkClass}>
+                <NavLink to={`/site/${siteId}/alerts`} className={getNavLinkClass} onClick={(event) => { event.preventDefault(); requestNavigation(`/site/${siteId}/alerts`); }}>
                     {({ isActive }) => (
                         <>
                             {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
@@ -233,7 +421,7 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
                         </>
                     )}
                 </NavLink>
-                <NavLink to={`/site/${siteId}/clients`} className={getNavLinkClass}>
+                <NavLink to={`/site/${siteId}/clients`} className={getNavLinkClass} onClick={(event) => { event.preventDefault(); requestNavigation(`/site/${siteId}/clients`); }}>
                     {({ isActive }) => (
                         <>
                             {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
@@ -242,7 +430,7 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
                         </>
                     )}
                 </NavLink>
-                <NavLink to={`/site/${siteId}/networks`} className={getNavLinkClass}>
+                <NavLink to={`/site/${siteId}/networks`} className={getNavLinkClass} onClick={(event) => { event.preventDefault(); requestNavigation(`/site/${siteId}/networks`); }}>
                     {({ isActive }) => (
                         <>
                             {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
@@ -251,7 +439,43 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
                         </>
                     )}
                 </NavLink>
-                <NavLink to={`/site/${siteId}/devices`} className={getNavLinkClass}>
+                <div className="space-y-0.5">
+                    <button
+                        type="button"
+                        onClick={handleConfigurationToggle}
+                        className={configurationParentClass}
+                    >
+                        <SlidersHorizontal className="w-[18px] h-[18px] mr-3 shrink-0" />
+                        <span className="flex-1 text-left">Configuration</span>
+                        <ChevronDown
+                            size={14}
+                            className={`shrink-0 transition-transform ${isConfigurationOpen ? 'rotate-180 th-text-primary' : 'th-text-muted group-hover:th-text-secondary'}`}
+                        />
+                    </button>
+                    {isConfigurationOpen && (
+                        <div className="space-y-0.5 pb-1">
+                            {configurationSections.map((section) => (
+                                <NavLink
+                                    key={section.key}
+                                    to={`/site/${siteId}/configuration/${section.key}${location.search}`}
+                                    onClick={(event) => {
+                                        event.preventDefault();
+                                        requestNavigation(`/site/${siteId}/configuration/${section.key}${location.search}`, { closeConfiguration: false });
+                                    }}
+                                    className={getConfigurationLinkClass}
+                                >
+                                    {({ isActive }) => (
+                                        <>
+                                            {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
+                                            <span>{section.label}</span>
+                                        </>
+                                    )}
+                                </NavLink>
+                            ))}
+                        </div>
+                    )}
+                </div>
+                <NavLink to={`/site/${siteId}/devices`} className={getNavLinkClass} onClick={(event) => { event.preventDefault(); requestNavigation(`/site/${siteId}/devices`); }}>
                     {({ isActive }) => (
                         <>
                             {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
@@ -260,7 +484,7 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
                         </>
                     )}
                 </NavLink>
-                <NavLink to={`/site/${siteId}/applications`} className={getNavLinkClass}>
+                <NavLink to={`/site/${siteId}/applications`} className={getNavLinkClass} onClick={(event) => { event.preventDefault(); requestNavigation(`/site/${siteId}/applications`); }}>
                     {({ isActive }) => (
                         <>
                             {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}

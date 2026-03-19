@@ -12,6 +12,7 @@ import SiteNetworks from './pages/Dashboard/Networks';
 import SiteDevices from './pages/Dashboard/Devices';
 import SiteApplications from './pages/Dashboard/Applications';
 import Configuration from './pages/Configuration';
+import IndividualConfiguration from './pages/Configuration/IndividualConfiguration';
 import AdminLogs from './pages/Admin/Logs';
 import ZoneManagement from './pages/Admin/ZoneManagement';
 import MasterAccount from './pages/Admin/MasterAccount';
@@ -300,7 +301,11 @@ function App() {
               <Route path="networks" element={<SiteNetworks />} />
               <Route path="devices" element={<SiteDevices />} />
               <Route path="applications" element={<SiteApplications />} />
-              <Route path="cloner" element={<Configuration />} />
+              <Route path="configuration" element={<Navigate to="overview" replace />} />
+              <Route path="configuration/:section" element={<IndividualConfiguration />} />
+              <Route path="configuration/individual" element={<Navigate to="../configuration/overview" replace />} />
+              <Route path="configuration/batch" element={<Navigate to="../configuration/overview" replace />} />
+              <Route path="cloner" element={<Navigate to="../configuration/overview" replace />} />
             </Route>
             </Routes>
           </SiteProvider>

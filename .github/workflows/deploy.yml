@@ -23,9 +23,19 @@ jobs:
           # 3. Kéo code mới nhất từ nhánh main của GitHub về VPS
           git pull origin main
           
-          # 4. Yêu cầu Docker dựng lại (Build) các Image mới và khởi chạy container
+          # 4. Xóa build cache cũ để tránh lỗi "file not found" do cache bị stale
+          docker builder prune -af
+          
+          # 5. Yêu cầu Docker dựng lại (Build) các Image mới và khởi chạy container
           # Lệnh này sẽ tự cập nhật các thay đổi trong source code của anh
           docker compose up -d --build
           
-          # 5. Xóa bỏ các bản build cũ (dangling images) để tiết kiệm 30GB SSD của VPS
+          # 6. Kết nối container MongoDB (chạy bên ngoài) vào mạng insight-net
+          # để backend có thể resolve hostname "MongoDB"
+          docker network connect insight-net MongoDB || true
+          
+          # 7. Restart backend sau khi MongoDB đã join network
+          docker restart insight_backend
+          
+          # 8. Xóa bỏ các bản build cũ (dangling images) để tiết kiệm 30GB SSD của VPS
           docker image prune -f

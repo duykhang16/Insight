@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wifi, Plug, Users, Lock, Radio } from 'lucide-react';
+import { Wifi, Plug, Users } from 'lucide-react';
 
 // --- Helpers ---
 const TYPE_CONFIG = {
@@ -35,15 +35,25 @@ const SsidChip = ({ ssid }) => (
                 {ssid.clients}
             </span>
         )}
-    </div>
+    </button>
 );
 
 // --- Main Wired Network Row ---
-const NetworkRow = ({ net }) => {
+const NetworkRow = ({ net, onSelect }) => {
     const typeConfig = getTypeConfig(net.type);
 
     return (
-        <tr className="hover:bg-white/[0.02] transition-colors group">
+        <tr
+            className="cursor-pointer hover:bg-white/[0.02] transition-colors group"
+            onClick={() => onSelect?.(net.id)}
+            onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onSelect?.(net.id);
+                }
+            }}
+            tabIndex={0}
+        >
 
             {/* Network Name */}
             <td className="px-8 py-5">
@@ -81,12 +91,12 @@ const NetworkRow = ({ net }) => {
                 {net.ssids.length === 0 ? (
                     <span className="text-slate-700 text-xs font-bold">No SSIDs</span>
                 ) : (
-                    <div className="flex flex-wrap gap-1.5">
-                        {net.ssids.map(ssid => (
-                            <SsidChip key={ssid.id} ssid={ssid} />
-                        ))}
-                    </div>
-                )}
+                        <div className="flex flex-wrap gap-1.5">
+                            {net.ssids.map(ssid => (
+                                <SsidChip key={ssid.id} ssid={ssid} onSelect={onSelect} />
+                            ))}
+                        </div>
+                    )}
             </td>
 
             {/* Clients */}

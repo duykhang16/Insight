@@ -66,8 +66,8 @@ class ArubaService:
 
             parsed_target = urlparse(url)
             t_host = parsed_target.netloc
-            f_headers["Origin"] = f"{parsed_target.scheme}://{t_host}"
-            f_headers["Referer"] = f"{f_headers['Origin']}/"
+            f_headers.setdefault("Origin", f"{parsed_target.scheme}://{t_host}")
+            f_headers.setdefault("Referer", f"{f_headers['Origin']}/")
             f_headers["Host"] = t_host
 
             async with httpx.AsyncClient(timeout=30.0, follow_redirects=True, verify=False) as client:

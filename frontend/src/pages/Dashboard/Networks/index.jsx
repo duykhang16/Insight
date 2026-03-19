@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Search, Network, Wifi, Users } from 'lucide-react';
 import apiClient from '../../../api/apiClient';
 import { useSite } from '../../../context/SiteContext';
@@ -9,8 +10,62 @@ import useIntervalFetch from '../../../hooks/useIntervalFetch';
 import { useSettings } from '../../../context/SettingsContext';
 import { useLanguage } from '../../../context/LanguageContext';
 
+const buildInitialConfigurationNetwork = (network, networkKind) => {
+    if (!network || !networkKind) {
+        return null;
+    }
+
+    const displayName = network.name || network.networkName || `VLAN ${network.vlanId ?? '—'}`;
+    const usage = network.usage || network.type || 'employee';
+    const state = network.isEnabled === false ? 'Disabled' : 'Active';
+
+    if (networkKind === 'wired') {
+        return {
+            id: String(network.id || ''),
+            networkKind: 'wired',
+            displayName,
+            label: `${displayName} · Wired`,
+            networkName: displayName,
+            isEnabled: network.isEnabled !== false,
+            health: network.health || 'good',
+            state,
+            usage,
+            vlanId: network.vlanId ?? '',
+            isIgmpSnoopingEnabled: true,
+            isDhcpArpProtectionEnabled: false,
+            isNetworkDestinationsRestricted: false,
+        };
+    }
+
+    const band = String(network.band || '').toLowerCase();
+
+    return {
+        id: String(network.id || ''),
+        networkKind: 'wireless',
+        displayName,
+        label: `${displayName} · Wireless`,
+        networkName: displayName,
+        isEnabled: network.isEnabled !== false,
+        health: network.health || 'good',
+        state,
+        usage,
+        authentication: 'psk',
+        security: String(network.security || 'wpa3').toLowerCase(),
+        wiredNetworkId: '',
+        ipAddressingMode: 'internal',
+        dhcpScope: {},
+        isAvailableOn24GHzRadioBand: band.includes('2.4'),
+        isAvailableOn5GHzRadioBand: band.includes('5'),
+        isAvailableOn6GHzRadioBand: band.includes('6'),
+        isLegacy80211bRatesEnabled: false,
+        isSsidHidden: false,
+        preSharedKey: '',
+    };
+};
+
 const Networks = () => {
     const { t } = useLanguage();
+    const navigate = useNavigate();
     const [beResponse, setBeResponse] = useState({ wired: [], wireless: [], stats: {} });
     const [loading, setLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -22,6 +77,22 @@ const Networks = () => {
 
     const { selectedSiteId, sites, fetchSites } = useSite();
     const { isAutoRefreshEnabled } = useSettings();
+
+    const handleNetworkSelect = (networkId, networkKind) => {
+        if (!selectedSiteId || !networkId) return;
+
+        const sourceRows = networkKind === 'wired' ? wiredRows : wirelessRows;
+        const clickedNetwork = sourceRows.find((network) => String(network.id) === String(networkId)) || null;
+        const initialNetwork = buildInitialConfigurationNetwork(clickedNetwork, networkKind);
+        const searchParams = new URLSearchParams();
+        searchParams.set('networkId', String(networkId));
+        if (networkKind) {
+            searchParams.set('networkKey', `${networkKind}:${networkId}`);
+        }
+        navigate(`/site/${selectedSiteId}/configuration/overview?${searchParams.toString()}`, {
+            state: initialNetwork ? { initialNetwork } : null,
+        });
+    };
 
     useEffect(() => {
         if (sites.length === 0) fetchSites();
@@ -192,7 +263,11 @@ const Networks = () => {
                             <span className="text-slate-700 normal-case font-bold tracking-normal">— {wirelessRows.length} SSIDs</span>
                         </h2>
                     )}
-                    <WirelessTable data={wirelessRows} loading={loading} />
+                    <WirelessTable
+                        data={wirelessRows}
+                        loading={loading}
+                        onNetworkSelect={(networkId) => handleNetworkSelect(networkId, 'wireless')}
+                    />
                 </div>
             )}
 
@@ -214,6 +289,7 @@ const Networks = () => {
                             direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
                         }))}
                         loading={loading}
+                        onNetworkSelect={(networkId) => handleNetworkSelect(networkId, 'wired')}
                     />
                 </div>
             )}
