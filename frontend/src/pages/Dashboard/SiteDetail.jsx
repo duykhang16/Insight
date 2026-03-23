@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Activity, Bell, BellDot, Users, Wifi, Monitor, AlertCircle, X } from 'lucide-react';
+import { Bell, BellDot, X } from 'lucide-react';
+import { Heartbeat, Users, WifiHigh, Monitor, WarningCircle } from '@phosphor-icons/react';
 import apiClient from '../../api/apiClient';
 import { useSite } from '../../context/SiteContext';
 import useIntervalFetch from '../../hooks/useIntervalFetch';
@@ -148,7 +149,7 @@ const SiteDetail = () => {
         {
             key: 'health',
             label: t('site.dashboard.card_health_label'),
-            icon: <Activity className="text-emerald-500" size={24} />,
+            icon: <Heartbeat className="text-emerald-500" size={24} weight="duotone" />,
             value: healthScore,
             sub: data ? `Conditions: ${healthConditions}` : '',
             route: `/site/${siteId}/health`,
@@ -165,7 +166,7 @@ const SiteDetail = () => {
         {
             key: 'clients',
             label: t('site.dashboard.card_clients_label'),
-            icon: <Users className="text-blue-500" size={24} />,
+            icon: <Users className="text-blue-500" size={24} weight="duotone" />,
             value: connectedClients,
             sub: data ? `Good: ${goodClients} / Fair: ${fairClients} / Poor: ${poorClients}` : '',
             route: `/site/${siteId}/clients`,
@@ -173,7 +174,7 @@ const SiteDetail = () => {
         {
             key: 'networks',
             label: t('site.dashboard.card_networks_label'),
-            icon: <Wifi className="text-indigo-500" size={24} />,
+            icon: <WifiHigh className="text-indigo-500" size={24} weight="duotone" />,
             value: activeNetworks,
             sub: data ? `Active: ${activeNetworkCount} / Inactive: ${inactiveNetworks}` : '',
             route: `/site/${siteId}/networks`,
@@ -181,7 +182,7 @@ const SiteDetail = () => {
         {
             key: 'devices',
             label: t('site.dashboard.card_devices_label'),
-            icon: <Monitor className="text-purple-500" size={24} />,
+            icon: <Monitor className="text-purple-500" size={24} weight="duotone" />,
             value: onlineDevices,
             sub: data ? `Online: ${onlineDevices} / Offline: ${offlineDevices}` : '',
             route: `/site/${siteId}/devices`,
@@ -299,7 +300,7 @@ const SiteDetail = () => {
 
             {error && (
                 <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-xl flex items-center gap-3 text-rose-600 dark:text-rose-400">
-                    <AlertCircle size={20} />
+                    <WarningCircle size={20} weight="duotone" />
                     <span className="text-sm font-bold">{error}</span>
                 </div>
             )}

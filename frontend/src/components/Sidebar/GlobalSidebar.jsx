@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { ChevronDown } from 'lucide-react';
 import {
-    Home, Sliders, Shield, Layers, Link2, Users,
-    Building2, ScrollText, ChevronDown, Copy, Trash2, RefreshCw, Settings, Layout,
+    House, Sliders, ShieldCheck, Stack, LinkSimple, Users,
+    Buildings, Scroll, CopySimple, Trash, ArrowsClockwise, GearSix, Layout,
     Monitor
-} from 'lucide-react';
+} from '@phosphor-icons/react';
 import UserWidget from './UserWidget';
 import HelpTooltip from '../HelpTooltip';
 import { useLanguage } from '../../context/LanguageContext';
@@ -43,23 +44,23 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
 
     // Sub-items for Configuration accordion
     const configSubItems = [
-        { key: 'templates', label: t('config.tabs.templates') || 'Templates', icon: <Layout size={14} />, help: '' },
+        { key: 'templates', label: t('config.tabs.templates') || 'Templates', icon: <Layout size={14} weight="duotone" />, help: '' },
         canSeeClone && {
             key: 'clone',
             label: t('config.tabs.clone') || 'Clone',
-            icon: <Copy size={14} />,
+            icon: <CopySimple size={14} weight="duotone" />,
             help: t('config.help.clone'),
         },
         canSeeUpdate && {
             key: 'update',
             label: t('config.tabs.update') || 'Update',
-            icon: <RefreshCw size={14} />,
+            icon: <ArrowsClockwise size={14} weight="duotone" />,
             help: t('config.help.update'),
         },
         canSeeBatchOps && {
             key: 'batch_ops',
             label: t('config.tabs.batch_ops') || 'Batch Operations',
-            icon: <Settings size={14} />,
+            icon: <GearSix size={14} weight="duotone" />,
             help: t('config.help.batch_ops'),
         },
     ].filter(Boolean);
@@ -90,7 +91,7 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                     {({ isActive }) => (
                         <>
                             {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
-                            <Home className="w-[18px] h-[18px] mr-3 shrink-0" />
+                            <House size={18} weight="duotone" className="mr-3 shrink-0" />
                             {t('sidebar.dashboard')}
                         </>
                     )}
@@ -110,7 +111,7 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                             style={{ width: 'calc(100% - 1rem)' }}
                         >
                             <span className="flex items-center gap-3">
-                                <Sliders className="w-[18px] h-[18px] shrink-0" />
+                                <Sliders size={18} weight="duotone" className="shrink-0" />
                                 {t('sidebar.configuration')}
                             </span>
                             <ChevronDown
@@ -172,7 +173,7 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                             {({ isActive }) => (
                                 <>
                                     {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
-                                    <Shield className="w-[18px] h-[18px] mr-3 shrink-0" />
+                                    <ShieldCheck size={18} weight="duotone" className="mr-3 shrink-0" />
                                     {t('admin.logs.title')}
                                 </>
                             )}
@@ -181,7 +182,7 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                             {({ isActive }) => (
                                 <>
                                     {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
-                                    <Layers className="w-[18px] h-[18px] mr-3 shrink-0" />
+                                    <Stack size={18} weight="duotone" className="mr-3 shrink-0" />
                                     {t('admin.zones.title')}
                                 </>
                             )}
@@ -190,7 +191,7 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                             {({ isActive }) => (
                                 <>
                                     {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
-                                    <Users className="w-[18px] h-[18px] mr-3 shrink-0" />
+                                    <Users size={18} weight="duotone" className="mr-3 shrink-0" />
                                     {t('admin.users.title')}
                                 </>
                             )}
@@ -199,7 +200,7 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                             {({ isActive }) => (
                                 <>
                                     {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
-                                    <Link2 className="w-[18px] h-[18px] mr-3 shrink-0" />
+                                    <LinkSimple size={18} weight="duotone" className="mr-3 shrink-0" />
                                     {t('admin.master.title')}
                                 </>
                             )}
@@ -217,7 +218,7 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                             {({ isActive }) => (
                                 <>
                                     {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
-                                    <Building2 className="w-[18px] h-[18px] mr-3 shrink-0" />
+                                    <Buildings size={18} weight="duotone" className="mr-3 shrink-0" />
                                     {t('super.tenants.title')}
                                 </>
                             )}
@@ -226,7 +227,7 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                             {({ isActive }) => (
                                 <>
                                     {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
-                                    <Users className="w-[18px] h-[18px] mr-3 shrink-0" />
+                                    <Users size={18} weight="duotone" className="mr-3 shrink-0" />
                                     {t('super.users.title')}
                                 </>
                             )}
@@ -235,7 +236,7 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                             {({ isActive }) => (
                                 <>
                                     {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
-                                    <Shield className="w-[18px] h-[18px] mr-3 shrink-0" />
+                                    <ShieldCheck size={18} weight="duotone" className="mr-3 shrink-0" />
                                     {t('super.permissions.title')}
                                 </>
                             )}
@@ -244,7 +245,7 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                             {({ isActive }) => (
                                 <>
                                     {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
-                                    <ScrollText className="w-[18px] h-[18px] mr-3 shrink-0" />
+                                    <Scroll size={18} weight="duotone" className="mr-3 shrink-0" />
                                     {t('super.logs.title')}
                                 </>
                             )}
@@ -253,7 +254,7 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                             {({ isActive }) => (
                                 <>
                                     {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
-                                    <Monitor className="w-[18px] h-[18px] mr-3 shrink-0" />
+                                    <Monitor size={18} weight="duotone" className="mr-3 shrink-0" />
                                     {t('monitoring.title')}
                                 </>
                             )}

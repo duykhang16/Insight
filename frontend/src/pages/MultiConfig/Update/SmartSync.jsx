@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import useRealisticProgress from '../../../hooks/useRealisticProgress';
 import apiClient from '../../../api/apiClient';
 import styles from './Update.module.css';
 import { useLanguage } from '../../../context/LanguageContext';
@@ -41,7 +42,7 @@ const SmartSync = () => {
     const [executionLoading, setExecutionLoading] = useState(false);
     const [executionResult, setExecutionResult] = useState(null);
     const [executionLogs, setExecutionLogs] = useState([]);
-    const [progress, setProgress] = useState(0);
+    const prog = useRealisticProgress();
     const [isStopping, setIsStopping] = useState(false);
     const stopRef = useRef(false);
 
@@ -164,7 +165,7 @@ const SmartSync = () => {
         setExecutionLoading(true);
         setExecutionResult(null);
         setExecutionLogs([]);
-        setProgress(0);
+        prog.start();
         setIsStopping(false);
         stopRef.current = false;
 
@@ -183,7 +184,7 @@ const SmartSync = () => {
                 const skipLog = { siteName, status: "SKIPPED", detail: `SSID '${selectedSSIDName}' không tồn tại trên site này.` };
                 results.push(skipLog);
                 setExecutionLogs(prev => [skipLog, ...prev]);
-                setProgress(Math.round(((i + 1) / targetIds.length) * 100));
+                prog.setMilestone(Math.round(((i + 1) / targetIds.length) * 100));
                 continue;
             }
             let attempt = 0, success = false, lastError = null;
@@ -227,11 +228,12 @@ const SmartSync = () => {
                 results.push(errLog);
                 setExecutionLogs(prev => [errLog, ...prev]);
             }
-            setProgress(Math.round(((i + 1) / targetIds.length) * 100));
+            prog.setMilestone(Math.round(((i + 1) / targetIds.length) * 100));
             if (i < targetIds.length - 1) await new Promise(r => setTimeout(r, 400));
         }
         setExecutionResult(results);
         setExecutionLoading(false);
+        prog.finish();
         if (!stopRef.current) {
             const successCount = results.filter(r => r.status === 'SUCCESS').length;
             const skippedCount = results.filter(r => r.status === 'SKIPPED').length;
@@ -254,7 +256,7 @@ const SmartSync = () => {
             else if (stepIdx === 1) {
                 setExecutionResult(null);
                 setExecutionLogs([]);
-                setProgress(0);
+                prog.reset();
                 setConfirmReady(false);
                 setCurrentStep(1);
             }
@@ -442,7 +444,7 @@ const SmartSync = () => {
                         executionLoading={executionLoading}
                         executionResult={executionResult}
                         executionLogs={executionLogs}
-                        progress={progress}
+                        progress={prog.progress}
                     />
                 )}
             </WizardLayout>

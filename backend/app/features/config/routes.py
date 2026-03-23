@@ -126,3 +126,17 @@ async def add_individual_wireless_specific_clients(
     master_token: str = Depends(require_master_token),
 ):
     return await config_service.add_individual_wireless_specific_clients(site_id, network_id, payload, master_token)
+
+
+@router.post("/sites/{site_id}/individual/networks")
+async def create_individual_network(
+    site_id: str,
+    payload: Dict[str, Any],
+    user: Dict[str, Any] = Depends(get_current_insight_user),
+    master_token: str = Depends(require_master_token),
+):
+    network_kind = str(payload.get("networkKind") or "wireless").lower()
+    if network_kind == "wired":
+        return await config_service.create_individual_wired_network(site_id, payload, master_token)
+    else:
+        return await config_service.create_individual_wireless_network(site_id, payload, master_token)

@@ -7,6 +7,7 @@ import {
     XCircle, ChevronRight, Globe, Clock, Hash, Tag, Map, RefreshCw, CheckSquare, Square as SquareIcon, Rocket, Layout, Search
 } from 'lucide-react';
 import { getRoleBadgeInfo, loadSitesFromApi, loadZonesFromApi } from '../utils';
+import useRealisticProgress from '../../../hooks/useRealisticProgress';
 
 const TIMEZONES = [
     { value: 'Asia/Ho_Chi_Minh', label: 'Asia/Ho_Chi_Minh (UTC+7)' },
@@ -58,10 +59,9 @@ const BatchProvision = () => {
 
     const [isRunning, setIsRunning] = useState(false);
     const [logs, setLogs] = useState([]);
-    const [progress, setProgress] = useState(0);
+    const prog = useRealisticProgress();
     const [confirmShown, setConfirmShown] = useState(false);
     const mountedRef = useRef(true);
-    const progressRef = useRef(null);
 
     const scanZones = async () => {
         setIsLoadingZones(true);
@@ -122,13 +122,8 @@ const BatchProvision = () => {
     const handleStart = async () => {
         setIsRunning(true);
         setLogs([]);
-        setProgress(0);
+        prog.start();
         setConfirmShown(false);
-
-        // Simulated progress animation
-        progressRef.current = setInterval(() => {
-            setProgress(p => p < 80 ? p + 3 : p);
-        }, 150);
 
         const finalZones = Array.from(selectedZones);
         const initialLogs = [
@@ -153,10 +148,7 @@ const BatchProvision = () => {
             };
 
             const res = await apiClient.post('/cloner/batch-site-provision', payload);
-            if (!mountedRef.current) return;
-
-            clearInterval(progressRef.current);
-            setProgress(100);
+            prog.finish();
 
             if (res.data?.status === 'success') {
                 const results = res.data.results || [];
@@ -180,9 +172,7 @@ const BatchProvision = () => {
                 toast.error('Batch provision gặp lỗi bất ngờ.');
             }
         } catch (err) {
-            if (!mountedRef.current) return;
-            clearInterval(progressRef.current);
-            setProgress(0);
+            prog.fail();
             const errMsg = err.response?.data?.detail || err.message;
             setLogs([{ id: 'err-catch', status: 'error', msg: `Critical Error: ${errMsg}` }]);
             toast.error(`Batch provision thất bại: ${errMsg}`);
@@ -463,18 +453,18 @@ const BatchProvision = () => {
                         </h3>
 
                         {/* Progress Bar */}
-                        {(isRunning || progress > 0) && (
+                        {(isRunning || prog.progress > 0) && (
                             <div className="space-y-2 py-1">
                                 <div className="flex justify-between items-center">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
                                         {isRunning ? 'Provisioning...' : 'Completed'}
                                     </span>
-                                    <span className="text-sm font-mono font-black text-violet-500">{progress}%</span>
+                                    <span className="text-sm font-mono font-black text-violet-500">{prog.progress}%</span>
                                 </div>
                                 <div className="w-full h-3 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
                                     <div
                                         className="h-full bg-gradient-to-r from-violet-500 to-indigo-400 transition-all duration-300 shadow-[0_0_10px_rgba(139,92,246,0.5)]"
-                                        style={{ width: `${progress}%` }}
+                                        style={{ width: `${prog.progress}%` }}
                                     />
                                 </div>
                             </div>

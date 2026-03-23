@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, Search, Network, Wifi, Users } from 'lucide-react';
+import { AlertCircle, Plus, Search, Network, Wifi, Users } from 'lucide-react';
 import apiClient from '../../../api/apiClient';
 import { useSite } from '../../../context/SiteContext';
 // processNetworks removed — BE now returns pre-mapped data
@@ -244,6 +244,16 @@ const Networks = () => {
                         </button>
                     ))}
                 </div>
+
+                {/* Create Network button */}
+                <button
+                    type="button"
+                    onClick={() => navigate(`/site/${selectedSiteId}/configuration/create-network`)}
+                    className="inline-flex h-14 items-center gap-2 rounded-2xl bg-emerald-500 px-5 text-xs font-black uppercase tracking-wider text-slate-950 shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_8px_24px_rgba(16,185,129,0.35)] transition-all hover:bg-emerald-400 active:scale-[0.97]"
+                >
+                    <Plus size={16} strokeWidth={3} />
+                    Create
+                </button>
             </div>
 
             {error && (

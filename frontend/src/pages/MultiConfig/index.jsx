@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Copy, RefreshCw, Layers, Users, Trash2, Layout, Settings, Wifi } from 'lucide-react';
+import {
+    CopySimple, ArrowsClockwise, Stack, Users, Trash, Layout, GearSix, WifiHigh, ShieldWarning
+} from '@phosphor-icons/react';
 import CloneConfig from './Clone/CloneConfig';
 import CloneSite from './Clone/CloneSite';
 import SmartSync from './Update/SmartSync';
@@ -10,7 +12,6 @@ import Delete from './BatchOperations/Delete';
 import DeleteSSID from './BatchOperations/DeleteSSID';
 import ErrorBoundary from '../../components/ErrorBoundary';
 import HelpTooltip from '../../components/HelpTooltip';
-import { ShieldAlert } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
 // Help steps per tab — defined outside component (static data)
@@ -142,7 +143,7 @@ const MultiConfig = ({ rolePermissions: propRolePermissions }) => {
         return (
             <div className="w-full h-full flex items-center justify-center pt-32">
                 <div className="text-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 p-12 rounded-3xl shadow-xl max-w-md">
-                    <ShieldAlert size={64} className="mx-auto mb-6 text-rose-500 opacity-80" />
+                    <ShieldWarning size={64} weight="duotone" className="mx-auto mb-6 text-rose-500 opacity-80" />
                     <h2 className="text-2xl font-black uppercase tracking-widest text-slate-800 dark:text-white mb-3">{t('config.access_denied_title')}</h2>
                     <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
                         {t('config.access_denied_message')}
@@ -154,10 +155,10 @@ const MultiConfig = ({ rolePermissions: propRolePermissions }) => {
 
     // Main tabs
     const tabs = [
-        canSeeTemplates && { key: 'templates', label: t('config.tabs.templates') || 'Templates', icon: <Layout size={16} />, color: 'emerald' },
-        canSeeClone && { key: 'clone', label: t('config.tabs.clone') || 'Clone', icon: <Copy size={16} />, color: 'blue' },
-        canSeeUpdate && { key: 'update', label: t('config.tabs.update') || 'Update', icon: <RefreshCw size={16} />, color: 'teal' },
-        canSeeBatchOps && { key: 'batch_ops', label: t('config.tabs.batch_ops') || 'Batch Operations', icon: <Settings size={16} />, color: 'amber' },
+        canSeeTemplates && { key: 'templates', label: t('config.tabs.templates') || 'Templates', icon: <Layout size={16} weight="duotone" />, color: 'emerald' },
+        canSeeClone && { key: 'clone', label: t('config.tabs.clone') || 'Clone', icon: <CopySimple size={16} weight="duotone" />, color: 'blue' },
+        canSeeUpdate && { key: 'update', label: t('config.tabs.update') || 'Update', icon: <ArrowsClockwise size={16} weight="duotone" />, color: 'teal' },
+        canSeeBatchOps && { key: 'batch_ops', label: t('config.tabs.batch_ops') || 'Batch Operations', icon: <GearSix size={16} weight="duotone" />, color: 'amber' },
     ].filter(Boolean);
 
     const colorMap = {
@@ -169,20 +170,20 @@ const MultiConfig = ({ rolePermissions: propRolePermissions }) => {
 
     // Sub-tab configs
     const cloneSubTabs = [
-        canSeeCloneConfig && { key: 'clone_config', label: t('config.tabs.clone_config') || 'Clone Config', icon: <Copy size={13} /> },
-        canSeeCloneSite && { key: 'clone_site', label: t('config.tabs.clone_site') || 'Clone Site', icon: <Layers size={13} /> },
+        canSeeCloneConfig && { key: 'clone_config', label: t('config.tabs.clone_config') || 'Clone Config', icon: <CopySimple size={13} weight="duotone" /> },
+        canSeeCloneSite && { key: 'clone_site', label: t('config.tabs.clone_site') || 'Clone Site', icon: <Stack size={13} weight="duotone" /> },
     ].filter(Boolean);
 
     const updateSubTabs = [
-        canSeeSmartSync && { key: 'smart_sync', label: t('config.tabs.smart_sync') || 'Smart Sync', icon: <RefreshCw size={13} /> },
+        canSeeSmartSync && { key: 'smart_sync', label: t('config.tabs.smart_sync') || 'Smart Sync', icon: <ArrowsClockwise size={13} weight="duotone" /> },
         // Future: { key: 'bulk_update', label: 'Bulk Update', icon: <Layers size={13} /> },
         // Future: { key: 'one_to_many', label: '1-to-N Update', icon: <GitBranch size={13} /> },
     ].filter(Boolean);
 
     const batchSubTabs = [
-        canSeeBatchAccess && { key: 'account_access', label: t('config.tabs.batch_access') || 'Account Access', icon: <Users size={13} /> },
-        canSeeBatchDeleteSSID && { key: 'delete_ssid', label: 'Delete SSID', icon: <Wifi size={13} /> },
-        canSeeBatchDelete && { key: 'delete', label: t('config.tabs.batch_delete') || 'Delete', icon: <Trash2 size={13} /> },
+        canSeeBatchAccess && { key: 'account_access', label: t('config.tabs.batch_access') || 'Account Access', icon: <Users size={13} weight="duotone" /> },
+        canSeeBatchDeleteSSID && { key: 'delete_ssid', label: 'Delete SSID', icon: <WifiHigh size={13} weight="duotone" /> },
+        canSeeBatchDelete && { key: 'delete', label: t('config.tabs.batch_delete') || 'Delete', icon: <Trash size={13} weight="duotone" /> },
     ].filter(Boolean);
 
     const helpSteps = HELP_STEPS[activeTab]?.[language] || HELP_STEPS[activeTab]?.en || [];

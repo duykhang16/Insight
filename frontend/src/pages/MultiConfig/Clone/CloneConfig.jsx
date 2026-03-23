@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import useRealisticProgress from '../../../hooks/useRealisticProgress';
 import apiClient from '../../../api/apiClient';
 import styles from './Clone.module.css';
 import { useLanguage } from '../../../context/LanguageContext';
@@ -40,7 +41,7 @@ const Cloner = () => {
     // Phase 3: Execution
     const [executionLoading, setExecutionLoading] = useState(false);
     const [executionResult, setExecutionResult] = useState(null);
-    const [executionProgress, setExecutionProgress] = useState(0);
+    const prog = useRealisticProgress();
     const [executionLogs, setExecutionLogs] = useState([]);
     const [isStopping, setIsStopping] = useState(false);
     const stopRef = useRef(false);
@@ -110,7 +111,7 @@ const Cloner = () => {
 
         setCurrentStep(2);
         setExecutionLoading(true);
-        setExecutionProgress(0);
+        prog.start();
         setExecutionLogs(plan);
         setExecutionResult(null);
         setIsStopping(false);
@@ -181,12 +182,13 @@ const Cloner = () => {
                 siteFailed++;
             }
 
-            setExecutionProgress(Math.round(((i + 1) / targetIds.length) * 100));
+            prog.setMilestone(Math.round(((i + 1) / targetIds.length) * 100));
             if (i < targetIds.length - 1) await new Promise(r => setTimeout(r, 500));
         }
 
         setExecutionResult({ results: batchResults });
         setExecutionLoading(false);
+        prog.finish();
 
         if (!stopRef.current) {
             const total = targetIds.length;
@@ -215,7 +217,7 @@ const Cloner = () => {
                 setExecutionLoading(false);
                 setExecutionResult(null);
                 setExecutionLogs([]);
-                setExecutionProgress(0);
+                prog.reset();
                 setCurrentStep(1);
             }
         }
@@ -416,7 +418,7 @@ const Cloner = () => {
                 {currentStep === 2 && (
                     <CloneExecution
                         executionLogs={executionLogs}
-                        executionProgress={executionProgress}
+                        executionProgress={prog.progress}
                         executionLoading={executionLoading}
                         executionResult={executionResult}
                     />

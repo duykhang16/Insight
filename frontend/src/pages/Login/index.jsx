@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import apiClient from '../../api/apiClient';
-import { ShieldCheck, KeyRound, Sun, Moon, ArrowLeft, Mail, Lock, Loader2 } from 'lucide-react';
+import { Sun, Moon, ArrowLeft, Loader2 } from 'lucide-react';
+import { ShieldCheck, Key, Envelope, Lock } from '@phosphor-icons/react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useTheme } from '../../context/ThemeContext';
 import SplashScreen from '../../components/SplashScreen';
@@ -300,7 +301,7 @@ const Login = ({ onLoginSuccess }) => {
                     {/* Logo — single instance */}
                     <div className="flex items-center justify-center gap-3 mb-2 login-fade-in">
                         <div className="w-11 h-11 bg-blue-50 dark:bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">
-                            <ShieldCheck size={22} />
+                            <ShieldCheck size={22} weight="duotone" />
                         </div>
                         <span className="text-2xl font-black tracking-wide text-slate-800 dark:text-white">INSIGHT</span>
                     </div>
@@ -320,7 +321,7 @@ const Login = ({ onLoginSuccess }) => {
                                         {t('login.email')}
                                     </label>
                                     <div className="relative">
-                                        <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                                        <Envelope size={16} weight="duotone" className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
                                         <input
                                             ref={emailRef}
                                             id="login-email"
@@ -382,7 +383,7 @@ const Login = ({ onLoginSuccess }) => {
                             <div className="mb-6">
                                 <div className="flex items-center gap-3 p-3 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg">
                                     <div className="w-9 h-9 bg-blue-50 dark:bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500 dark:text-blue-400 shrink-0">
-                                        <Mail size={16} />
+                                        <Envelope size={16} weight="duotone" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-medium text-slate-800 dark:text-white truncate">{email}</p>
@@ -403,7 +404,7 @@ const Login = ({ onLoginSuccess }) => {
                                         {t('login.password')}
                                     </label>
                                     <div className="relative">
-                                        <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                                        <Lock size={16} weight="duotone" className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
                                         <input
                                             ref={passwordRef}
                                             id="login-password"
@@ -453,7 +454,7 @@ const Login = ({ onLoginSuccess }) => {
                         <div className={animationClass}>
                             <div className="text-center mb-8">
                                 <div className="w-14 h-14 bg-amber-50 dark:bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 mx-auto mb-4">
-                                    <KeyRound size={24} />
+                                    <Key size={24} weight="duotone" />
                                 </div>
                                 <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
                                     Đặt Mật Khẩu
@@ -467,7 +468,7 @@ const Login = ({ onLoginSuccess }) => {
                             <div className="mb-4">
                                 <div className="flex items-center gap-3 p-3 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg">
                                     <div className="w-9 h-9 bg-blue-50 dark:bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500 dark:text-blue-400 shrink-0">
-                                        <Mail size={16} />
+                                        <Envelope size={16} weight="duotone" />
                                     </div>
                                     <p className="flex-1 text-sm font-medium text-slate-800 dark:text-white truncate">{email}</p>
                                 </div>
@@ -481,7 +482,7 @@ const Login = ({ onLoginSuccess }) => {
                                 <div className="space-y-2">
                                     <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Mật khẩu mới</label>
                                     <div className="relative">
-                                        <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                                        <Lock size={16} weight="duotone" className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
                                         <input
                                             type="password"
                                             autoFocus
@@ -495,7 +496,7 @@ const Login = ({ onLoginSuccess }) => {
                                 <div className="space-y-2">
                                     <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Xác nhận mật khẩu</label>
                                     <div className="relative">
-                                        <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                                        <Lock size={16} weight="duotone" className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
                                         <input
                                             type="password"
                                             className="login-input-focus w-full h-12 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg pl-11 pr-4 text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none transition-all text-sm font-mono"

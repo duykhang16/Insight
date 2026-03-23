@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import apiClient from '../../../api/apiClient';
 import { useLanguage } from '../../../context/LanguageContext';
 import { toast } from 'sonner';
@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 
 import useZoneSiteLoader from '../hooks/useZoneSiteLoader';
+import useRealisticProgress from '../../../hooks/useRealisticProgress';
 import { PasskeyLock, ZoneSiteSelector, ExecutionLogPanel } from './phases';
 
 const CHALLENGE_WORD = 'DELETE';
@@ -30,11 +31,9 @@ const BatchDelete = () => {
     const [showClearModal, setShowClearModal] = useState(false);
     const [clearChallengeInput, setClearChallengeInput] = useState('');
 
-    // Execution
     const [isRunning, setIsRunning] = useState(false);
     const [logs, setLogs] = useState([]);
-    const [progress, setProgress] = useState(0);
-    const progressRef = useRef(null);
+    const prog = useRealisticProgress();
 
     // ── Derived ──
     const canConfirmDestruction = challengeInput === CHALLENGE_WORD && !isRunning;
@@ -63,11 +62,8 @@ const BatchDelete = () => {
 
     // ── Delete execution ──
     const handleStart = async () => {
-        setShowModal(false);
         setIsRunning(true);
-        setProgress(0);
-
-        progressRef.current = setInterval(() => { setProgress(p => p < 80 ? p + 4 : p); }, 150);
+        prog.start();
 
         const { finalTargets, skipCount } = resolveTargets();
         const initialLogs = [];
@@ -78,7 +74,7 @@ const BatchDelete = () => {
         if (finalTargets.length === 0) {
             setLogs([...initialLogs, { id: 'done', status: 'error', msg: 'Zero authorized targets found from selected Zones/Sites. Aborting.' }]);
             setIsRunning(false);
-            clearInterval(progressRef.current);
+            prog.fail();
             return;
         }
 
@@ -90,9 +86,8 @@ const BatchDelete = () => {
 
             if (res.data?.status === 'success') {
                 const results = res.data.results || [];
-                const successCount = results.filter(r => r.status === 'SUCCESS').length;
                 clearInterval(progressRef.current);
-                setProgress(100);
+                prog.finish();
                 const formattedLogs = results.map((r, idx) => ({
                     id: `res-${idx}`, status: r.status === 'SUCCESS' ? 'ok' : 'error',
                     msg: `Site ${r.target}: ${r.status === 'SUCCESS' ? 'Deleted Successfully' : (r.detail?.message || r.detail || 'Failed')}`
@@ -100,15 +95,12 @@ const BatchDelete = () => {
                 setLogs([{ id: 'done', status: 'ok', msg: `Batch deletion completed. Processed ${results.length} sites.` }, ...formattedLogs]);
                 toast.error(`💥 ${successCount} sites đã bị xóa`, { description: 'Hành động này không thể hoàn tác.', duration: 8000 });
             } else {
-                clearInterval(progressRef.current);
-                setProgress(0);
+                prog.fail();
                 setLogs([{ id: 'err', status: 'error', msg: `API returned unexpected status: ${res.data?.status}` }]);
                 toast.error('Batch deletion gặp lỗi.');
             }
         } catch (err) {
-            if (!zs.mountedRef.current) return;
-            clearInterval(progressRef.current);
-            setProgress(0);
+            prog.fail();
             const errMsg = err.response?.data?.detail || err.message;
             setLogs([{ id: 'err-catch', status: 'error', msg: `Critical Error: ${errMsg}` }]);
             toast.error(`Batch deletion thất bại: ${errMsg}`);
@@ -119,11 +111,8 @@ const BatchDelete = () => {
 
     // ── Clear execution ──
     const handleClearStart = async () => {
-        setShowClearModal(false);
         setIsRunning(true);
-        setProgress(0);
-
-        progressRef.current = setInterval(() => { setProgress(p => p < 80 ? p + 3 : p); }, 200);
+        prog.start();
 
         const { finalTargets, skipCount } = resolveTargets();
         const initialLogs = [];
@@ -132,7 +121,7 @@ const BatchDelete = () => {
         if (finalTargets.length === 0) {
             setLogs([...initialLogs, { id: 'done', status: 'error', msg: 'Zero authorized targets. Aborting.' }]);
             setIsRunning(false);
-            clearInterval(progressRef.current);
+            prog.fail();
             return;
         }
 
@@ -140,9 +129,7 @@ const BatchDelete = () => {
 
         try {
             const res = await apiClient.post('/cloner/batch-site-clear', { target_zone_ids: [], target_site_ids: finalTargets });
-            if (!zs.mountedRef.current) return;
-            clearInterval(progressRef.current);
-            setProgress(100);
+            prog.finish();
 
             if (res.data?.status === 'success') {
                 const results = res.data.results || [];
@@ -157,9 +144,7 @@ const BatchDelete = () => {
                 setLogs([{ id: 'err', status: 'error', msg: `Unexpected status: ${res.data?.status}` }]);
             }
         } catch (err) {
-            if (!zs.mountedRef.current) return;
-            clearInterval(progressRef.current);
-            setProgress(0);
+            prog.fail();
             const errMsg = err.response?.data?.detail || err.message;
             setLogs([{ id: 'err-catch', status: 'error', msg: `Error: ${errMsg}` }]);
             toast.error(`Clear failed: ${errMsg}`);
@@ -255,7 +240,7 @@ const BatchDelete = () => {
 
                     {/* Panel 2: Execution Log */}
                     <ExecutionLogPanel
-                        logs={logs} isRunning={isRunning} progress={progress}
+                        logs={logs} isRunning={isRunning} progress={prog.progress}
                         accentColor="rose" title={t('batch_delete.execution_log')}
                         emptyText={t('batch_delete.ready_for_destruction')}
                     />

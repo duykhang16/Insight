@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle, CheckCircle2, LoaderCircle, ShieldAlert, Wifi } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, LoaderCircle, Plus, ShieldAlert, Wifi } from 'lucide-react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import apiClient from '../../api/apiClient';
 import { Button } from '../../components/ui/button';
@@ -289,6 +289,108 @@ const SiteConfig = () => {
     const handleCancel = () => {
         if (!selectedNetwork) return;
         resetUnsavedChanges();
+    };
+
+    // ── Network selector ──
+    const handleSelectedNetworkChange = (key) => {
+        if (dirty.isDirty) {
+            pendingNetworkKeyRef.current = key;
+            dirty.setShowLeaveModal(true);
+            return;
+        }
+        setSelectedNetworkKey(key);
+        const network = networks.find((n) => getNetworkKey(n) === key);
+        if (network) {
+            syncSelectionToQuery(network);
+            setForm(buildFormForNetwork(network));
+            if (network.networkKind === 'wireless') {
+                setAccessControlState(buildWirelessAccessControlState(network));
+            }
+        }
+        setShowPassword(false);
+        clearNotification();
+        resetSpecificClientsUi();
+    };
+
+    // ── Access control toggles ──
+    const handleAccessRestrictionToggle = (field, checked) => {
+        dirty.setIsDirty(true);
+        updateAccessControlDraft((current) => ({
+            ...current,
+            [field]: checked,
+        }));
+    };
+
+    // ── Allowed IP modal handlers ──
+    const handleOpenAddAllowedIpModal = () => {
+        setNewAllowedIpAddress('');
+        setAllowedIpInputTouched(false);
+        setShowAddAllowedIpModal(true);
+    };
+
+    const handleCloseAddAllowedIpModal = () => {
+        setShowAddAllowedIpModal(false);
+        setNewAllowedIpAddress('');
+        setAllowedIpInputTouched(false);
+    };
+
+    const handleAddAllowedIpAddress = () => {
+        const trimmed = newAllowedIpAddress.trim();
+        if (!trimmed) return;
+        dirty.setIsDirty(true);
+
+        if (selectedNetwork?.networkKind === 'wired') {
+            setForm((current) => ({
+                ...current,
+                allowedDestinationIpAddresses: [
+                    ...(current.allowedDestinationIpAddresses || []),
+                    trimmed,
+                ],
+            }));
+        } else {
+            updateAccessControlDraft((current) => ({
+                ...current,
+                allowedDestinationIpAddresses: [
+                    ...(current.allowedDestinationIpAddresses || []),
+                    trimmed,
+                ],
+            }));
+        }
+        setShowAddAllowedIpModal(false);
+        setNewAllowedIpAddress('');
+        setAllowedIpInputTouched(false);
+    };
+
+    const handleRemoveAllowedIpAddress = (ipAddress) => {
+        dirty.setIsDirty(true);
+
+        if (selectedNetwork?.networkKind === 'wired') {
+            setForm((current) => ({
+                ...current,
+                allowedDestinationIpAddresses: (current.allowedDestinationIpAddresses || []).filter(
+                    (ip) => ip !== ipAddress,
+                ),
+            }));
+        } else {
+            updateAccessControlDraft((current) => ({
+                ...current,
+                allowedDestinationIpAddresses: (current.allowedDestinationIpAddresses || []).filter(
+                    (ip) => ip !== ipAddress,
+                ),
+            }));
+        }
+    };
+
+    // ── Remove allowed client ──
+    const handleRemoveAllowedClient = (client) => {
+        dirty.setIsDirty(true);
+        const clientKey = getAllowListClientKey(client);
+        updateAccessControlDraft((current) => ({
+            ...current,
+            allowedClients: normalizeAllowListClients(current.allowedClients).filter(
+                (existingClient) => getAllowListClientKey(existingClient) !== clientKey,
+            ),
+        }));
     };
 
     const refreshSpecificClients = async ({ silent = false } = {}) => {
@@ -857,21 +959,33 @@ const SiteConfig = () => {
                                     {selectedSite?.siteName || siteId}
                                 </p>
                             </div>
-                            <div className="min-w-[320px]">
-                                <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Network</div>
-                                <select
-                                    value={selectedNetworkKey}
-                                    onChange={(event) => handleSelectedNetworkChange(event.target.value)}
-                                    disabled={networks.length === 0}
-                                    className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white focus:outline-none focus:border-cyan-400 disabled:opacity-50"
-                                >
-                                    {networks.length === 0 && <option value="">No networks</option>}
-                                    {networks.map((network) => (
-                                        <option key={getNetworkKey(network)} value={getNetworkKey(network)}>
-                                            {network.label}
-                                        </option>
-                                    ))}
-                                </select>
+                            <div className="flex items-end gap-3">
+                                <div className="min-w-[320px]">
+                                    <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Network</div>
+                                    <select
+                                        value={selectedNetworkKey}
+                                        onChange={(event) => handleSelectedNetworkChange(event.target.value)}
+                                        disabled={networks.length === 0}
+                                        className="mt-2 w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white focus:outline-none focus:border-cyan-400 disabled:opacity-50"
+                                    >
+                                        {networks.length === 0 && <option value="">No networks</option>}
+                                        {networks.map((network) => (
+                                            <option key={getNetworkKey(network)} value={getNetworkKey(network)}>
+                                                {network.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                {userRole !== 'viewer' && (
+                                    <button
+                                        type="button"
+                                        onClick={() => navigate(`/site/${siteId}/configuration/create-network`)}
+                                        className="inline-flex h-[50px] items-center gap-2 rounded-2xl bg-emerald-500 px-5 text-sm font-black uppercase tracking-wider text-slate-950 shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_8px_24px_rgba(16,185,129,0.35)] transition-all hover:bg-emerald-400 hover:shadow-[0_0_0_1px_rgba(255,255,255,0.12),0_12px_32px_rgba(16,185,129,0.45)] active:scale-[0.97]"
+                                    >
+                                        <Plus size={16} strokeWidth={3} />
+                                        Create
+                                    </button>
+                                )}
                             </div>
                         </div>
 

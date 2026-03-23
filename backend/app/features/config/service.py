@@ -22,6 +22,8 @@ class ConfigService:
     get_individual_wireless_specific_clients = staticmethod(writers.get_individual_wireless_specific_clients)
     set_individual_wireless_specific_clients_extend = staticmethod(writers.set_individual_wireless_specific_clients_extend)
     add_individual_wireless_specific_clients = staticmethod(writers.add_individual_wireless_specific_clients)
+    create_individual_wired_network = staticmethod(writers.create_individual_wired_network)
+    create_individual_wireless_network = staticmethod(writers.create_individual_wireless_network)
 
 
 config_service = ConfigService()

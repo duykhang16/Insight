@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSite } from '../../context/SiteContext';
-import { MapPin, Wifi, ChevronRight } from 'lucide-react';
+import { MapPin, WifiHigh, CaretRight } from '@phosphor-icons/react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useSettings } from '../../context/SettingsContext';
 import useIntervalFetch from '../../hooks/useIntervalFetch';
@@ -64,14 +64,14 @@ const GlobalDashboard = () => {
                         >
                             <div className="flex items-start justify-between mb-3">
                                 <div className="p-2 th-bg-elevated rounded-md border th-border">
-                                    <MapPin size={16} className="text-blue-400" />
+                                    <MapPin size={16} weight="duotone" className="text-blue-400" />
                                 </div>
-                                <ChevronRight size={16} className="text-slate-600 group-hover:text-slate-400 transition-colors" />
+                                <CaretRight size={16} weight="bold" className="text-slate-600 group-hover:text-slate-400 transition-colors" />
                             </div>
                             <h3 className="text-sm font-bold th-text-primary mb-1 truncate">{name}</h3>
                             <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2">
-                                    <Wifi size={12} className="text-slate-500" />
+                                    <WifiHigh size={12} weight="duotone" className="text-slate-500" />
                                     <span className="text-xs text-slate-500 uppercase tracking-wider">{role || 'Site'}</span>
                                 </div>
                                 {site.status && STATUS_BADGE[site.status] && (
