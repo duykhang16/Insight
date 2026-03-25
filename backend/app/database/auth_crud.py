@@ -3,6 +3,14 @@ from typing import Optional, Dict, Any
 from .connection import get_database
 import bcrypt
 
+_TWO_FACTOR_DEFAULTS = {
+    "two_factor_enabled": False,
+    "two_factor_secret": None,
+    "two_factor_label_email": None,
+    "two_factor_pending_secret": None,
+    "two_factor_pending_label_email": None,
+}
+
 
 # ===== Password helpers =====
 
@@ -21,7 +29,22 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 async def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
     db = get_database()
-    return await db.users.find_one({"email": email})
+    user = await db.users.find_one({"email": email})
+    if not user:
+        return None
+
+    missing_defaults = {
+        key: value
+        for key, value in _TWO_FACTOR_DEFAULTS.items()
+        if key not in user
+    }
+    if missing_defaults:
+        await db.users.update_one({"_id": user["_id"]}, {"$set": missing_defaults})
+        user = {**missing_defaults, **user}
+    else:
+        user = {**_TWO_FACTOR_DEFAULTS, **user}
+
+    return user
 
 
 async def create_user(user_data: Dict[str, Any]) -> str:
@@ -44,6 +67,7 @@ async def create_user_with_password(
         "role": role,
         "isApproved": is_approved,
         "created_at": datetime.now(timezone.utc),
+        **_TWO_FACTOR_DEFAULTS,
     }
     if parent_admin_id:
         doc["parent_admin_id"] = parent_admin_id
@@ -65,6 +89,7 @@ async def create_user_no_password(
         "isApproved": is_approved,
         "must_set_password": True,
         "created_at": datetime.now(timezone.utc),
+        **_TWO_FACTOR_DEFAULTS,
     }
     if parent_admin_id:
         doc["parent_admin_id"] = parent_admin_id

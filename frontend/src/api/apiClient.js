@@ -58,6 +58,9 @@ apiClient.interceptors.response.use(
 
         // Không auto-refresh cho các auth endpoints để tránh vòng lặp vô tận
         const isAuthEndpoint = originalRequest.url?.includes('/login')
+            || originalRequest.url?.includes('/auth/check-email')
+            || originalRequest.url?.includes('/auth/verify-otp')
+            || originalRequest.url?.includes('/auth/set-password')
             || originalRequest.url?.includes('/auth/refresh')
             || originalRequest.url?.includes('/auth/session');
 

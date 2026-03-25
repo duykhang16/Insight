@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { LogOut, RefreshCw, ChevronsUpDown, Moon, Sun, Languages, KeyRound, Eye, EyeOff, CheckCircle, AlertTriangle, X } from 'lucide-react';
+import { LogOut, RefreshCw, ChevronsUpDown, Moon, Sun, Languages, KeyRound, Eye, EyeOff, CheckCircle, AlertTriangle, X, Shield } from 'lucide-react';
 import { useSite } from '../../context/SiteContext';
 import { useSettings } from '../../context/SettingsContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -277,9 +277,378 @@ const ChangePasswordModal = ({ onClose }) => {
     );
 };
 
+const TwoFactorModal = ({ onClose }) => {
+    const { t } = useLanguage();
+    const userEmail = sessionStorage.getItem('insight_user_email') || 'user@insight.local';
+    const [loadingStatus, setLoadingStatus] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
+    const [status, setStatus] = useState({
+        two_factor_enabled: false,
+        label_email: userEmail,
+        has_pending_setup: false,
+    });
+    const [labelEmail, setLabelEmail] = useState(userEmail);
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [otp, setOtp] = useState('');
+    const [qrSvg, setQrSvg] = useState('');
+    const [provisioningUri, setProvisioningUri] = useState('');
+    const [mode, setMode] = useState('setup');
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+
+    useEffect(() => {
+        let active = true;
+
+        const loadStatus = async () => {
+            try {
+                const res = await apiClient.get('/auth/2fa/status');
+                if (!active) return;
+                const nextStatus = {
+                    two_factor_enabled: Boolean(res.data?.two_factor_enabled),
+                    label_email: res.data?.label_email || userEmail,
+                    has_pending_setup: Boolean(res.data?.has_pending_setup),
+                };
+                setStatus(nextStatus);
+                setLabelEmail(nextStatus.label_email);
+                setMode(nextStatus.two_factor_enabled ? 'disable' : 'setup');
+            } catch (err) {
+                if (!active) return;
+                setError(err.response?.data?.detail || 'Không thể tải trạng thái 2FA.');
+            } finally {
+                if (active) setLoadingStatus(false);
+            }
+        };
+
+        loadStatus();
+        return () => {
+            active = false;
+        };
+    }, [userEmail]);
+
+    const resetTransientState = () => {
+        setCurrentPassword('');
+        setOtp('');
+        setQrSvg('');
+        setProvisioningUri('');
+        setError('');
+    };
+
+    const handleSetup = async (e) => {
+        e.preventDefault();
+        setSubmitting(true);
+        setError('');
+        setSuccess('');
+
+        try {
+            const res = await apiClient.post('/auth/2fa/setup', {
+                current_password: currentPassword,
+                label_email: labelEmail,
+            });
+            setQrSvg(res.data?.qr_svg || '');
+            setProvisioningUri(res.data?.provisioning_uri || '');
+            setMode('confirm');
+            setOtp('');
+            setSuccess('');
+        } catch (err) {
+            setError(err.response?.data?.detail || 'Không thể tạo QR 2FA.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleConfirm = async (e) => {
+        e.preventDefault();
+        setSubmitting(true);
+        setError('');
+        setSuccess('');
+
+        try {
+            const res = await apiClient.post('/auth/2fa/confirm', { otp });
+            setStatus((prev) => ({
+                ...prev,
+                two_factor_enabled: true,
+                label_email: labelEmail,
+                has_pending_setup: false,
+            }));
+            setMode('disable');
+            setQrSvg('');
+            setProvisioningUri('');
+            setCurrentPassword('');
+            setOtp('');
+            setSuccess(res.data?.message || t('account.two_factor_setup_success') || 'Two-factor authentication enabled successfully.');
+        } catch (err) {
+            setError(err.response?.data?.detail || 'Không thể xác nhận 2FA.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleDisable = async (e) => {
+        e.preventDefault();
+        setSubmitting(true);
+        setError('');
+        setSuccess('');
+
+        try {
+            const res = await apiClient.post('/auth/2fa/disable', {
+                current_password: currentPassword,
+                otp,
+            });
+            setStatus((prev) => ({
+                ...prev,
+                two_factor_enabled: false,
+                has_pending_setup: false,
+            }));
+            setMode('setup');
+            resetTransientState();
+            setSuccess(res.data?.message || t('account.two_factor_disable_success') || 'Two-factor authentication disabled successfully.');
+        } catch (err) {
+            setError(err.response?.data?.detail || 'Không thể tắt 2FA.');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleBackToSetup = () => {
+        setMode('setup');
+        setQrSvg('');
+        setProvisioningUri('');
+        setOtp('');
+        setError('');
+    };
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="th-bg-surface border th-border rounded-2xl w-full max-w-md shadow-2xl"
+                style={{ animation: 'modalSlideIn 0.2s ease-out forwards' }}>
+                <style>{`
+                    @keyframes modalSlideIn {
+                        from { opacity: 0; transform: translateY(12px) scale(0.96); }
+                        to { opacity: 1; transform: translateY(0) scale(1); }
+                    }
+                `}</style>
+
+                <div className="flex items-center justify-between px-6 py-4 border-b th-border">
+                    <div className="flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-blue-400" />
+                        <h2 className="text-sm font-semibold th-text-primary">
+                            {t('account.two_factor') || 'Two-Factor Authentication'}
+                        </h2>
+                    </div>
+                    <button onClick={onClose} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
+                        <X className="w-4 h-4 th-text-secondary" />
+                    </button>
+                </div>
+
+                <div className="px-6 py-5 space-y-4">
+                    {error && (
+                        <div className="flex items-start gap-2 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2.5 text-xs text-rose-400">
+                            <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                            <span>{error}</span>
+                        </div>
+                    )}
+                    {success && (
+                        <div className="flex items-start gap-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-3 py-2.5 text-xs text-emerald-400">
+                            <CheckCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                            <span>{success}</span>
+                        </div>
+                    )}
+
+                    {loadingStatus ? (
+                        <div className="flex items-center justify-center gap-2 py-10 text-sm th-text-secondary">
+                            <RefreshCw className="w-4 h-4 animate-spin" />
+                            <span>{t('common.loading') || 'Loading...'}</span>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="rounded-xl border th-border px-4 py-3 th-bg-elevated">
+                                <div className="text-xs uppercase tracking-[0.18em] th-text-muted mb-2">Status</div>
+                                <div className={`text-sm font-semibold ${status.two_factor_enabled ? 'text-emerald-400' : 'th-text-primary'}`}>
+                                    {status.two_factor_enabled
+                                        ? (t('account.two_factor_enabled') || 'Two-factor authentication is enabled.')
+                                        : (t('account.two_factor_disabled') || 'Two-factor authentication is disabled.')}
+                                </div>
+                                <div className="mt-2 text-xs th-text-muted break-all">
+                                    {status.label_email || userEmail}
+                                </div>
+                            </div>
+
+                            {!status.two_factor_enabled && mode === 'setup' && (
+                                <form onSubmit={handleSetup} className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs th-text-secondary mb-1.5">
+                                            {t('account.two_factor_label_email') || 'Authenticator Label Email'}
+                                        </label>
+                                        <input
+                                            type="email"
+                                            required
+                                            value={labelEmail}
+                                            onChange={(e) => setLabelEmail(e.target.value)}
+                                            className="w-full th-bg-elevated border th-border th-text-primary rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500"
+                                            placeholder="name@example.com"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs th-text-secondary mb-1.5">
+                                            {t('account.two_factor_current_password') || 'Current Password'}
+                                        </label>
+                                        <input
+                                            type="password"
+                                            required
+                                            value={currentPassword}
+                                            onChange={(e) => setCurrentPassword(e.target.value)}
+                                            className="w-full th-bg-elevated border th-border th-text-primary rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500"
+                                            placeholder="••••••••"
+                                        />
+                                    </div>
+                                    {status.has_pending_setup && (
+                                        <p className="text-xs th-text-muted">
+                                            A pending 2FA setup already exists. Creating a new QR will replace it.
+                                        </p>
+                                    )}
+                                    <div className="flex items-center gap-3 pt-1">
+                                        <button
+                                            type="button"
+                                            onClick={onClose}
+                                            disabled={submitting}
+                                            className="flex-1 px-4 py-2.5 text-sm th-text-secondary border th-border hover:border-slate-500 rounded-lg transition-colors disabled:opacity-50"
+                                        >
+                                            {t('common.cancel') || 'Hủy'}
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={submitting}
+                                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+                                        >
+                                            {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                                            {t('account.two_factor_setup') || 'Set Up 2FA'}
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
+
+                            {!status.two_factor_enabled && mode === 'confirm' && (
+                                <form onSubmit={handleConfirm} className="space-y-4">
+                                    <p className="text-xs th-text-secondary leading-relaxed">
+                                        {t('account.two_factor_scan_qr') || 'Scan this QR code with your authenticator app, then enter the 6-digit code to confirm.'}
+                                    </p>
+                                    <div className="rounded-xl border th-border bg-white p-4 flex items-center justify-center">
+                                        {qrSvg ? (
+                                            <div
+                                                className="w-48 h-48 [&>svg]:w-full [&>svg]:h-full"
+                                                dangerouslySetInnerHTML={{ __html: qrSvg }}
+                                            />
+                                        ) : (
+                                            <div className="text-xs text-slate-500">QR unavailable</div>
+                                        )}
+                                    </div>
+                                    {provisioningUri && (
+                                        <textarea
+                                            readOnly
+                                            value={provisioningUri}
+                                            className="w-full h-24 th-bg-elevated border th-border th-text-primary rounded-lg px-3 py-2.5 text-[11px] focus:outline-none"
+                                        />
+                                    )}
+                                    <div>
+                                        <label className="block text-xs th-text-secondary mb-1.5">
+                                            {t('account.two_factor_otp') || 'Authenticator Code'}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            inputMode="numeric"
+                                            autoComplete="one-time-code"
+                                            maxLength={6}
+                                            required
+                                            value={otp}
+                                            onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                            className="w-full th-bg-elevated border th-border th-text-primary rounded-lg px-3 py-2.5 text-sm font-mono tracking-[0.35em] focus:outline-none focus:border-blue-500"
+                                            placeholder="123456"
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-3 pt-1">
+                                        <button
+                                            type="button"
+                                            onClick={handleBackToSetup}
+                                            disabled={submitting}
+                                            className="flex-1 px-4 py-2.5 text-sm th-text-secondary border th-border hover:border-slate-500 rounded-lg transition-colors disabled:opacity-50"
+                                        >
+                                            {t('common.cancel') || 'Hủy'}
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={submitting || otp.length !== 6}
+                                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+                                        >
+                                            {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                                            {t('account.two_factor_confirm') || 'Confirm 2FA'}
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
+
+                            {status.two_factor_enabled && (
+                                <form onSubmit={handleDisable} className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs th-text-secondary mb-1.5">
+                                            {t('account.two_factor_current_password') || 'Current Password'}
+                                        </label>
+                                        <input
+                                            type="password"
+                                            required
+                                            value={currentPassword}
+                                            onChange={(e) => setCurrentPassword(e.target.value)}
+                                            className="w-full th-bg-elevated border th-border th-text-primary rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500"
+                                            placeholder="••••••••"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs th-text-secondary mb-1.5">
+                                            {t('account.two_factor_otp') || 'Authenticator Code'}
+                                        </label>
+                                        <input
+                                            type="text"
+                                            inputMode="numeric"
+                                            autoComplete="one-time-code"
+                                            maxLength={6}
+                                            required
+                                            value={otp}
+                                            onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                            className="w-full th-bg-elevated border th-border th-text-primary rounded-lg px-3 py-2.5 text-sm font-mono tracking-[0.35em] focus:outline-none focus:border-blue-500"
+                                            placeholder="123456"
+                                        />
+                                    </div>
+                                    <div className="flex items-center gap-3 pt-1">
+                                        <button
+                                            type="button"
+                                            onClick={onClose}
+                                            disabled={submitting}
+                                            className="flex-1 px-4 py-2.5 text-sm th-text-secondary border th-border hover:border-slate-500 rounded-lg transition-colors disabled:opacity-50"
+                                        >
+                                            {t('common.cancel') || 'Hủy'}
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={submitting || otp.length !== 6}
+                                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm bg-rose-600 hover:bg-rose-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+                                        >
+                                            {submitting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                                            {t('account.two_factor_disable') || 'Disable 2FA'}
+                                        </button>
+                                    </div>
+                                </form>
+                            )}
+                        </>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const UserWidget = ({ onLogout }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [showChangePassword, setShowChangePassword] = useState(false);
+    const [showTwoFactorModal, setShowTwoFactorModal] = useState(false);
     const { selectedSiteId, sites, lastUpdated, loadingSites } = useSite();
     const { isAutoRefreshEnabled } = useSettings();
     const { t, language, toggleLanguage } = useLanguage();
@@ -304,6 +673,9 @@ const UserWidget = ({ onLogout }) => {
         <>
             {showChangePassword && (
                 <ChangePasswordModal onClose={() => setShowChangePassword(false)} />
+            )}
+            {showTwoFactorModal && (
+                <TwoFactorModal onClose={() => setShowTwoFactorModal(false)} />
             )}
 
             <div className="relative mx-2 mb-2" ref={dropdownRef}>
@@ -373,6 +745,19 @@ const UserWidget = ({ onLogout }) => {
                                     <KeyRound size={14} className="opacity-60 group-hover:opacity-100 group-hover:text-blue-500 transition-all" />
                                     <span className="flex-1 text-left">
                                         {t('account.change_password') || 'Đổi mật khẩu'}
+                                    </span>
+                                </button>
+
+                                <button
+                                    onClick={() => {
+                                        setIsOpen(false);
+                                        setShowTwoFactorModal(true);
+                                    }}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors group"
+                                >
+                                    <Shield size={14} className="opacity-60 group-hover:opacity-100 group-hover:text-blue-500 transition-all" />
+                                    <span className="flex-1 text-left">
+                                        {t('account.two_factor') || 'Two-Factor Authentication'}
                                     </span>
                                 </button>
                             </div>

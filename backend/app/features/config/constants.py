@@ -17,7 +17,13 @@ WIRED_NETWORK_UPDATE_ENDPOINT = "/api/sites/{site_id}/wiredNetworks/{vlan_id}"
 WIRED_NETWORK_CREATE_ENDPOINT = "/api/sites/{site_id}/wiredNetworks"
 NETWORK_OVERVIEW_REFERER = "https://portal.instant-on.hpe.com/sites/{site_id}/networks/overview"
 WIRED_NETWORK_DETAIL_REFERER = "https://portal.instant-on.hpe.com/sites/{site_id}/networks/{network_id}/wired/overview"
-SUPPORTED_NETMASKS = {"255.255.255.0", "255.255.0.0", "255.0.0.0"}
+SUPPORTED_NETMASKS = {
+    "255.255.248.0",
+    "255.255.252.0",
+    "255.255.254.0",
+    "255.255.255.0",
+    "255.255.255.128",
+}
 NETWORK_UPDATE_RESTRICTED_KEYS = {
     "networkId",
     "siteId",

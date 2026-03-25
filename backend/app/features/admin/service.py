@@ -48,6 +48,8 @@ class AdminService:
             u["id"] = str(u["_id"])
             del u["_id"]
             u.pop("password_hash", None)
+            u.pop("two_factor_secret", None)
+            u.pop("two_factor_pending_secret", None)
             result.append(u)
         return result
 

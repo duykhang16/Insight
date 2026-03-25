@@ -14,6 +14,25 @@ class CheckEmailRequest(BaseModel):
     email: str
 
 
+class VerifyOtpRequest(BaseModel):
+    otp_challenge_token: str
+    otp: str
+
+
+class TwoFactorSetupRequest(BaseModel):
+    current_password: str
+    label_email: str
+
+
+class TwoFactorConfirmRequest(BaseModel):
+    otp: str
+
+
+class TwoFactorDisableRequest(BaseModel):
+    current_password: str
+    otp: str
+
+
 @router.post("/check-email")
 async def check_email(body: CheckEmailRequest):
     """Step 1: Validate email — check existence, approval, zones, password status."""
@@ -24,6 +43,12 @@ async def check_email(body: CheckEmailRequest):
 async def login(body: LoginRequest):
     """Step 2: Login với tài khoản Insight nội bộ (email + password)."""
     return await auth_service.login(body.email, body.password)
+
+
+@router.post("/verify-otp")
+async def verify_otp(body: VerifyOtpRequest):
+    """Step 3: Verify OTP before issuing the final Insight session."""
+    return await auth_service.verify_otp(body.otp_challenge_token, body.otp)
 
 
 @router.get("/session")
@@ -67,6 +92,38 @@ async def change_password(request: Request):
         old_password=body.get("old_password", ""),
         new_password=body.get("new_password", ""),
     )
+
+
+@router.get("/2fa/status")
+async def two_factor_status(request: Request):
+    from app.shared.auth_deps import get_current_insight_user
+
+    user = await get_current_insight_user(request)
+    return await auth_service.get_two_factor_status(user["email"])
+
+
+@router.post("/2fa/setup")
+async def setup_two_factor(body: TwoFactorSetupRequest, request: Request):
+    from app.shared.auth_deps import get_current_insight_user
+
+    user = await get_current_insight_user(request)
+    return await auth_service.setup_two_factor(user["email"], body.current_password, body.label_email)
+
+
+@router.post("/2fa/confirm")
+async def confirm_two_factor(body: TwoFactorConfirmRequest, request: Request):
+    from app.shared.auth_deps import get_current_insight_user
+
+    user = await get_current_insight_user(request)
+    return await auth_service.confirm_two_factor(user["email"], body.otp)
+
+
+@router.post("/2fa/disable")
+async def disable_two_factor(body: TwoFactorDisableRequest, request: Request):
+    from app.shared.auth_deps import get_current_insight_user
+
+    user = await get_current_insight_user(request)
+    return await auth_service.disable_two_factor(user["email"], body.current_password, body.otp)
 
 
 def _extract_token(request: Request) -> str:

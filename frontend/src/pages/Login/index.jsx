@@ -37,6 +37,7 @@ const prefetchAllData = async () => {
 // Login steps
 const STEP_EMAIL = 'email';
 const STEP_PASSWORD = 'password';
+const STEP_OTP = 'otp';
 const STEP_SET_PASSWORD = 'set_password';
 
 const Login = ({ onLoginSuccess }) => {
@@ -45,6 +46,8 @@ const Login = ({ onLoginSuccess }) => {
     const [step, setStep] = useState(STEP_EMAIL);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [otp, setOtp] = useState('');
+    const [otpChallengeToken, setOtpChallengeToken] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [checkingAuth, setCheckingAuth] = useState(true);
@@ -64,6 +67,7 @@ const Login = ({ onLoginSuccess }) => {
     const [isAnimating, setIsAnimating] = useState(false);
 
     const passwordRef = useRef(null);
+    const otpRef = useRef(null);
     const emailRef = useRef(null);
 
     // Auto-check: nếu token đã có trong sessionStorage thì bỏ qua màn hình login
@@ -80,6 +84,9 @@ const Login = ({ onLoginSuccess }) => {
     useEffect(() => {
         if (step === STEP_PASSWORD && passwordRef.current) {
             setTimeout(() => passwordRef.current?.focus(), 350);
+        }
+        if (step === STEP_OTP && otpRef.current) {
+            setTimeout(() => otpRef.current?.focus(), 350);
         }
         if (step === STEP_EMAIL && emailRef.current) {
             setTimeout(() => emailRef.current?.focus(), 350);
@@ -103,6 +110,17 @@ const Login = ({ onLoginSuccess }) => {
         setSplashEmail(userEmail);
         setSplashPrefetchPromise(prefetchPromise);
         setSplashPhase(true);
+    };
+
+    const completeLogin = (data, fallbackEmail = email) => {
+        sessionStorage.setItem('token', data.access_token);
+        sessionStorage.setItem('userRole', data.role || 'viewer');
+        sessionStorage.setItem('insight_user_email', data.email || fallbackEmail);
+        sessionStorage.setItem('isZoneAdmin', String(data.is_zone_admin === true));
+        if (data.permissions) {
+            sessionStorage.setItem('rolePermissions', JSON.stringify(data.permissions));
+        }
+        enterSplashPhase(data.email || fallbackEmail);
     };
 
     // ── Step 1: Check email ───────────────────────────────────────────
@@ -150,15 +168,32 @@ const Login = ({ onLoginSuccess }) => {
                 return;
             }
 
-            sessionStorage.setItem('token', data.access_token);
-            sessionStorage.setItem('userRole', data.role || 'viewer');
-            sessionStorage.setItem('insight_user_email', data.email || email);
-            sessionStorage.setItem('isZoneAdmin', String(data.is_zone_admin === true));
-            if (data.permissions) {
-                sessionStorage.setItem('rolePermissions', JSON.stringify(data.permissions));
+            if (data.status === 'otp_required') {
+                setOtp('');
+                setOtpChallengeToken(data.otp_challenge_token || '');
+                setLoading(false);
+                transitionTo(STEP_OTP);
+                return;
             }
 
-            enterSplashPhase(data.email || email);
+            completeLogin(data);
+        } catch (err) {
+            setLoading(false);
+            setError(err.response?.data?.detail || t('login.error_failed'));
+        }
+    };
+
+    const handleVerifyOtp = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+
+        try {
+            const res = await apiClient.post('/auth/verify-otp', {
+                otp_challenge_token: otpChallengeToken,
+                otp,
+            });
+            completeLogin(res.data);
         } catch (err) {
             setLoading(false);
             setError(err.response?.data?.detail || t('login.error_failed'));
@@ -184,14 +219,14 @@ const Login = ({ onLoginSuccess }) => {
                 new_password: newPassword,
             });
             const data = res.data;
-            sessionStorage.setItem('token', data.access_token);
-            sessionStorage.setItem('userRole', data.role || 'viewer');
-            sessionStorage.setItem('insight_user_email', data.email || email);
-            sessionStorage.setItem('isZoneAdmin', String(data.is_zone_admin === true));
-            if (data.permissions) {
-                sessionStorage.setItem('rolePermissions', JSON.stringify(data.permissions));
+            if (data.status === 'otp_required') {
+                setOtp('');
+                setOtpChallengeToken(data.otp_challenge_token || '');
+                setLoading(false);
+                transitionTo(STEP_OTP);
+                return;
             }
-            enterSplashPhase(data.email || email);
+            completeLogin(data);
         } catch (err) {
             setLoading(false);
             setError(err.response?.data?.detail || 'Đặt mật khẩu thất bại.');
@@ -201,6 +236,8 @@ const Login = ({ onLoginSuccess }) => {
     // ── Use another account ───────────────────────────────────────────
     const handleUseAnotherAccount = () => {
         setPassword('');
+        setOtp('');
+        setOtpChallengeToken('');
         setError('');
         setNewPassword('');
         setConfirmPassword('');
@@ -430,6 +467,86 @@ const Login = ({ onLoginSuccess }) => {
                             </form>
 
                             {/* Back link */}
+                            <div className="mt-5 text-center">
+                                <button
+                                    type="button"
+                                    onClick={handleUseAnotherAccount}
+                                    className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+                                >
+                                    <ArrowLeft size={14} />
+                                    {t('login.use_another_account')}
+                                </button>
+                            </div>
+
+                            {error && (
+                                <div className="mt-4 p-3.5 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-lg text-rose-600 dark:text-rose-400 text-xs font-medium text-center leading-relaxed login-fade-in">
+                                    {error}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* ── STEP 3: OTP ─────────────────────────────────────── */}
+                    {step === STEP_OTP && (
+                        <div className={animationClass}>
+                            <div className="text-center mb-8">
+                                <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+                                    {t('login.step_otp_title') || 'Two-Factor Authentication'}
+                                </h1>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+                                    {t('login.step_otp_subtitle') || 'Enter the 6-digit code from your authenticator app'}
+                                </p>
+                            </div>
+
+                            <div className="mb-6">
+                                <div className="flex items-center gap-3 p-3 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg">
+                                    <div className="w-9 h-9 bg-blue-50 dark:bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500 dark:text-blue-400 shrink-0">
+                                        <Envelope size={16} weight="duotone" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-slate-800 dark:text-white truncate">{email}</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleUseAnotherAccount}
+                                        className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors whitespace-nowrap"
+                                    >
+                                        {t('login.use_another_account')}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <form onSubmit={handleVerifyOtp} className="flex flex-col gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                                        {t('login.otp') || 'One-Time Password'}
+                                    </label>
+                                    <div className="relative">
+                                        <Key size={16} weight="duotone" className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                                        <input
+                                            ref={otpRef}
+                                            type="text"
+                                            inputMode="numeric"
+                                            autoComplete="one-time-code"
+                                            maxLength={6}
+                                            className="login-input-focus w-full h-12 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg pl-11 pr-4 text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none transition-all text-sm tracking-[0.4em] font-mono"
+                                            value={otp}
+                                            onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                            placeholder={t('login.otp_placeholder') || '123456'}
+                                        />
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={loading || otp.length !== 6 || !otpChallengeToken}
+                                    className="w-full h-12 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold rounded-lg hover:bg-slate-800 dark:hover:bg-slate-100 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+                                >
+                                    {loading && <Loader2 size={16} className="animate-spin" />}
+                                    {loading ? t('common.loading') : (t('login.verify_otp') || 'Verify OTP')}
+                                </button>
+                            </form>
+
                             <div className="mt-5 text-center">
                                 <button
                                     type="button"

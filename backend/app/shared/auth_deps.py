@@ -22,7 +22,7 @@ Zone deps:
 """
 from fastapi import Depends, HTTPException, Request
 from typing import Dict, Any, List, Optional
-from app.shared.jwt_utils import verify_insight_token
+from app.shared.jwt_utils import verify_insight_session_token
 from app.database.auth_crud import get_user_by_email
 from app.database.zones_crud import get_zone_by_id
 from app.database.member_permissions_crud import get_zone_role_for_user
@@ -39,7 +39,7 @@ async def get_current_insight_user(request: Request) -> Dict[str, Any]:
         raise HTTPException(status_code=401, detail="Thiếu hoặc sai định dạng Authorization header.")
     token = auth.split(" ", 1)[1]
 
-    payload = verify_insight_token(token)  # raises 401 on invalid/expired
+    payload = verify_insight_session_token(token)  # raises 401 on invalid/expired
     email = payload.get("sub")
     if not email:
         raise HTTPException(status_code=401, detail="Token không hợp lệ.")

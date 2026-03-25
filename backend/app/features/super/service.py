@@ -122,6 +122,8 @@ class SuperService:
         for u in users:
             u["id"] = str(u.pop("_id"))
             u.pop("password_hash", None)
+            u.pop("two_factor_secret", None)
+            u.pop("two_factor_pending_secret", None)
             if u.get("role") == "tenant_admin" and u.get("email") in tenant_map:
                 u["tenant"] = {
                     "id": tenant_map[u["email"]]["id"],

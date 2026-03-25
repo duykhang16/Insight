@@ -15,6 +15,7 @@ from app.config import INTERNAL_APP_AUTH
 _SECRET = hashlib.sha256(INTERNAL_APP_AUTH.encode()).hexdigest()
 _ALGORITHM = "HS256"
 _TOKEN_EXPIRY_HOURS = 8
+_NON_SESSION_PURPOSES = {"must_set_password", "otp_login"}
 
 
 def create_insight_token(email: str, role: str, extra: dict = None, expiry_hours: int = None) -> str:
@@ -40,3 +41,11 @@ def verify_insight_token(token: str) -> Dict:
         raise HTTPException(status_code=401, detail="Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Token không hợp lệ.")
+
+
+def verify_insight_session_token(token: str) -> Dict:
+    """Verify token and reject special-purpose JWTs that are not app sessions."""
+    payload = verify_insight_token(token)
+    if payload.get("purpose") in _NON_SESSION_PURPOSES:
+        raise HTTPException(status_code=401, detail="Token không hợp lệ cho phiên đăng nhập.")
+    return payload
