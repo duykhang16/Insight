@@ -2,11 +2,19 @@
 from fastapi import APIRouter, HTTPException, Request, Depends
 from typing import List, Dict, Any
 from app.shared.auth_deps import require_internal_admin, require_zone_access, require_zone_admin, get_current_insight_user
+<<<<<<< HEAD
 from app.database.member_permissions_crud import get_all_member_emails_in_zone
 from . import service
 from .schemas import (
     ZoneCreateRequest, ZoneUpdateRequest, ZoneSitesUpdateRequest,
     ZoneMemberAddRequest, ZoneMemberUpdateRequest, ZoneMemberSitesUpdateRequest,
+=======
+from app.database.zones_crud import get_all_member_emails_in_zone
+from . import service
+from .schemas import (
+    ZoneCreateRequest, ZoneUpdateRequest, ZoneSitesUpdateRequest,
+    ZoneMemberAddRequest, ZoneMemberUpdateRequest,
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     ZoneResponse, ZoneListItem,
 )
 
@@ -20,16 +28,32 @@ async def list_zones(
     request: Request,
     user: Dict[str, Any] = Depends(require_internal_admin),
 ):
+<<<<<<< HEAD
     """Admin Master: list zones (scoped by tenant)."""
     return await service.list_zones(user["email"], caller_role=user.get("role", "tenant_admin"))
+=======
+    """Admin: list zones. super_admin sees all, tenant_admin sees only their own."""
+    is_super = user.get("role") == "super_admin"
+    return await service.list_zones(user["email"], is_global_admin=is_super)
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
 
 
 @router.get("/my", response_model=List[ZoneListItem])
 async def list_my_zones(request: Request):
+<<<<<<< HEAD
     """Any approved user: list zones they belong to."""
     user = await get_current_insight_user(request)
     role = user.get("role", "viewer")
     return await service.list_my_zones(user["email"], caller_role=role)
+=======
+    """Any approved user: list zones they belong to. super_admin gets empty (separate UI)."""
+    user = await get_current_insight_user(request)
+    role = user.get("role", "")
+    if role == "super_admin":
+        return []  # super_admin has separate management UI, not zone-based
+    is_tenant = role == "tenant_admin"
+    return await service.list_my_zones(user["email"], is_super=False, is_tenant=is_tenant)
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
 
 
 @router.post("", response_model=ZoneResponse, status_code=201)
@@ -50,6 +74,7 @@ async def create_zone(
     return zone
 
 
+<<<<<<< HEAD
 async def _verify_zone_ownership(zone_id: str, user: Dict[str, Any]):
     """Tenant isolation: tenant_admin can only access zones they created.
     super_admin is blocked entirely (system-level, no tenant data access)."""
@@ -71,6 +96,25 @@ async def get_zone(zone_id: str, request: Request):
         await _verify_zone_ownership(zone_id, user)
     else:
         # manager/viewer: must be a zone member
+=======
+@router.get("/{zone_id}", response_model=ZoneResponse)
+async def get_zone(zone_id: str, request: Request):
+    user = await get_current_insight_user(request)
+    role = user.get("role", "")
+    if role == "super_admin":
+        pass  # super_admin sees everything
+    elif role == "tenant_admin":
+        # tenant_admin can only access zones they created or are member of
+        zone_doc = await service.get_zone_detail(zone_id)
+        if not zone_doc:
+            raise HTTPException(status_code=404, detail="Zone không tồn tại.")
+        is_creator = zone_doc.created_by == user["email"]
+        is_member = any(m.email == user["email"] for m in (zone_doc.members or []))
+        if not is_creator and not is_member:
+            raise HTTPException(status_code=403, detail="Bạn không có quyền truy cập Zone này.")
+        return zone_doc
+    else:
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
         await require_zone_access(zone_id, request)
     zone = await service.get_zone_detail(zone_id)
     if not zone:
@@ -80,12 +124,16 @@ async def get_zone(zone_id: str, request: Request):
 
 @router.put("/{zone_id}", response_model=ZoneResponse)
 async def update_zone(zone_id: str, payload: ZoneUpdateRequest, request: Request):
+<<<<<<< HEAD
     user = await get_current_insight_user(request)
     role = user.get("role", "viewer")
     if role in ("super_admin", "tenant_admin"):
         await _verify_zone_ownership(zone_id, user)
     else:
         await require_zone_admin(zone_id, request)
+=======
+    await require_zone_admin(zone_id, request)
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     updates = payload.model_dump(exclude_none=True)
     if not updates:
         raise HTTPException(status_code=400, detail="Không có trường nào để cập nhật.")
@@ -104,12 +152,26 @@ async def delete_zone(
     request: Request,
     user: Dict[str, Any] = Depends(require_internal_admin),
 ):
+<<<<<<< HEAD
     # Tenant isolation: only owner can delete
     await _verify_zone_ownership(zone_id, user)
     ok = await service.delete_zone(zone_id)
     if not ok:
         raise HTTPException(status_code=404, detail="Zone không tồn tại.")
     return {"message": f"Zone {zone_id} đã được xóa. Sites chuyển về Unassigned."}
+=======
+    # tenant_admin can only delete zones they created
+    if user.get("role") == "tenant_admin":
+        zone_doc = await service.get_zone_detail(zone_id)
+        if not zone_doc:
+            raise HTTPException(status_code=404, detail="Zone không tồn tại.")
+        if zone_doc.created_by != user["email"]:
+            raise HTTPException(status_code=403, detail="Bạn chỉ có thể xóa Zone do mình tạo.")
+    ok = await service.delete_zone(zone_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Zone không tồn tại.")
+    return {"message": f"Zone {zone_id} đã được xóa."}
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
 
 
 # ── Site assignment ────────────────────────────────────────────────────────
@@ -122,8 +184,11 @@ async def update_zone_sites(
     user: Dict[str, Any] = Depends(require_internal_admin),
 ):
     """Replace site list for a zone. Called by drag-drop frontend."""
+<<<<<<< HEAD
     # Tenant isolation: only owner can modify sites
     await _verify_zone_ownership(zone_id, user)
+=======
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     zone = await service.update_zone_sites(zone_id, payload.site_ids)
     if not zone:
         raise HTTPException(status_code=404, detail="Zone không tồn tại.")
@@ -134,6 +199,7 @@ async def update_zone_sites(
 
 @router.post("/{zone_id}/members", response_model=ZoneResponse)
 async def add_member(zone_id: str, payload: ZoneMemberAddRequest, request: Request):
+<<<<<<< HEAD
     caller = await get_current_insight_user(request)
     role = caller.get("role", "viewer")
     
@@ -143,6 +209,10 @@ async def add_member(zone_id: str, payload: ZoneMemberAddRequest, request: Reque
     else:
         await require_zone_admin(zone_id, request)
 
+=======
+    caller = await require_zone_admin(zone_id, request)
+    
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     from app.database.auth_crud import get_user_by_email
     target_user = await get_user_by_email(payload.email)
     if not target_user:
@@ -152,6 +222,7 @@ async def add_member(zone_id: str, payload: ZoneMemberAddRequest, request: Reque
     mapped_role = "manager" if sys_role in ["super_admin", "tenant_admin", "manager"] else "viewer"
 
     try:
+<<<<<<< HEAD
         zone = await service.add_member(
             zone_id=zone_id,
             email=payload.email,
@@ -160,6 +231,9 @@ async def add_member(zone_id: str, payload: ZoneMemberAddRequest, request: Reque
             all_sites=payload.all_sites,
             allowed_site_ids=payload.allowed_site_ids,
         )
+=======
+        zone = await service.add_member(zone_id, payload.email, mapped_role, caller["email"])
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     if not zone:
@@ -169,6 +243,7 @@ async def add_member(zone_id: str, payload: ZoneMemberAddRequest, request: Reque
 
 @router.put("/{zone_id}/members/{email}", response_model=ZoneResponse)
 async def update_member(zone_id: str, email: str, payload: ZoneMemberUpdateRequest, request: Request):
+<<<<<<< HEAD
     caller = await get_current_insight_user(request)
     role = caller.get("role", "viewer")
     
@@ -222,6 +297,22 @@ async def update_member_sites(
     zone = await service.update_member_sites(
         zone_id, email, payload.all_sites, payload.allowed_site_ids
     )
+=======
+    caller = await require_zone_admin(zone_id, request)
+    
+    from app.database.auth_crud import get_user_by_email
+    target_user = await get_user_by_email(email)
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User không tồn tại.")
+        
+    sys_role = target_user.get("role", "viewer")
+    mapped_role = "manager" if sys_role in ["super_admin", "tenant_admin", "manager"] else "viewer"
+
+    try:
+        zone = await service.update_member_role(zone_id, email, mapped_role)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     if not zone:
         raise HTTPException(status_code=404, detail="Zone hoặc member không tồn tại.")
     return zone
@@ -229,12 +320,16 @@ async def update_member_sites(
 
 @router.delete("/{zone_id}/members/{email}")
 async def remove_member(zone_id: str, email: str, request: Request):
+<<<<<<< HEAD
     caller = await get_current_insight_user(request)
     role = caller.get("role", "viewer")
     if role in ("super_admin", "tenant_admin"):
         await _verify_zone_ownership(zone_id, caller)
     else:
         await require_zone_admin(zone_id, request)
+=======
+    await require_zone_admin(zone_id, request)
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     ok = await service.remove_member(zone_id, email)
     if not ok:
         raise HTTPException(status_code=404, detail="Zone không tồn tại.")
@@ -251,12 +346,16 @@ async def get_zone_logs(
     skip: int = 0,
 ):
     """Return audit logs filtered to members of this zone."""
+<<<<<<< HEAD
     user = await get_current_insight_user(request)
     role = user.get("role", "viewer")
     if role in ("super_admin", "tenant_admin"):
         await _verify_zone_ownership(zone_id, user)
     else:
         await require_zone_access(zone_id, request)
+=======
+    await require_zone_access(zone_id, request)
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
 
     from app.database.connection import get_database
     from pytz import timezone as tz
@@ -290,9 +389,12 @@ async def get_zone_logs(
             "ip_address": log.get("ip_address"),
             "statusCode": log.get("statusCode", 0),
             "action": log.get("action"),
+<<<<<<< HEAD
             "site_id": log.get("site_id"),
             "zone_id": log.get("zone_id"),
             "status": log.get("status"),
             "result_detail": log.get("result_detail"),
+=======
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
         })
     return logs

@@ -3,6 +3,7 @@ from typing import Optional, Dict, Any
 from .connection import get_database
 import bcrypt
 
+<<<<<<< HEAD
 _TWO_FACTOR_DEFAULTS = {
     "two_factor_enabled": False,
     "two_factor_secret": None,
@@ -11,6 +12,8 @@ _TWO_FACTOR_DEFAULTS = {
     "two_factor_pending_label_email": None,
 }
 
+=======
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
 
 # ===== Password helpers =====
 
@@ -29,6 +32,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 async def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
     db = get_database()
+<<<<<<< HEAD
     user = await db.users.find_one({"email": email})
     if not user:
         return None
@@ -45,6 +49,9 @@ async def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
         user = {**_TWO_FACTOR_DEFAULTS, **user}
 
     return user
+=======
+    return await db.users.find_one({"email": email})
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
 
 
 async def create_user(user_data: Dict[str, Any]) -> str:
@@ -67,7 +74,10 @@ async def create_user_with_password(
         "role": role,
         "isApproved": is_approved,
         "created_at": datetime.now(timezone.utc),
+<<<<<<< HEAD
         **_TWO_FACTOR_DEFAULTS,
+=======
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     }
     if parent_admin_id:
         doc["parent_admin_id"] = parent_admin_id
@@ -89,7 +99,10 @@ async def create_user_no_password(
         "isApproved": is_approved,
         "must_set_password": True,
         "created_at": datetime.now(timezone.utc),
+<<<<<<< HEAD
         **_TWO_FACTOR_DEFAULTS,
+=======
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     }
     if parent_admin_id:
         doc["parent_admin_id"] = parent_admin_id
@@ -139,9 +152,15 @@ async def authenticate_user(email: str, password: str) -> "AuthResult":
     # Zone check: non-admins must belong to at least one zone
     _ADMIN_ROLES = {"super_admin", "tenant_admin"}
     if user.get("role") not in _ADMIN_ROLES:
+<<<<<<< HEAD
         from app.database.member_permissions_crud import get_zone_ids_for_member
         zone_ids = await get_zone_ids_for_member(user["email"])
         if not zone_ids:
+=======
+        from app.database.zones_crud import get_zones_for_member
+        zones = await get_zones_for_member(user["email"])
+        if not zones:
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
             return AuthResult(error="no_zones")
 
     return AuthResult(user=user)

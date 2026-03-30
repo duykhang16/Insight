@@ -1,7 +1,11 @@
 """Auth dependencies — Insight JWT-based auth + Zone-aware deps.
 
 All routes authenticate via Insight JWT (HS256, 8 h expiry).
+<<<<<<< HEAD
 Aruba operations additionally require a linked Master Account (per-tenant).
+=======
+Aruba operations additionally require a linked Master Account.
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
 
 Tier hierarchy:
   super_admin   → DEV-level, full control, creates tenant_admin accounts
@@ -13,8 +17,12 @@ get_current_insight_user   → any authenticated + approved user
 require_super_admin        → super_admin only
 require_internal_admin     → super_admin OR tenant_admin
 is_admin_role(user)        → helper: True if super_admin or tenant_admin
+<<<<<<< HEAD
 resolve_admin_email(user)  → resolve the tenant admin email for Aruba operations
 require_master_token       → returns master Aruba token for caller's tenant, 503 if not linked
+=======
+require_master_token       → returns master Aruba token, 503 if not linked
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
 
 Zone deps:
   require_zone_access      → zone member or admin-tier user
@@ -22,10 +30,16 @@ Zone deps:
 """
 from fastapi import Depends, HTTPException, Request
 from typing import Dict, Any, List, Optional
+<<<<<<< HEAD
 from app.shared.jwt_utils import verify_insight_session_token
 from app.database.auth_crud import get_user_by_email
 from app.database.zones_crud import get_zone_by_id
 from app.database.member_permissions_crud import get_zone_role_for_user
+=======
+from app.shared.jwt_utils import verify_insight_token
+from app.database.auth_crud import get_user_by_email
+from app.database.zones_crud import get_zone_by_id, get_zone_role_for_user
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
 
 
 # ---------------------------------------------------------------------------
@@ -39,7 +53,11 @@ async def get_current_insight_user(request: Request) -> Dict[str, Any]:
         raise HTTPException(status_code=401, detail="Thiếu hoặc sai định dạng Authorization header.")
     token = auth.split(" ", 1)[1]
 
+<<<<<<< HEAD
     payload = verify_insight_session_token(token)  # raises 401 on invalid/expired
+=======
+    payload = verify_insight_token(token)  # raises 401 on invalid/expired
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     email = payload.get("sub")
     if not email:
         raise HTTPException(status_code=401, detail="Token không hợp lệ.")
@@ -64,6 +82,7 @@ def is_admin_role(user: Dict[str, Any]) -> bool:
     return user.get("role") in ("super_admin", "tenant_admin")
 
 
+<<<<<<< HEAD
 def resolve_admin_email(user: Dict[str, Any]) -> str:
     """Resolve the tenant admin email that owns the Aruba master config.
     
@@ -94,6 +113,8 @@ def resolve_admin_email(user: Dict[str, Any]) -> str:
     raise HTTPException(status_code=403, detail="Role không hợp lệ.")
 
 
+=======
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
 # ---------------------------------------------------------------------------
 # Admin-tier deps
 # ---------------------------------------------------------------------------
@@ -115,6 +136,7 @@ async def require_internal_admin(request: Request) -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+<<<<<<< HEAD
 # Master token gate — per-tenant, 503 if not linked
 # ---------------------------------------------------------------------------
 
@@ -134,6 +156,18 @@ async def require_master_token(
     admin_email = resolve_admin_email(user)
     from app.features.master.service import get_master_token_auto
     token = await get_master_token_auto(admin_email)
+=======
+# Master token gate — 503 if master not linked
+# ---------------------------------------------------------------------------
+
+async def require_master_token() -> str:
+    """Return the active master Aruba Bearer token with auto-refresh.
+
+    Raises HTTP 503 if master account is not linked or refresh fails.
+    """
+    from app.features.master.service import get_master_token_auto
+    token = await get_master_token_auto()
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     if not token:
         raise HTTPException(
             status_code=503,
@@ -168,10 +202,34 @@ require_admin    = RoleChecker(["super_admin", "tenant_admin"])
 # ---------------------------------------------------------------------------
 
 async def require_zone_access(zone_id: str, request: Request) -> Dict[str, Any]:
+<<<<<<< HEAD
     """Require caller to be a member of the zone (or admin-tier user)."""
     user = await get_current_insight_user(request)
     if is_admin_role(user):
         return user
+=======
+    """Require caller to be a member of the zone (or super_admin).
+
+    Used for: GET zone detail, GET zone logs, GET zone members.
+    tenant_admin must be zone creator or member.
+    """
+    user = await get_current_insight_user(request)
+    role = user.get("role", "")
+    if role == "super_admin":
+        return user
+    if role == "tenant_admin":
+        # tenant_admin must be creator or member
+        zone = await get_zone_by_id(zone_id)
+        if not zone:
+            raise HTTPException(status_code=404, detail="Zone không tồn tại.")
+        if zone.get("created_by") == user["email"]:
+            return user
+        zone_role = await get_zone_role_for_user(zone_id, user["email"])
+        if zone_role:
+            user["_zone_role"] = zone_role
+            return user
+        raise HTTPException(status_code=403, detail="Bạn không có quyền truy cập vào Zone này.")
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     zone_role = await get_zone_role_for_user(zone_id, user["email"])
     if not zone_role:
         raise HTTPException(status_code=403, detail="Bạn không có quyền truy cập vào Zone này.")
@@ -180,13 +238,37 @@ async def require_zone_access(zone_id: str, request: Request) -> Dict[str, Any]:
 
 
 async def require_zone_admin(zone_id: str, request: Request) -> Dict[str, Any]:
+<<<<<<< HEAD
     """Require caller to be a zone-level admin (or admin-tier user)."""
     user = await get_current_insight_user(request)
     if is_admin_role(user):
+=======
+    """Require caller to be a zone-level admin (or super_admin).
+
+    Used for: PUT zone, POST/PUT/DELETE zone members.
+    tenant_admin must be creator of this zone.
+    """
+    user = await get_current_insight_user(request)
+    role = user.get("role", "")
+    if role == "super_admin":
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
         return user
     zone = await get_zone_by_id(zone_id)
     if not zone:
         raise HTTPException(status_code=404, detail="Zone không tồn tại.")
+<<<<<<< HEAD
+=======
+    if role == "tenant_admin":
+        # tenant_admin can manage zones they created
+        if zone.get("created_by") == user["email"]:
+            return user
+        # or if they are a member with manager role
+        zone_role = await get_zone_role_for_user(zone_id, user["email"])
+        if zone_role == "manager":
+            user["_zone_role"] = zone_role
+            return user
+        raise HTTPException(status_code=403, detail="Bạn không có quyền quản lý Zone này.")
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     zone_role = await get_zone_role_for_user(zone_id, user["email"])
     if zone_role != "manager":
         raise HTTPException(status_code=403, detail="Yêu cầu quyền Zone Manager.")

@@ -130,6 +130,7 @@ class GlobalLoggingMiddleware(BaseHTTPMiddleware):
         request._receive = receive
 
         status_code = 500
+<<<<<<< HEAD
         response_body_data = None
         try:
             response = await call_next(request)
@@ -158,6 +159,11 @@ class GlobalLoggingMiddleware(BaseHTTPMiddleware):
                 except Exception:
                     pass  # Don't break logging if body read fails
 
+=======
+        try:
+            response = await call_next(request)
+            status_code = response.status_code
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
         except Exception as e:
             raise e
         finally:
@@ -170,6 +176,7 @@ class GlobalLoggingMiddleware(BaseHTTPMiddleware):
                 z_ids = payload_data.get("target_zone_ids")
                 if isinstance(z_ids, list) and z_ids:
                     zone_id = z_ids[0] # Track primary target zone
+<<<<<<< HEAD
 
             # Determine status: use response body status for clone ops, else HTTP code
             if response_body_data and isinstance(response_body_data, dict):
@@ -193,6 +200,10 @@ class GlobalLoggingMiddleware(BaseHTTPMiddleware):
                 summary = response_body_data.get("result_summary")
                 if summary:
                     result_detail = summary  # {success: N, skipped: N, failed: N, total: N}
+=======
+            
+            status_text = "SUCCESS" if 200 <= status_code < 300 else "ERROR"
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
             
             log_entry = {
                 "timestamp": datetime.now(timezone.utc),
@@ -208,7 +219,10 @@ class GlobalLoggingMiddleware(BaseHTTPMiddleware):
                 "payload": payload_data,
                 "ip_address": ip_address,
                 "statusCode": status_code,
+<<<<<<< HEAD
                 "result_detail": result_detail,
+=======
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
             }
             asyncio.create_task(insert_audit_log(log_entry))
 

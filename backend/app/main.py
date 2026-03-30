@@ -22,7 +22,10 @@ from app.features.master.routes import router as master_router
 from app.features.super.routes import router as super_router
 from app.features.templates.routes import router as templates_router
 from app.features.monitoring.routes import router as monitoring_router
+<<<<<<< HEAD
 from app.core.routes import router as tasks_router
+=======
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
 
 
 
@@ -63,11 +66,14 @@ async def lifespan(app: FastAPI):
     start_token_manager()
     print("INFO: Master token manager started.")
 
+<<<<<<< HEAD
     # Ensure template indexes
     from app.database.templates_crud import ensure_indexes as ensure_template_indexes
     await ensure_template_indexes()
     print("INFO: Template indexes ensured.")
 
+=======
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     yield
     await close_mongo_connection()
 
@@ -109,7 +115,10 @@ app.include_router(master_router, prefix="/api/v1", tags=["master"])        # /a
 app.include_router(super_router, prefix="/api/v1/super", tags=["super"])
 app.include_router(templates_router, prefix="/api/v1", tags=["templates"])
 app.include_router(monitoring_router, prefix="/api/v1/monitoring", tags=["monitoring"])
+<<<<<<< HEAD
 app.include_router(tasks_router)                                             # /api/v1/tasks
+=======
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
 
 
 @app.get("/health", tags=["System"])

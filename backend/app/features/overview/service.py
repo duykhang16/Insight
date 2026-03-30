@@ -115,6 +115,7 @@ class OverviewService:
                     "historyDurationSeconds": node.get("historyDurationSeconds", 86400),
                 })
 
+<<<<<<< HEAD
             # --- Bước 4: Zone filter — non-tenant-admin chỉ thấy sites trong zones của mình ---
             from app.config import SUPER_ADMIN_EMAILS
             from app.database.member_permissions_crud import get_effective_site_ids_for_user
@@ -134,6 +135,40 @@ class OverviewService:
                 try:
                     from app.features.templates.service import get_site_template_map
                     template_map = await get_site_template_map(caller_email)
+=======
+            # --- Bước 4: Zone filter — non-super-admin chỉ thấy sites trong zones của mình ---
+            from app.config import SUPER_ADMIN_EMAILS
+            from app.database.zones_crud import get_site_ids_for_user_zones, get_zones_for_tenant_admin, get_all_assigned_site_ids
+
+            is_super = insight_app_role == "super_admin" or (caller_email in SUPER_ADMIN_EMAILS)
+            if is_super:
+                pass  # super_admin sees all
+            elif insight_app_role == "tenant_admin" and caller_email:
+                # tenant_admin sees: sites in their zones + unassigned sites (not in any zone)
+                zones = await get_zones_for_tenant_admin(caller_email)
+                my_site_ids = set()
+                for z in zones:
+                    my_site_ids.update(z.get("site_ids", []))
+                all_assigned = await get_all_assigned_site_ids()
+                sites = [s for s in sites if s.get("siteId") in my_site_ids or s.get("siteId") not in all_assigned]
+            elif caller_email:
+                allowed_ids = await get_site_ids_for_user_zones(caller_email)
+                allowed_set = set(allowed_ids)
+                sites = [s for s in sites if s.get("siteId") in allowed_set]
+
+            # --- Bước 5: Template Enrichment ---
+            if caller_email:
+                try:
+                    from app.features.templates.service import get_site_template_map
+                    # Resolve tenant owner: manager/viewer use parent_admin_id
+                    template_owner = caller_email
+                    if insight_app_role in ("manager", "viewer"):
+                        from app.database.auth_crud import get_user_by_email
+                        caller_user = await get_user_by_email(caller_email)
+                        if caller_user and caller_user.get("parent_admin_id"):
+                            template_owner = caller_user["parent_admin_id"]
+                    template_map = await get_site_template_map(template_owner)
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
                     for site in sites:
                         sid = site.get("siteId")
                         if sid in template_map:
@@ -357,7 +392,10 @@ class OverviewService:
                 "conditionCount": len(conditions),
                 "majorCount":     major_count,
                 "minorCount":     minor_count,
+<<<<<<< HEAD
                 "counters":       _extract_counters(h_health),
+=======
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
             })
 
         return {

@@ -37,8 +37,13 @@ async def connect_to_mongo():
     await db.tenants.create_index("name", unique=True)
     await db.tenants.create_index("admin_email", sparse=True)
 
+<<<<<<< HEAD
     # === Master account config (per-tenant) ===
     await db.master_config.create_index([("linked_by", 1), ("is_active", 1)])
+=======
+    # === Master account config (singleton) ===
+    await db.master_config.create_index("is_active")
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
 
     # === Alert notification read status (per user per site) ===
     await db.alert_reads.create_index([("user_email", 1), ("site_id", 1)], unique=True)

@@ -31,6 +31,7 @@ async def get_site_overview(
     master_token: str = Depends(require_master_token),
 ):
     return await config_service.get_site_overview(site_id, master_token)
+<<<<<<< HEAD
 
 
 @router.get("/sites/{site_id}/individual/networks")
@@ -140,3 +141,5 @@ async def create_individual_network(
         return await config_service.create_individual_wired_network(site_id, payload, master_token)
     else:
         return await config_service.create_individual_wireless_network(site_id, payload, master_token)
+=======
+>>>>>>> parent of 0c80cd2 (Delete backend directory)

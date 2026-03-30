@@ -66,8 +66,13 @@ class ArubaService:
 
             parsed_target = urlparse(url)
             t_host = parsed_target.netloc
+<<<<<<< HEAD
             f_headers.setdefault("Origin", f"{parsed_target.scheme}://{t_host}")
             f_headers.setdefault("Referer", f"{f_headers['Origin']}/")
+=======
+            f_headers["Origin"] = f"{parsed_target.scheme}://{t_host}"
+            f_headers["Referer"] = f"{f_headers['Origin']}/"
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
             f_headers["Host"] = t_host
 
             async with httpx.AsyncClient(timeout=30.0, follow_redirects=True, verify=False) as client:

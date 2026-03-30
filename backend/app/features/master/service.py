@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 """Business logic for master Aruba account management (per-tenant)."""
+=======
+"""Business logic for master Aruba account management."""
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
 from datetime import datetime, timezone
 import asyncio
 from typing import Optional, List, Dict, Any
@@ -19,6 +23,7 @@ from .schemas import (
 )
 
 
+<<<<<<< HEAD
 # Per-tenant locks to prevent concurrent refresh attempts
 _refresh_locks: Dict[str, asyncio.Lock] = {}
 
@@ -28,6 +33,10 @@ def _get_refresh_lock(admin_email: str) -> asyncio.Lock:
     if admin_email not in _refresh_locks:
         _refresh_locks[admin_email] = asyncio.Lock()
     return _refresh_locks[admin_email]
+=======
+# Global lock to prevent concurrent refresh attempts (Avoids 429 Too Many Requests)
+_refresh_lock = asyncio.Lock()
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
 
 
 def _fmt_dt(dt) -> str:
@@ -42,9 +51,14 @@ def _is_admin_role(role: str) -> bool:
     return (role or "").strip().lower() in ("administrator", "admin")
 
 
+<<<<<<< HEAD
 async def get_status(admin_email: str) -> MasterStatusResponse:
     """Get master config status for a specific tenant admin."""
     config = await get_master_config(admin_email)
+=======
+async def get_status() -> MasterStatusResponse:
+    config = await get_master_config()
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     if not config or not config.get("is_active"):
         return MasterStatusResponse(is_linked=False)
 
@@ -76,6 +90,15 @@ async def scan_sites(username: str, password: str) -> Dict[str, Any]:
     """
     Step 1 of the link flow: login and classify sites by admin role.
     Does NOT write anything to the database.
+<<<<<<< HEAD
+=======
+
+    Returns a dict with:
+      - access_token: str (to reuse in confirm step)
+      - expires_in: int
+      - admin_sites: list of {site_id, site_name, role}
+      - restricted_sites: list of {site_id, site_name, role}
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     """
     login_result = await replay_login(username, password)
     if login_result.get("status") != "success":
@@ -120,15 +143,29 @@ async def link_account(
     restricted_site_count: int = 0,
 ) -> MasterLinkResponse:
     """
+<<<<<<< HEAD
     Step 2 of the link flow: store credentials and token for THIS tenant admin.
     """
     if not access_token:
+=======
+    Step 2 of the link flow: store credentials and token.
+
+    If access_token is provided (from scan step), skips re-login.
+    If admin_site_ids is provided, only those sites are tracked.
+    """
+    if not access_token:
+        # Re-login if token not carried from scan step
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
         login_result = await replay_login(username, password)
         if login_result.get("status") != "success":
             raise ValueError(f"Đăng nhập Aruba thất bại: {login_result.get('message', 'Lỗi không xác định')}")
         access_token = login_result["data"].get("access_token", "")
         expires_in = login_result.get("expires_in", 1799)
 
+<<<<<<< HEAD
+=======
+        # Full validation — all sites must be admin
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
         sites = await get_live_account_sites(access_token)
         if not sites:
             raise PermissionError("Tài khoản Aruba này không có site nào.")
@@ -161,6 +198,10 @@ async def link_account(
     )
 
     expires_at = config.get("expires_at", "")
+<<<<<<< HEAD
+=======
+
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     skipped_msg = f" ({restricted_site_count} site Viewer đã bị bỏ qua)" if restricted_site_count > 0 else ""
 
     return MasterLinkResponse(
@@ -172,17 +213,28 @@ async def link_account(
     )
 
 
+<<<<<<< HEAD
 async def unlink_account(admin_email: str) -> dict:
     """Unlink THIS tenant's master account."""
     ok = await deactivate_master_config(admin_email)
+=======
+async def unlink_account() -> dict:
+    ok = await deactivate_master_config()
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     if not ok:
         raise ValueError("Không tìm thấy Master Account đang hoạt động.")
     return {"message": "Đã ngắt kết nối Master Account thành công."}
 
 
+<<<<<<< HEAD
 async def force_refresh(admin_email: str) -> dict:
     """Manually trigger a token refresh for THIS tenant."""
     ok, expires_at = await _refresh_token_silent(admin_email)
+=======
+async def force_refresh() -> dict:
+    """Manually trigger a token refresh."""
+    ok, expires_at = await _refresh_token_silent()
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     if not ok:
         raise ValueError(f"Refresh thất bại logic.")
 
@@ -192,12 +244,21 @@ async def force_refresh(admin_email: str) -> dict:
     }
 
 
+<<<<<<< HEAD
 async def refresh_token_locked(admin_email: str) -> bool:
     """
     Public method to refresh the master token for a specific tenant with locking and cool-down.
     Returns True if refreshed successfully.
     """
     config = await get_master_config(admin_email)
+=======
+async def refresh_token_locked() -> bool:
+    """
+    Public method to refresh the master token with locking and cool-down.
+    Returns True if refreshed successfully.
+    """
+    config = await get_master_config()
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     if not config or not config.get("is_active"):
         return False
 
@@ -211,12 +272,21 @@ async def refresh_token_locked(admin_email: str) -> bool:
         if (datetime.now(timezone.utc) - failed_at).total_seconds() < 120:
             return False
 
+<<<<<<< HEAD
     lock = _get_refresh_lock(admin_email)
     async with lock:
         # Re-check expiry inside lock to avoid double refresh
         config = await get_master_config(admin_email)
         if not config: return False
         
+=======
+    async with _refresh_lock:
+        # Re-check expiry inside lock to avoid double refresh
+        config = await get_master_config()
+        if not config: return False
+        
+        # If token was refreshed by someone else while we waited for lock, just return True
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
         exp = config.get("expires_at")
         if exp:
             if isinstance(exp, str): exp = datetime.fromisoformat(exp.replace("Z", "+00:00"))
@@ -224,6 +294,7 @@ async def refresh_token_locked(admin_email: str) -> bool:
             if (exp - datetime.now(timezone.utc)).total_seconds() >= 300:
                 return True
 
+<<<<<<< HEAD
         ok, _ = await _refresh_token_silent(admin_email)
         return ok
 
@@ -231,6 +302,15 @@ async def refresh_token_locked(admin_email: str) -> bool:
 async def _refresh_token_silent(admin_email: str) -> (bool, Optional[datetime]):
     """Internal helper to refresh token based on stored credentials for a specific tenant."""
     config = await get_master_config(admin_email)
+=======
+        ok, _ = await _refresh_token_silent()
+        return ok
+
+
+async def _refresh_token_silent() -> (bool, Optional[datetime]):
+    """Internal helper to refresh token based on stored credentials."""
+    config = await get_master_config()
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     if not config or not config.get("is_active"):
         return False, None
 
@@ -243,6 +323,7 @@ async def _refresh_token_silent(admin_email: str) -> (bool, Optional[datetime]):
         if login_result.get("status") == "success":
             new_token = login_result["data"].get("access_token", "")
             expires_in = login_result.get("expires_in", 1799)
+<<<<<<< HEAD
             updated_config = await update_master_token(admin_email, new_token, expires_in)
             return True, updated_config.get("expires_at") if isinstance(updated_config, dict) else None
         else:
@@ -253,10 +334,23 @@ async def _refresh_token_silent(admin_email: str) -> (bool, Optional[datetime]):
         print(f"[MASTER SERVICE] Silent refresh error for {admin_email}: {e}")
         from app.database.master_crud import mark_refresh_failure
         await mark_refresh_failure(admin_email, str(e))
+=======
+            updated_config = await update_master_token(new_token, expires_in)
+            return True, updated_config.get("expires_at")
+        else:
+            print(f"[MASTER SERVICE] Refresh failed: {login_result.get('message')}")
+            from app.database.master_crud import mark_refresh_failure
+            await mark_refresh_failure(login_result.get("message", "Unknown error"))
+    except Exception as e:
+        print(f"[MASTER SERVICE] Silent refresh error: {e}")
+        from app.database.master_crud import mark_refresh_failure
+        await mark_refresh_failure(str(e))
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
 
     return False, None
 
 
+<<<<<<< HEAD
 async def get_master_token_auto(admin_email: str) -> Optional[str]:
     """
     Returns a valid master token for a specific tenant.
@@ -265,6 +359,16 @@ async def get_master_token_auto(admin_email: str) -> Optional[str]:
     """
     # 1. Quick check
     config = await get_master_config(admin_email)
+=======
+async def get_master_token_auto() -> Optional[str]:
+    """
+    Returns a valid master token.
+    If the current token is expired or missing, it silently refreshes using stored credentials.
+    Uses a lock to prevent concurrent requests from multiple workers/calls.
+    """
+    # 1. Quick check (Double-Checked Locking Part 1)
+    config = await get_master_config()
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     if not config or not config.get("is_active"):
         return None
 
@@ -276,10 +380,19 @@ async def get_master_token_auto(admin_email: str) -> Optional[str]:
         elif failed_at.tzinfo is None:
             failed_at = failed_at.replace(tzinfo=timezone.utc)
         
+<<<<<<< HEAD
         if (datetime.now(timezone.utc) - failed_at).total_seconds() < 120:
             return config.get("access_token")
 
     token = config.get("access_token")
+=======
+        # If we failed in the last 120 seconds, don't try again (Avoids drowning in 429s)
+        if (datetime.now(timezone.utc) - failed_at).total_seconds() < 120:
+            return config.get("access_token")  # Return old token during cool-down
+
+    token_cache = config.get("token_cache") or {}
+    token = config.get("access_token") # Use top-level field if possible
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     expires_at = config.get("expires_at")
 
     def _needs_refresh(exp):
@@ -295,6 +408,16 @@ async def get_master_token_auto(admin_email: str) -> Optional[str]:
         return token
 
     # 2. Refresh if needed
+<<<<<<< HEAD
     await refresh_token_locked(admin_email)
     new_config = await get_master_config(admin_email)
     return new_config.get("access_token") if new_config else None
+=======
+    if _needs_refresh(expires_at):
+        await refresh_token_locked()
+        # Re-read after refresh effort
+        new_config = await get_master_config()
+        return new_config.get("access_token") if new_config else None
+
+    return token
+>>>>>>> parent of 0c80cd2 (Delete backend directory)

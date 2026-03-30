@@ -1,6 +1,10 @@
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 from .service import auth_service
+<<<<<<< HEAD
+=======
+from app.shared.auth_deps import get_current_insight_user
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Auth"])
 
@@ -14,6 +18,7 @@ class CheckEmailRequest(BaseModel):
     email: str
 
 
+<<<<<<< HEAD
 class VerifyOtpRequest(BaseModel):
     otp_challenge_token: str
     otp: str
@@ -31,6 +36,11 @@ class TwoFactorConfirmRequest(BaseModel):
 class TwoFactorDisableRequest(BaseModel):
     current_password: str
     otp: str
+=======
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
 
 
 @router.post("/check-email")
@@ -41,6 +51,7 @@ async def check_email(body: CheckEmailRequest):
 
 @router.post("/login")
 async def login(body: LoginRequest):
+<<<<<<< HEAD
     """Step 2: Login với tài khoản Insight nội bộ (email + password)."""
     return await auth_service.login(body.email, body.password)
 
@@ -54,20 +65,37 @@ async def verify_otp(body: VerifyOtpRequest):
 @router.get("/session")
 async def session(request: Request):
     """Kiểm tra JWT Insight — dùng cho heartbeat poll (App.jsx)."""
+=======
+    """Step 2: Login with internal Insight account (email + password)."""
+    return await auth_service.login(body.email, body.password)
+
+
+@router.get("/session")
+async def session(request: Request):
+    """Check Insight JWT — used for heartbeat poll (App.jsx)."""
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     token = _extract_token(request)
     return await auth_service.check_session(token)
 
 
 @router.post("/refresh")
 async def refresh(request: Request):
+<<<<<<< HEAD
     """Refresh Insight JWT — xác thực JWT cũ → phát JWT mới."""
+=======
+    """Refresh Insight JWT — verify old JWT → issue new JWT."""
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     token = _extract_token(request)
     return await auth_service.refresh_token(token)
 
 
 @router.post("/logout")
 async def logout():
+<<<<<<< HEAD
     """Logout: client tự xóa token khỏi sessionStorage."""
+=======
+    """Logout: client removes token from sessionStorage."""
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
     return {"status": "success"}
 
 
@@ -82,6 +110,7 @@ async def set_password(request: Request):
 
 
 @router.post("/change-password")
+<<<<<<< HEAD
 async def change_password(request: Request):
     """Change password for authenticated user — requires old password."""
     from app.shared.auth_deps import get_current_insight_user
@@ -126,11 +155,28 @@ async def disable_two_factor(body: TwoFactorDisableRequest, request: Request):
     return await auth_service.disable_two_factor(user["email"], body.current_password, body.otp)
 
 
+=======
+async def change_password(body: ChangePasswordRequest, request: Request):
+    """Authenticated user changes their own password."""
+    user = await get_current_insight_user(request)
+    return await auth_service.change_password(
+        email=user["email"],
+        current_password=body.current_password,
+        new_password=body.new_password,
+    )
+
+
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
 def _extract_token(request: Request) -> str:
     """Extract Bearer token from Authorization header."""
     from fastapi import HTTPException
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
+<<<<<<< HEAD
         raise HTTPException(status_code=401, detail="Không có token.")
     return auth.split(" ", 1)[1]
 
+=======
+        raise HTTPException(status_code=401, detail="No token provided.")
+    return auth.split(" ", 1)[1]
+>>>>>>> parent of 0c80cd2 (Delete backend directory)

@@ -48,8 +48,11 @@ class AdminService:
             u["id"] = str(u["_id"])
             del u["_id"]
             u.pop("password_hash", None)
+<<<<<<< HEAD
             u.pop("two_factor_secret", None)
             u.pop("two_factor_pending_secret", None)
+=======
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
             result.append(u)
         return result
 
@@ -190,7 +193,11 @@ class AdminService:
         is_super = caller.get("role") == "super_admin" or caller.get("email") in SUPER_ADMIN_EMAILS
 
         if zone_id:
+<<<<<<< HEAD
             from app.database.member_permissions_crud import get_all_member_emails_in_zone
+=======
+            from app.database.zones_crud import get_all_member_emails_in_zone
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
             member_emails = await get_all_member_emails_in_zone(zone_id)
             if member_emails:
                 query["$or"] = [
@@ -200,6 +207,7 @@ class AdminService:
             else:
                 return []
         elif not is_super:
+<<<<<<< HEAD
             caller_email = caller.get("email")
             caller_role = caller.get("role")
             
@@ -234,6 +242,25 @@ class AdminService:
                 {"actor_email": {"$in": email_list}},
                 {"insight_user_id": {"$in": email_list}},
             ]
+=======
+            from app.database.zones_crud import get_zones_for_member
+            zones = await get_zones_for_member(caller.get("email"))
+            sub_emails = set()
+            for z in zones:
+                for m in z.get("members", []):
+                    sub_emails.add(m["email"])
+            if sub_emails:
+                sub_list = list(sub_emails)
+                query["$or"] = [
+                    {"actor_email": {"$in": sub_list}},
+                    {"insight_user_id": {"$in": sub_list}},
+                ]
+            else:
+                query["$or"] = [
+                    {"actor_email": caller.get("email")},
+                    {"insight_user_id": caller.get("email")},
+                ]
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
 
         cursor = db.audit_logs.find(query).sort("timestamp", -1).skip(skip).limit(limit)
         logs = await cursor.to_list(length=limit)
@@ -271,8 +298,11 @@ class AdminService:
             site_id=log.get("site_id"),
             zone_id=log.get("zone_id"),
             master_account_used=log.get("master_account_used", False),
+<<<<<<< HEAD
             status=log.get("status"),
             result_detail=log.get("result_detail"),
+=======
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
         )
 
 

@@ -27,9 +27,13 @@ class ZoneSitesUpdateRequest(BaseModel):
 
 class ZoneMemberAddRequest(BaseModel):
     email: str
+<<<<<<< HEAD
     zone_role: Optional[str] = Field("viewer", description="manager | viewer")
     all_sites: bool = Field(True, description="True = access all sites in zone")
     allowed_site_ids: List[str] = Field(default_factory=list, description="Only when all_sites=False")
+=======
+    zone_role: Optional[str] = Field(None, description="manager | viewer")
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
 
     def validate_role(self):
         if self.zone_role and self.zone_role not in VALID_ZONE_ROLES:
@@ -37,6 +41,7 @@ class ZoneMemberAddRequest(BaseModel):
 
 
 class ZoneMemberUpdateRequest(BaseModel):
+<<<<<<< HEAD
     zone_role: Optional[str] = Field(None, description="manager | viewer")
     all_sites: Optional[bool] = None
     allowed_site_ids: Optional[List[str]] = None
@@ -46,6 +51,9 @@ class ZoneMemberSitesUpdateRequest(BaseModel):
     """Update only the site-level permission for a member."""
     all_sites: bool
     allowed_site_ids: List[str] = Field(default_factory=list)
+=======
+    zone_role: str = Field(..., description="manager | viewer")
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
 
 
 # ── Response models ─────────────────────────────────────────────────────────
@@ -53,11 +61,16 @@ class ZoneMemberSitesUpdateRequest(BaseModel):
 class ZoneMemberResponse(BaseModel):
     email: str
     zone_role: str
+<<<<<<< HEAD
     all_sites: bool = True
     allowed_site_ids: List[str] = Field(default_factory=list)
     assigned_by: str
     assigned_at: str  # ISO string
     updated_at: Optional[str] = None
+=======
+    assigned_by: str
+    assigned_at: str  # ISO string
+>>>>>>> parent of 0c80cd2 (Delete backend directory)
 
 
 class ZoneResponse(BaseModel):
