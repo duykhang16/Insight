@@ -27,18 +27,17 @@ import SuperLogs from './pages/Super/SuperLogs';
 import SuperUserManagement from './pages/Super/SuperUserManagement';
 import SuperPermissions from './pages/Super/SuperPermissions';
 import SystemMonitoring from './pages/Super/SystemMonitoring';
-import NoAssignments from './pages/NoAssignments';
-import { SiteProvider, useSite } from './context/SiteContext';
-import { ZoneProvider, useZone } from './context/ZoneContext';
+import { SiteProvider } from './context/SiteContext';
+import { ZoneProvider } from './context/ZoneContext';
 import { SettingsProvider } from './context/SettingsContext';
 import { Toaster } from 'sonner';
 import './App.css';
 
-// Guard for user-management/admin routes.
+// Guard for admin-only routes (super_admin or tenant_admin).
 // - No session  → App.jsx never renders the Router at all (shows Login instead).
 // - Has session, not admin-tier → redirect to /dashboard, session stays alive.
 const AdminRoute = ({ userRole, children }) => {
-  if (['super_admin', 'brand_admin', 'admin'].includes(userRole)) return children;
+  if (userRole === 'super_admin' || userRole === 'tenant_admin') return children;
   return <Navigate to="/zones" replace />;
 };
 
@@ -50,9 +49,9 @@ const SuperRoute = ({ userRole, children }) => {
 
 // Guard for viewer-blocked routes (e.g. Configuration).
 // viewer AND not a Zone Admin → redirect to /zones.
-// Admins can access Configuration for their assigned sites/zones.
+// Manager and Zone Admins can access Configuration for their assigned sites/zones.
 const ViewerRoute = ({ userRole, isZoneAdmin, children }) => {
-  if (['viewer', 'delegator'].includes(userRole) && !isZoneAdmin) return <Navigate to="/zones" replace />;
+  if (userRole === 'viewer' && !isZoneAdmin) return <Navigate to="/zones" replace />;
   return children;
 };
 
@@ -71,46 +70,6 @@ const ThemeAwareToaster = () => {
       }}
     />
   );
-};
-
-const ZoneDashboardRoute = ({ userRole }) => {
-  const { zones, loadingZones, fetchZones } = useZone();
-  const { sites, loadingSites, fetchSites, selectedSiteId } = useSite();
-
-  useEffect(() => {
-    if (zones.length === 0) {
-      fetchZones();
-    }
-    if (sites.length === 0) {
-      fetchSites();
-    }
-  }, [zones.length, sites.length, fetchZones, fetchSites]);
-
-  if (loadingZones || loadingSites) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500" />
-      </div>
-    );
-  }
-
-  if (['admin', 'viewer', 'delegator'].includes(userRole) && zones.length === 0 && sites.length === 0) {
-    return <Navigate to="/access-pending" replace />;
-  }
-
-  if (zones.length === 0 && sites.length > 0) {
-    const fallbackSite = sites.find((site) => {
-      const id = site.siteId || site.id || site._id;
-      return id && String(id) === String(selectedSiteId);
-    }) || sites[0];
-
-    const fallbackSiteId = fallbackSite?.siteId || fallbackSite?.id || fallbackSite?._id;
-    if (fallbackSiteId) {
-      return <Navigate to={`/site/${fallbackSiteId}`} replace />;
-    }
-  }
-
-  return <ZoneDashboard />;
 };
 
 function App() {
@@ -147,17 +106,15 @@ function App() {
         setIsReady(true);
         return;
       }
-        try {
-          // Must use apiClient so /api prefix is applied
-          const { default: apiClient } = await import('./api/apiClient');
-          const res = await apiClient.get('/auth/session');
-          if (res.data && res.data.status === 'active') {
+      try {
+        // Must use apiClient so /api prefix is applied
+        const { default: apiClient } = await import('./api/apiClient');
+        const res = await apiClient.get('/auth/session');
+        if (res.data && res.data.status === 'active') {
           // JWT session verified — use role from server response (authoritative)
           const role = res.data.role || sessionStorage.getItem('userRole') || 'viewer';
           const zoneAdmin = res.data.is_zone_admin === true;
           const perms = res.data.permissions || {};
-          sessionStorage.setItem('parentAdminId', res.data.parent_admin_id || '');
-          sessionStorage.setItem('brandAdminEmail', res.data.brand_admin_email || '');
           sessionStorage.setItem('userRole', role);
           sessionStorage.setItem('isZoneAdmin', String(zoneAdmin));
           sessionStorage.setItem('rolePermissions', JSON.stringify(perms));
@@ -169,15 +126,11 @@ function App() {
           sessionStorage.removeItem('token');
           sessionStorage.removeItem('userRole');
           sessionStorage.removeItem('rolePermissions');
-          sessionStorage.removeItem('parentAdminId');
-          sessionStorage.removeItem('brandAdminEmail');
         }
       } catch (error) {
         sessionStorage.removeItem('token');
         sessionStorage.removeItem('userRole');
         sessionStorage.removeItem('rolePermissions');
-        sessionStorage.removeItem('parentAdminId');
-        sessionStorage.removeItem('brandAdminEmail');
       } finally {
         setCheckingAuth(false);
         setIsReady(true);
@@ -283,8 +236,7 @@ function App() {
               } />
 
               {/* Zone routes — all logged-in users */}
-              <Route path="/zones" element={<ZoneDashboardRoute userRole={userRole} />} />
-              <Route path="/access-pending" element={<NoAssignments />} />
+              <Route path="/zones" element={<ZoneDashboard />} />
               <Route path="/zones/:zoneId/templates" element={<ZoneTemplates />} />
               <Route path="/zones/:zoneId/sites" element={<ZoneSites />} />
               <Route path="/zones/:zoneId/logs" element={<ZoneLogs />} />
@@ -296,7 +248,9 @@ function App() {
                 </AdminRoute>
               } />
               <Route path="/admin/zones" element={
-                userRole === 'brand_admin' ? <ZoneManagement /> : <Navigate to="/zones" replace />
+                <AdminRoute userRole={userRole}>
+                  <ZoneManagement />
+                </AdminRoute>
               } />
               <Route path="/admin/master" element={
                 <AdminRoute userRole={userRole}>

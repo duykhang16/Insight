@@ -155,11 +155,10 @@ class UserDocument(BaseModel):
     id: Optional[str] = Field(None, alias="_id")
     email: str
     password_hash: Optional[str] = Field(None, description="bcrypt hash — None for super admins seeded via env")
-    role: str = Field("viewer", description="super_admin | brand_admin | admin | viewer | delegator")
+    role: str = Field("viewer", description="super_admin | tenant_admin | manager | viewer")
     isApproved: bool = Field(False)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    parent_admin_id: Optional[str] = Field(None, description="Email của direct parent trong cây RBAC")
-    brand_admin_email: Optional[str] = Field(None, description="Email brand_admin gốc của nhánh user này")
+    parent_admin_id: Optional[str] = Field(None, description="Email của admin đã tạo sub-account này")
     is_locked: bool = Field(False, description="Nếu True, chỉ super_admin mới edit/delete được")
 
     class Config:
@@ -211,7 +210,7 @@ class ZoneMemberPermissionDocument(BaseModel):
     id: Optional[str] = Field(None, alias="_id")
     zone_id: str = Field(..., description="Reference to zones._id")
     email: str
-    zone_role: str = Field(..., description="admin | viewer | delegator")
+    zone_role: str = Field(..., description="manager | viewer")
     all_sites: bool = Field(True, description="True = see all sites in zone")
     allowed_site_ids: List[str] = Field(default_factory=list, description="Only used when all_sites=False")
     assigned_by: str
@@ -228,8 +227,6 @@ class ZoneDocument(BaseModel):
     description: Optional[str] = None
     color: str = Field("#3B82F6", description="Hex color for UI card")
     created_by: str
-    brand_admin_email: Optional[str] = Field(None, description="Brand owner root for this zone tree")
-    zone_type: str = Field("canonical", description="internal zone type flag")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     site_ids: List[str] = Field(default_factory=list)
@@ -350,11 +347,10 @@ class UserDocument(BaseModel):
     id: Optional[str] = Field(None, alias="_id")
     email: str
     password_hash: Optional[str] = Field(None, description="bcrypt hash — None for super admins seeded via env")
-    role: str = Field("viewer", description="super_admin | brand_admin | admin | viewer | delegator")
+    role: str = Field("viewer", description="super_admin | tenant_admin | manager | viewer")
     isApproved: bool = Field(False)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    parent_admin_id: Optional[str] = Field(None, description="Email của direct parent trong cây RBAC")
-    brand_admin_email: Optional[str] = Field(None, description="Email brand_admin gốc của nhánh user này")
+    parent_admin_id: Optional[str] = Field(None, description="Email của admin đã tạo sub-account này")
     is_locked: bool = Field(False, description="Nếu True, chỉ super_admin mới edit/delete được")
 
     class Config:
@@ -438,7 +434,7 @@ class TemplateDocument(BaseModel):
     is_default: bool = Field(False, description="True = General template (auto-created, không xóa)")
 
     # Ownership & hierarchy
-    owner_id: str = Field(..., description="Email brand admin sở hữu template")
+    owner_id: str = Field(..., description="Email tenant admin sở hữu template")
     zone_id: Optional[str] = Field(None, description="Zone cha chứa template này")
 
     # Site grouping

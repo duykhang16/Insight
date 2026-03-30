@@ -655,7 +655,6 @@ const UserWidget = ({ onLogout }) => {
     const { theme, toggleTheme } = useTheme();
     const dropdownRef = useRef(null);
 
-    const userRole = sessionStorage.getItem('userRole') || 'viewer';
     const userEmail = sessionStorage.getItem('insight_user_email') || 'user@insight.local';
     const userName = userEmail.split('@')[0];
     const userInitial = userName[0]?.toUpperCase() || '?';
@@ -761,7 +760,6 @@ const UserWidget = ({ onLogout }) => {
                                         {t('account.two_factor') || 'Two-Factor Authentication'}
                                     </span>
                                 </button>
-
                             </div>
 
                             {/* Logout */}

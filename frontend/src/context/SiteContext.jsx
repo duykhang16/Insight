@@ -59,9 +59,6 @@ export const SiteProvider = ({ initialSites, children }) => {
             const res = await apiClient.get('/overview/sites');
             const fetchedSites = Array.isArray(res.data) ? res.data : (res.data.sites || []);
             if (isMounted.current) {
-                const normalizedFetchedSiteIds = new Set(
-                    fetchedSites.map((site) => String(site.siteId || site._id || site.id || ''))
-                );
                 setSites(prev => {
                     // Deep compare — only update if data actually changed
                     if (JSON.stringify(prev) !== JSON.stringify(fetchedSites)) {
@@ -74,18 +71,6 @@ export const SiteProvider = ({ initialSites, children }) => {
                     const firstSite = fetchedSites[0];
                     const id = firstSite.siteId || firstSite._id || firstSite.id;
                     if (id) setSelectedSiteId(id);
-                } else if (
-                    selectedSiteId &&
-                    !normalizedFetchedSiteIds.has(String(selectedSiteId))
-                ) {
-                    const fallbackSite = fetchedSites[0];
-                    const fallbackSiteId = fallbackSite?.siteId || fallbackSite?._id || fallbackSite?.id || '';
-                    setSelectedSiteId(fallbackSiteId);
-                    if (fallbackSiteId) {
-                        sessionStorage.setItem('selectedSiteId', fallbackSiteId);
-                    } else {
-                        sessionStorage.removeItem('selectedSiteId');
-                    }
                 }
             }
         } catch (err) {

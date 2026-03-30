@@ -35,18 +35,15 @@ async def lifespan(app: FastAPI):
     from app.database.roles_crud import initialize_default_roles
     await initialize_default_roles()
     
-    from app.database.auth_crud import get_user_by_email, hash_password
+    from app.database.auth_crud import hash_password
     db = get_database()
     for email in SUPER_ADMIN_EMAILS:
-        existing = await get_user_by_email(email)
+        existing = await db.users.find_one({"email": email})
         if not existing:
             doc = {
                 "email": email,
                 "role": "super_admin",
                 "isApproved": True,
-                "parent_admin_id": None,
-                "brand_admin_email": None,
-                "is_locked": False,
                 "created_at": datetime.now(timezone.utc),
             }
             if SUPER_ADMIN_PASSWORD:
@@ -58,7 +55,7 @@ async def lifespan(app: FastAPI):
             # Only set password_hash if it's missing AND env var is provided
             if SUPER_ADMIN_PASSWORD and not existing.get("password_hash"):
                 update["password_hash"] = hash_password(SUPER_ADMIN_PASSWORD)
-            await db.users.update_one({"_id": existing["_id"]}, {"$set": update})
+            await db.users.update_one({"email": email}, {"$set": update})
             print(f"[RBAC] Super Admin ensured (migrated if needed): {email}")
 
     # Start master account token auto-refresh background task
@@ -70,10 +67,6 @@ async def lifespan(app: FastAPI):
     from app.database.templates_crud import ensure_indexes as ensure_template_indexes
     await ensure_template_indexes()
     print("INFO: Template indexes ensured.")
-
-    from app.database.member_permissions_crud import ensure_indexes as ensure_member_permission_indexes
-    await ensure_member_permission_indexes()
-    print("INFO: Zone member permission indexes ensured.")
 
     yield
     await close_mongo_connection()

@@ -95,7 +95,6 @@ async def execute_template_sync(
 
 async def _get_zone_filtered_sites(email: str, all_sites: List[Dict]) -> List[Dict]:
     from app.database.member_permissions_crud import get_effective_site_ids_for_user
-
     allowed_site_ids = await get_effective_site_ids_for_user(email)
     if not allowed_site_ids:
         return []
@@ -104,26 +103,38 @@ async def _get_zone_filtered_sites(email: str, all_sites: List[Dict]) -> List[Di
 
 
 def _require_manager_or_higher(user: Dict[str, Any]):
-    """Block viewer/delegator from write operations (Full Clone, Smart Sync)."""
+    """Block viewer from write operations (Full Clone, Smart Sync).
+
+    Allowed roles: super_admin, tenant_admin, manager.
+    Raises 403 for viewer.
+    """
     role = user.get("role", "")
-    if role in ("viewer", "delegator"):
+    if role == "viewer":
         raise HTTPException(
             status_code=403,
-            detail="Viewer/Delegator không có quyền thực hiện thao tác cấu hình. Yêu cầu quyền Admin trở lên."
+            detail="Viewer không có quyền thực hiện thao tác cấu hình. Yêu cầu quyền Manager trở lên."
         )
 
 
 async def _require_zone_admin_or_higher(user: Dict[str, Any]):
-    """Block lower roles from destructive batch operations unless they are zone admin."""
+    """Block manager/viewer from destructive batch operations unless they are zone manager.
+
+    Passes for: super_admin, tenant_admin, or manager with zone_role='manager'.
+    Raises 403 for viewer without any zone manager assignment.
+    """
     role = user.get("role", "")
-    if role in ("super_admin", "brand_admin"):
+    if role in ("super_admin", "tenant_admin"):
         return
-    from app.database.member_permissions_crud import has_admin_scope
-    is_zone_manager = await has_admin_scope(user["email"])
+    from app.database.member_permissions_crud import get_zones_for_member
+    permissions = await get_zones_for_member(user["email"])
+    is_zone_manager = any(
+        p.get("zone_role") == "manager"
+        for p in permissions
+    )
     if not is_zone_manager:
         raise HTTPException(
             status_code=403,
-            detail="Thao tác này yêu cầu quyền Zone Admin trở lên."
+            detail="Thao tác này yêu cầu quyền Zone Manager trở lên."
         )
 
 
@@ -136,7 +147,7 @@ async def list_live_sites(
     if role == "super_admin":
         return []  # Super admin is system-level, no tenant site data
     all_sites = await get_live_account_sites(master_token)
-    if role not in ("brand_admin",):
+    if role not in ("tenant_admin",):
         all_sites = await _get_zone_filtered_sites(user["email"], all_sites)
     return all_sites
 
@@ -150,7 +161,7 @@ async def list_target_sites(
     if role == "super_admin":
         return []  # Super admin is system-level, no tenant site data
     all_sites = await get_live_account_sites(master_token)
-    if role not in ("brand_admin",):
+    if role not in ("tenant_admin",):
         all_sites = await _get_zone_filtered_sites(user["email"], all_sites)
     return all_sites
 

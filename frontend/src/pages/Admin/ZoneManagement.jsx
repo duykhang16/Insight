@@ -245,30 +245,13 @@ const ZoneManagement = () => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [zonesResult, sitesResult, usersResult] = await Promise.allSettled([
+      const [zonesRes, sitesRes, usersRes] = await Promise.all([
         apiClient.get('/zones'),
         apiClient.get('/cloner/live-sites'),
-        apiClient.get('/admin/users'),
+        apiClient.get('/admin/users').catch(() => ({ data: [] })),
       ]);
-
-      if (zonesResult.status !== 'fulfilled') {
-        throw zonesResult.reason;
-      }
-
-      const fetchedZones = zonesResult.value.data || [];
-      const fetchedSites = sitesResult.status === 'fulfilled'
-        ? (sitesResult.value.data || [])
-        : [];
-      const fetchedUsers = usersResult.status === 'fulfilled'
-        ? (usersResult.value.data || [])
-        : [];
-
-      if (sitesResult.status !== 'fulfilled') {
-        console.warn('ZoneManagement: live sites unavailable, continuing with empty site list.', sitesResult.reason);
-      }
-      if (usersResult.status !== 'fulfilled') {
-        console.warn('ZoneManagement: admin users unavailable, continuing with empty user list.', usersResult.reason);
-      }
+      const fetchedZones = zonesRes.data || [];
+      const fetchedSites = sitesRes.data || [];
 
       // Create a lookup for site names
       const siteMapping = {};
@@ -278,24 +261,11 @@ const ZoneManagement = () => {
 
       // Fetch full zone details (with members and site_ids)
       const zoneDetails = await Promise.all(
-        fetchedZones.map((z) =>
-          apiClient.get(`/zones/${z.id}`)
-            .then((r) => {
-              const data = r.data;
-              data._siteNames = siteMapping;
-              return data;
-            })
-            .catch((err) => {
-              console.warn(`ZoneManagement: failed to load detail for zone ${z.id}, using summary response.`, err);
-              return {
-                ...z,
-                members: z.members || [],
-                member_count: z.member_count || 0,
-                site_ids: z.site_ids || [],
-                _siteNames: siteMapping,
-              };
-            })
-        )
+        fetchedZones.map((z) => apiClient.get(`/zones/${z.id}`).then((r) => {
+          const data = r.data;
+          data._siteNames = siteMapping;
+          return data;
+        }))
       );
 
       // Identify unassigned sites
@@ -309,7 +279,7 @@ const ZoneManagement = () => {
 
       setOriginalState(deepClone(stateData));
       setWorkingState(deepClone(stateData));
-      setAllUsers(fetchedUsers);
+      setAllUsers(usersRes.data || []);
     } catch (err) {
       console.error('Failed to load zones/sites:', err);
     } finally {
@@ -628,19 +598,17 @@ const ZoneManagement = () => {
     <div className="p-6 h-full overflow-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <div className="flex items-center gap-3">
-            <Layers className="w-5 h-5 text-blue-400" />
-            <h1 className="text-lg font-semibold th-text-primary">{t('admin.zones.title')}</h1>
-            <span className="text-xs text-slate-500 th-bg-elevated px-2 py-0.5 rounded-full">
-              {zones.length} {t('admin.zones.zones_count')} · {unassignedSites.length} {t('admin.zones.unassigned_count')}
+        <div className="flex items-center gap-3">
+          <Layers className="w-5 h-5 text-blue-400" />
+          <h1 className="text-lg font-semibold th-text-primary">{t('admin.zones.title')}</h1>
+          <span className="text-xs text-slate-500 th-bg-elevated px-2 py-0.5 rounded-full">
+            {zones.length} {t('admin.zones.zones_count')} · {unassignedSites.length} {t('admin.zones.unassigned_count')}
+          </span>
+          {isDirty && (
+            <span className="text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full animate-pulse">
+              ● Unsaved
             </span>
-            {isDirty && (
-              <span className="text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full animate-pulse">
-                ● Unsaved
-              </span>
-            )}
-          </div>
+          )}
         </div>
         <TooltipProvider>
           <div className="flex items-center gap-2">

@@ -50,9 +50,7 @@ const ZoneLogs = () => {
         <FileText className="w-5 h-5 text-blue-400" />
         <h1 className="text-lg font-semibold th-text-primary">{t('zones.logs.title')}</h1>
         {zoneName && (
-          <>
-            <span className="text-xs text-slate-500 th-bg-elevated px-2 py-0.5 rounded-full">{zoneName}</span>
-          </>
+          <span className="text-xs text-slate-500 th-bg-elevated px-2 py-0.5 rounded-full">{zoneName}</span>
         )}
         <div className="ml-auto">
           <button

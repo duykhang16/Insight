@@ -1,11 +1,5 @@
 from typing import Dict, Any, List
 from app.database.connection import get_database
-from app.shared.rbac import (
-    ROLE_BRAND_ADMIN,
-    ROLE_SUB_ADMIN,
-    ROLE_VIEWER,
-    ROLE_DELEGATOR,
-)
 
 DEFAULT_PERMISSIONS = {
     "super_admin": {
@@ -16,7 +10,7 @@ DEFAULT_PERMISSIONS = {
         "delete_ssid": True,
         "batch_delete": True,
     },
-    ROLE_BRAND_ADMIN: {
+    "tenant_admin": {
         "full_clone": True,
         "smart_sync": True,
         "batch_provision": True,
@@ -24,7 +18,7 @@ DEFAULT_PERMISSIONS = {
         "delete_ssid": True,
         "batch_delete": True,
     },
-    ROLE_SUB_ADMIN: {
+    "manager": {
         "full_clone": True,
         "smart_sync": True,
         "batch_provision": False,
@@ -32,15 +26,7 @@ DEFAULT_PERMISSIONS = {
         "delete_ssid": False,
         "batch_delete": False,
     },
-    ROLE_VIEWER: {
-        "full_clone": False,
-        "smart_sync": False,
-        "batch_provision": False,
-        "batch_access": False,
-        "delete_ssid": False,
-        "batch_delete": False,
-    },
-    ROLE_DELEGATOR: {
+    "viewer": {
         "full_clone": False,
         "smart_sync": False,
         "batch_provision": False,

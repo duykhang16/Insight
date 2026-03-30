@@ -1,15 +1,13 @@
 import React from 'react';
 
 const ROLE_STYLES = {
-  admin: 'bg-rose-500/20 text-rose-400 border border-rose-500/30',
+  manager: 'bg-rose-500/20 text-rose-400 border border-rose-500/30',
   viewer: 'bg-blue-500/20 text-blue-400 border border-blue-500/30',
-  delegator: 'bg-amber-500/20 text-amber-400 border border-amber-500/30',
 };
 
 const ROLE_LABELS = {
-  admin: 'Admin',
+  manager: 'Manager',
   viewer: 'Viewer',
-  delegator: 'Delegator',
 };
 
 const ZoneRoleBadge = ({ role }) => {

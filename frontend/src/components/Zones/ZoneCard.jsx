@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { GripVertical, Users, Server, ChevronDown, ChevronUp, Plus, Trash2, Edit2, Search, Check, X } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
@@ -8,7 +7,6 @@ import apiClient from '../../api/apiClient';
 import { useLanguage } from '../../context/LanguageContext';
 
 const PRESET_COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4'];
-const ZONE_ROLE_OPTIONS = ['admin', 'viewer', 'delegator'];
 
 // Draggable site item inside a zone
 const ZoneSiteItem = ({ site }) => {
@@ -38,14 +36,11 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, onEditZone, allUse
   const [showMembers, setShowMembers] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
   const [newMemberEmail, setNewMemberEmail] = useState('');
-  const [newMemberRole, setNewMemberRole] = useState('viewer');
   const [adding, setAdding] = useState(false);
   const [userSearch, setUserSearch] = useState('');
   const [siteSearch, setSiteSearch] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const dropdownAnchorRef = useRef(null);
-  const [dropdownPosition, setDropdownPosition] = useState(null);
 
   // Inline edit state
   const [editing, setEditing] = useState(false);
@@ -69,31 +64,6 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, onEditZone, allUse
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  useEffect(() => {
-    if (!dropdownOpen || !dropdownAnchorRef.current) {
-      setDropdownPosition(null);
-      return undefined;
-    }
-
-    const updatePosition = () => {
-      const rect = dropdownAnchorRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      setDropdownPosition({
-        top: rect.bottom + window.scrollY + 2,
-        left: rect.left + window.scrollX,
-        width: rect.width,
-      });
-    };
-
-    updatePosition();
-    window.addEventListener('resize', updatePosition);
-    window.addEventListener('scroll', updatePosition, true);
-    return () => {
-      window.removeEventListener('resize', updatePosition);
-      window.removeEventListener('scroll', updatePosition, true);
-    };
-  }, [dropdownOpen]);
-
   // Filter users: exclude already-members, filter by search
   const existingEmails = new Set((zone.members || []).map(m => m.email));
   const filteredUsers = allUsers.filter(u =>
@@ -107,10 +77,8 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, onEditZone, allUse
     try {
       await apiClient.post(`/zones/${zone.id}/members`, {
         email: newMemberEmail.trim(),
-        zone_role: newMemberRole,
       });
       setNewMemberEmail('');
-      setNewMemberRole('viewer');
       setUserSearch('');
       setShowAddMember(false);
       onUpdated?.();
@@ -308,8 +276,6 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, onEditZone, allUse
               isGlobalAdmin={isGlobalAdmin}
               zoneSiteIds={zone.site_ids || []}
               zoneSiteNames={zone._siteNames || {}}
-              protectedEmail={zone.brand_admin_email || zone.created_by || ''}
-              allUsers={allUsers}
             />
             {isGlobalAdmin && (
               <>
@@ -324,11 +290,7 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, onEditZone, allUse
                   <div className="mt-2 space-y-2">
                     {/* User picker */}
                     <div ref={dropdownRef} className="relative">
-                      <div
-                        ref={dropdownAnchorRef}
-                        className="flex items-center gap-1.5 th-bg-elevated border th-border rounded px-2 py-1.5 focus-within:border-blue-500 transition-colors"
-                        style={{ backgroundColor: 'var(--color-bg-elevated)', borderColor: 'var(--color-border)' }}
-                      >
+                      <div className="flex items-center gap-1.5 th-bg-elevated border th-border rounded px-2 py-1.5 focus-within:border-blue-500 transition-colors" style={{ backgroundColor: 'var(--color-bg-elevated)', borderColor: 'var(--color-border)' }}>
                         <Search className="w-3 h-3 th-text-muted shrink-0" />
                         <input
                           type="text"
@@ -349,21 +311,24 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, onEditZone, allUse
                       </div>
 
                       {/* Dropdown list */}
-                    </div>
-
-                    <div className="flex gap-2 items-center">
-                      <select
-                        value={newMemberRole}
-                        onChange={(e) => setNewMemberRole(e.target.value)}
-                        className="w-32 text-xs th-bg-elevated border th-border rounded px-2 py-1.5 th-text-primary focus:outline-none focus:border-blue-500"
-                        style={{ backgroundColor: 'var(--color-bg-elevated)', borderColor: 'var(--color-border)' }}
-                      >
-                        {ZONE_ROLE_OPTIONS.map((role) => (
-                          <option key={role} value={role}>
-                            {t(`admin.zones.role_${role}`) || role}
-                          </option>
-                        ))}
-                      </select>
+                      {dropdownOpen && (userSearch || !newMemberEmail) && filteredUsers.length > 0 && (
+                        <ul className="absolute top-full left-0 right-0 mt-0.5 th-bg-elevated border th-border rounded shadow-xl z-50 max-h-36 overflow-y-auto" style={{ backgroundColor: 'var(--color-bg-elevated)', borderColor: 'var(--color-border)' }}>
+                          {filteredUsers.map(u => (
+                            <li
+                              key={u.id || u.email}
+                              onMouseDown={() => {
+                                setNewMemberEmail(u.email);
+                                setUserSearch('');
+                                setDropdownOpen(false);
+                              }}
+                              className="px-2.5 py-1.5 text-xs th-text-secondary hover:th-bg-surface-alt cursor-pointer flex items-center justify-between gap-2"
+                            >
+                              <span className="font-mono truncate">{u.email}</span>
+                              <span className="text-[10px] th-text-muted shrink-0">{u.role}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </div>
 
                     {/* Action buttons */}
@@ -376,7 +341,7 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, onEditZone, allUse
                         {adding ? 'Adding...' : 'Add'}
                       </button>
                       <button
-                        onClick={() => { setShowAddMember(false); setNewMemberEmail(''); setNewMemberRole('viewer'); setUserSearch(''); }}
+                        onClick={() => { setShowAddMember(false); setNewMemberEmail(''); setUserSearch(''); }}
                         className="text-xs th-text-muted hover:th-text-secondary px-1"
                       >
                         {t('admin.zones.cancel')}
@@ -389,36 +354,6 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, onEditZone, allUse
           </div>
         )}
       </div>
-
-      {dropdownOpen && (userSearch || !newMemberEmail) && filteredUsers.length > 0 && dropdownPosition && createPortal(
-        <ul
-          className="th-bg-elevated border th-border rounded shadow-xl z-[1000] max-h-36 overflow-y-auto custom-scrollbar"
-          style={{
-            position: 'absolute',
-            top: dropdownPosition.top,
-            left: dropdownPosition.left,
-            width: dropdownPosition.width,
-            backgroundColor: 'var(--color-bg-elevated)',
-            borderColor: 'var(--color-border)',
-          }}
-        >
-          {filteredUsers.map(u => (
-            <li
-              key={u.id || u.email}
-              onMouseDown={() => {
-                setNewMemberEmail(u.email);
-                setUserSearch('');
-                setDropdownOpen(false);
-              }}
-              className="px-2.5 py-1.5 text-xs th-text-secondary hover:th-bg-surface-alt cursor-pointer flex items-center justify-between gap-2"
-            >
-              <span className="font-mono truncate">{u.email}</span>
-              <span className="text-[10px] th-text-muted shrink-0">{u.role}</span>
-            </li>
-          ))}
-        </ul>,
-        document.body
-      )}
     </div>
   );
 };

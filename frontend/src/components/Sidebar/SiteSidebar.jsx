@@ -106,7 +106,7 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
     // Fetch zones eagerly on mount so we can resolve the parent zone for back-navigation
     useEffect(() => {
         if (zones.length === 0) {
-            const endpoint = '/zones/my';
+            const endpoint = userRole === 'admin' ? '/zones' : '/zones/my';
             import('../../api/apiClient').then(({ default: apiClient }) => {
                 apiClient.get(endpoint).then(res => {
                     setZones(res.data);

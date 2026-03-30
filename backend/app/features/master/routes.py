@@ -1,4 +1,4 @@
-"""Master Aruba account management API routes (per-brand)."""
+"""Master Aruba account management API routes (per-tenant)."""
 from fastapi import APIRouter, HTTPException, Request, Depends
 from typing import Dict, Any
 from app.shared.auth_deps import require_internal_admin
@@ -18,8 +18,8 @@ async def get_master_status(
     request: Request,
     user: Dict[str, Any] = Depends(require_internal_admin),
 ):
-    """Return current master account link status for THIS brand."""
-    if user.get("role") in {"super_admin", "admin"}:
+    """Return current master account link status for THIS tenant."""
+    if user.get("role") == "super_admin":
         # Super admin can check but won't have their own config
         return MasterStatusResponse(is_linked=False)
     return await service.get_status(admin_email=user["email"])
@@ -35,8 +35,8 @@ async def scan_master_sites(
     Step 1: Login with Aruba credentials and classify sites by role.
     Returns admin_sites + restricted_sites WITHOUT writing to DB.
     """
-    if user.get("role") in {"super_admin", "admin"}:
-        raise HTTPException(status_code=403, detail="Chỉ Brand Admin mới có thể liên kết Aruba account.")
+    if user.get("role") == "super_admin":
+        raise HTTPException(status_code=403, detail="Super Admin không thể liên kết Aruba account. Sử dụng Tenant Admin.")
     try:
         result = await service.scan_sites(
             username=payload.aruba_username,
@@ -66,8 +66,8 @@ async def link_master_account(
     Direct link (all-admin path): validates ALL sites are admin, then links.
     Used when scan shows 0 restricted sites.
     """
-    if user.get("role") in {"super_admin", "admin"}:
-        raise HTTPException(status_code=403, detail="Chỉ Brand Admin mới có thể liên kết Aruba account.")
+    if user.get("role") == "super_admin":
+        raise HTTPException(status_code=403, detail="Super Admin không thể liên kết Aruba account. Sử dụng Tenant Admin.")
     try:
         result = await service.link_account(
             username=payload.aruba_username,
@@ -90,8 +90,8 @@ async def link_confirm_partial(
     """
     Step 2: User confirmed to link admin-only sites, skipping restricted ones.
     """
-    if user.get("role") in {"super_admin", "admin"}:
-        raise HTTPException(status_code=403, detail="Chỉ Brand Admin mới có thể liên kết Aruba account.")
+    if user.get("role") == "super_admin":
+        raise HTTPException(status_code=403, detail="Super Admin không thể liên kết Aruba account. Sử dụng Tenant Admin.")
     if not payload.confirmed_admin_site_ids:
         raise HTTPException(status_code=400, detail="Danh sách site Admin không được rỗng.")
 
@@ -130,9 +130,9 @@ async def unlink_master_account(
     request: Request,
     user: Dict[str, Any] = Depends(require_internal_admin),
 ):
-    """Unlink (deactivate) the current master account for THIS brand."""
-    if user.get("role") in {"super_admin", "admin"}:
-        raise HTTPException(status_code=403, detail="Chỉ Brand Admin mới có Master Account để unlink.")
+    """Unlink (deactivate) the current master account for THIS tenant."""
+    if user.get("role") == "super_admin":
+        raise HTTPException(status_code=403, detail="Super Admin không có Master Account để unlink.")
     try:
         return await service.unlink_account(admin_email=user["email"])
     except ValueError as e:
@@ -144,9 +144,9 @@ async def force_refresh_token(
     request: Request,
     user: Dict[str, Any] = Depends(require_internal_admin),
 ):
-    """Manually force a token refresh for THIS brand's master account."""
-    if user.get("role") in {"super_admin", "admin"}:
-        raise HTTPException(status_code=403, detail="Chỉ Brand Admin mới có Master Account.")
+    """Manually force a token refresh for THIS tenant's master account."""
+    if user.get("role") == "super_admin":
+        raise HTTPException(status_code=403, detail="Super Admin không có Master Account.")
     try:
         return await service.force_refresh(admin_email=user["email"])
     except ValueError as e:

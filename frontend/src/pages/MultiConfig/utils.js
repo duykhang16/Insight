@@ -43,10 +43,12 @@ export const loadSitesFromApi = async (apiClient) => {
 };
 
 /**
- * Load zones from zone API (brand_admin gets all, others get own).
+ * Load zones from zone API (tenant_admin gets all, others get own).
  */
 export const loadZonesFromApi = async (apiClient) => {
-    const res = await apiClient.get('/zones/my');
+    const userRole = sessionStorage.getItem('userRole') || 'viewer';
+    const endpoint = userRole === 'tenant_admin' ? '/zones' : '/zones/my';
+    const res = await apiClient.get(endpoint);
     return res.data || [];
 };
 

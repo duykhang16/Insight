@@ -102,14 +102,12 @@ const ZoneTemplates = () => {
         backTo="/zones"
         onZoneRenamed={(newName) => setZone(prev => ({ ...prev, name: newName }))}
         badge={
-          <div className="flex items-center gap-2">
-            <span
-              className="text-xs th-text-muted th-bg-surface-alt px-2 py-0.5 rounded-full ml-1"
-              style={{ backgroundColor: 'var(--color-bg-surface-alt)' }}
-            >
-              {totalSites} sites
-            </span>
-          </div>
+          <span
+            className="text-xs th-text-muted th-bg-surface-alt px-2 py-0.5 rounded-full ml-1"
+            style={{ backgroundColor: 'var(--color-bg-surface-alt)' }}
+          >
+            {totalSites} sites
+          </span>
         }
         actions={
           <>

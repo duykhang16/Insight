@@ -221,7 +221,7 @@ const SiteConfig = () => {
     }, [showSpecificClientsSelector, specificClientsDiscoveryActive, siteId, selectedNetwork?.id]);
 
     // ── Role gate ──
-    if (userRole === 'viewer' || userRole === 'delegator') {
+    if (userRole === 'viewer') {
         return (
             <div className="w-full h-full flex items-center justify-center pt-32">
                 <div className="text-center bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/5 p-12 rounded-3xl shadow-xl max-w-md">
