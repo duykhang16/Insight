@@ -1,9 +1,0 @@
-/* Scoped CSS to prevent clashes */
-.clonerWrapper {
-    color: inherit;
-}
-
-.clonerWrapper h1,
-.clonerWrapper h2 {
-    /* Scope specific rules here */
-}
