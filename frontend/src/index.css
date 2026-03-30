@@ -1,5 +1,9 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+<<<<<<< HEAD
+=======
+@import "shadcn/tailwind.css";
+>>>>>>> parent of 30b1732 (Delete frontend directory)
 
 @custom-variant dark (&:is(.dark *));
 
@@ -406,4 +410,8 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> parent of 30b1732 (Delete frontend directory)

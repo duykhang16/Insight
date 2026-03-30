@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+<<<<<<< HEAD
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Home, ArrowLeft, Activity, Bell, Users, Wifi, Monitor, Box, ChevronDown, Search, Server, Check, SlidersHorizontal } from 'lucide-react';
 import UserWidget from './UserWidget';
@@ -49,6 +50,21 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
     const [showLeaveModal, setShowLeaveModal] = useState(false);
     const switcherRef = useRef(null);
     const pendingNavigationRef = useRef(null);
+=======
+import { NavLink, useNavigate } from 'react-router-dom';
+import { Home, ArrowLeft, Activity, Bell, Users, Wifi, Monitor, Box, ChevronDown, Search, Server, Check } from 'lucide-react';
+import UserWidget from './UserWidget';
+import { useSite } from '../../context/SiteContext';
+
+const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
+    const navigate = useNavigate();
+    const { sites, setSelectedSiteId } = useSite();
+
+    const [isSwitcherOpen, setIsSwitcherOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [zones, setZones] = useState([]);
+    const switcherRef = useRef(null);
+>>>>>>> parent of 30b1732 (Delete frontend directory)
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -60,6 +76,7 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+<<<<<<< HEAD
     useEffect(() => {
         const handleDirtyStateChange = (event) => {
             setHasUnsavedConfigurationChanges(Boolean(event.detail?.isDirty));
@@ -103,6 +120,8 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
         };
     }, [siteId]);
 
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
     // Fetch zones eagerly on mount so we can resolve the parent zone for back-navigation
     useEffect(() => {
         if (zones.length === 0) {
@@ -124,7 +143,11 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
         if (setSelectedSiteId) setSelectedSiteId(id);
         setIsSwitcherOpen(false);
         setSearchQuery('');
+<<<<<<< HEAD
         requestNavigation(`/site/${id}`, { closeConfiguration: true });
+=======
+        navigate(`/site/${id}`);
+>>>>>>> parent of 30b1732 (Delete frontend directory)
     };
 
     const currentSite = sites.find(
@@ -182,6 +205,7 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
     };
 
     const groupedSites = getGroupedSites();
+<<<<<<< HEAD
     const isConfigurationSectionActive = location.pathname.startsWith(`/site/${siteId}/configuration`) || location.pathname === `/site/${siteId}/cloner`;
     const networkKey = new URLSearchParams(location.search).get('networkKey') || '';
     const selectedNetworkKind = networkKey.startsWith('wired:')
@@ -263,6 +287,8 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
             setIsConfigurationOpen(false);
         }
     }, [location.pathname, siteId]);
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
 
     const getNavLinkClass = ({ isActive }) =>
         `group relative flex items-center px-3 py-2.5 mx-2 text-sm font-medium rounded-lg transition-all duration-150 ${isActive
@@ -270,6 +296,7 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
             : 'th-text-secondary hover:bg-slate-100 dark:hover:bg-white/5 hover:th-text-primary'
         }`;
 
+<<<<<<< HEAD
     const configurationParentClass = 'group relative flex w-full items-center px-3 py-2.5 mx-2 text-sm font-medium rounded-lg transition-all duration-150 th-text-secondary hover:bg-slate-100 dark:hover:bg-white/5 hover:th-text-primary';
 
     const getConfigurationLinkClass = ({ isActive }) =>
@@ -303,6 +330,14 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
             <div className="flex items-center px-4 h-14 border-b th-border">
                 <button
                     onClick={() => requestNavigation('/zones')}
+=======
+    return (
+        <div className="flex flex-col w-64 th-bg-sidebar border-r th-border h-full transition-colors duration-200">
+            {/* Brand header */}
+            <div className="flex items-center px-4 h-14 border-b th-border">
+                <button
+                    onClick={() => navigate('/zones')}
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                     className="flex items-center gap-3 hover:opacity-80 transition-opacity"
                 >
                     <span className="text-lg font-black italic th-text-primary tracking-widest uppercase">INSIGHT</span>
@@ -316,7 +351,11 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
             {/* Back to parent Zone */}
             <div className="px-3 pt-3 pb-1">
                 <button
+<<<<<<< HEAD
                     onClick={() => requestNavigation(parentZone ? `/zones/${parentZone.id || parentZone._id}/sites` : '/zones')}
+=======
+                    onClick={() => navigate(parentZone ? `/zones/${parentZone.id || parentZone._id}/sites` : '/zones')}
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                     className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold th-text-muted hover:th-text-primary hover:th-bg-surface-alt rounded-md transition-colors"
                 >
                     <ArrowLeft size={14} />
@@ -394,7 +433,11 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
 
             {/* Site-scoped navigation */}
             <nav className="flex-1 overflow-y-auto pt-3 space-y-0.5">
+<<<<<<< HEAD
                 <NavLink to={`/site/${siteId}`} end className={getNavLinkClass} onClick={(event) => { event.preventDefault(); requestNavigation(`/site/${siteId}`); }}>
+=======
+                <NavLink to={`/site/${siteId}`} end className={getNavLinkClass}>
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                     {({ isActive }) => (
                         <>
                             {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
@@ -403,7 +446,11 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
                         </>
                     )}
                 </NavLink>
+<<<<<<< HEAD
                 <NavLink to={`/site/${siteId}/health`} className={getNavLinkClass} onClick={(event) => { event.preventDefault(); requestNavigation(`/site/${siteId}/health`); }}>
+=======
+                <NavLink to={`/site/${siteId}/health`} className={getNavLinkClass}>
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                     {({ isActive }) => (
                         <>
                             {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
@@ -412,7 +459,11 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
                         </>
                     )}
                 </NavLink>
+<<<<<<< HEAD
                 <NavLink to={`/site/${siteId}/alerts`} className={getNavLinkClass} onClick={(event) => { event.preventDefault(); requestNavigation(`/site/${siteId}/alerts`); }}>
+=======
+                <NavLink to={`/site/${siteId}/alerts`} className={getNavLinkClass}>
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                     {({ isActive }) => (
                         <>
                             {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
@@ -421,7 +472,11 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
                         </>
                     )}
                 </NavLink>
+<<<<<<< HEAD
                 <NavLink to={`/site/${siteId}/clients`} className={getNavLinkClass} onClick={(event) => { event.preventDefault(); requestNavigation(`/site/${siteId}/clients`); }}>
+=======
+                <NavLink to={`/site/${siteId}/clients`} className={getNavLinkClass}>
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                     {({ isActive }) => (
                         <>
                             {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
@@ -430,7 +485,11 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
                         </>
                     )}
                 </NavLink>
+<<<<<<< HEAD
                 <NavLink to={`/site/${siteId}/networks`} className={getNavLinkClass} onClick={(event) => { event.preventDefault(); requestNavigation(`/site/${siteId}/networks`); }}>
+=======
+                <NavLink to={`/site/${siteId}/networks`} className={getNavLinkClass}>
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                     {({ isActive }) => (
                         <>
                             {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
@@ -439,6 +498,7 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
                         </>
                     )}
                 </NavLink>
+<<<<<<< HEAD
                 <div className="space-y-0.5">
                     <button
                         type="button"
@@ -476,6 +536,9 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
                     )}
                 </div>
                 <NavLink to={`/site/${siteId}/devices`} className={getNavLinkClass} onClick={(event) => { event.preventDefault(); requestNavigation(`/site/${siteId}/devices`); }}>
+=======
+                <NavLink to={`/site/${siteId}/devices`} className={getNavLinkClass}>
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                     {({ isActive }) => (
                         <>
                             {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
@@ -484,7 +547,11 @@ const SiteSidebar = ({ siteId, onLogout, userRole = 'guest' }) => {
                         </>
                     )}
                 </NavLink>
+<<<<<<< HEAD
                 <NavLink to={`/site/${siteId}/applications`} className={getNavLinkClass} onClick={(event) => { event.preventDefault(); requestNavigation(`/site/${siteId}/applications`); }}>
+=======
+                <NavLink to={`/site/${siteId}/applications`} className={getNavLinkClass}>
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                     {({ isActive }) => (
                         <>
                             {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}

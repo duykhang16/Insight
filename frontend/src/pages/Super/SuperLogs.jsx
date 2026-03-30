@@ -88,6 +88,7 @@ export default function SuperLogs() {
       ),
     },
     {
+<<<<<<< HEAD
       key: 'result',
       label: 'Result',
       render: (log) => {
@@ -110,6 +111,8 @@ export default function SuperLogs() {
       },
     },
     {
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
       key: 'action',
       label: t('super.logs.table_header_action'),
       className: 'text-slate-400 max-w-[160px] truncate text-xs',

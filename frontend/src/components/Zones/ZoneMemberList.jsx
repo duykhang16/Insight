@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useState, useRef, useEffect } from 'react';
 import { UserMinus, Globe, MapPin, ChevronDown, ChevronUp, Check, X } from 'lucide-react';
 import ZoneRoleBadge from './ZoneRoleBadge';
@@ -156,6 +157,14 @@ const SitePermissionToggle = ({ zoneId, member, zoneSiteIds = [], zoneSiteNames 
 
 
 const ZoneMemberList = ({ zoneId, members = [], onUpdated, isGlobalAdmin, zoneSiteIds = [], zoneSiteNames = {} }) => {
+=======
+import React, { useState } from 'react';
+import { UserMinus, ChevronDown } from 'lucide-react';
+import ZoneRoleBadge from './ZoneRoleBadge';
+import apiClient from '../../api/apiClient';
+
+const ZoneMemberList = ({ zoneId, members = [], onUpdated, isGlobalAdmin }) => {
+>>>>>>> parent of 30b1732 (Delete frontend directory)
   const [loading, setLoading] = useState(null);
 
   const handleRemove = async (email) => {
@@ -180,6 +189,7 @@ const ZoneMemberList = ({ zoneId, members = [], onUpdated, isGlobalAdmin, zoneSi
       {members.map((m) => (
         <div
           key={m.email}
+<<<<<<< HEAD
           className="py-1.5 px-2 rounded th-bg-surface-alt group"
         >
           <div className="flex items-center justify-between">
@@ -187,6 +197,15 @@ const ZoneMemberList = ({ zoneId, members = [], onUpdated, isGlobalAdmin, zoneSi
             <div className="flex items-center gap-2 shrink-0">
               <ZoneRoleBadge role={m.zone_role} />
               {isGlobalAdmin && (
+=======
+          className="flex items-center justify-between py-1.5 px-2 rounded th-bg-surface-alt group"
+        >
+          <span className="text-xs th-text-secondary truncate flex-1 mr-2">{m.email}</span>
+          <div className="flex items-center gap-2 shrink-0">
+            <ZoneRoleBadge role={m.zone_role} />
+            {isGlobalAdmin && (
+              <>
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                 <button
                   onClick={() => handleRemove(m.email)}
                   disabled={loading === `remove-${m.email}`}
@@ -195,6 +214,7 @@ const ZoneMemberList = ({ zoneId, members = [], onUpdated, isGlobalAdmin, zoneSi
                 >
                   <UserMinus className="w-3.5 h-3.5" />
                 </button>
+<<<<<<< HEAD
               )}
             </div>
           </div>
@@ -208,6 +228,11 @@ const ZoneMemberList = ({ zoneId, members = [], onUpdated, isGlobalAdmin, zoneSi
               onUpdated={onUpdated}
             />
           )}
+=======
+              </>
+            )}
+          </div>
+>>>>>>> parent of 30b1732 (Delete frontend directory)
         </div>
       ))}
     </div>

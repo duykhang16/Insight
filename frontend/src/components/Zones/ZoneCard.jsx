@@ -274,8 +274,11 @@ const ZoneCard = ({ zone, isGlobalAdmin, onUpdated, onDelete, onEditZone, allUse
               members={zone.members || []}
               onUpdated={onUpdated}
               isGlobalAdmin={isGlobalAdmin}
+<<<<<<< HEAD
               zoneSiteIds={zone.site_ids || []}
               zoneSiteNames={zone._siteNames || {}}
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
             />
             {isGlobalAdmin && (
               <>

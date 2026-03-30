@@ -11,9 +11,13 @@ import SiteClients from './pages/Dashboard/Clients';
 import SiteNetworks from './pages/Dashboard/Networks';
 import SiteDevices from './pages/Dashboard/Devices';
 import SiteApplications from './pages/Dashboard/Applications';
+<<<<<<< HEAD
 import MultiConfig from './pages/MultiConfig';
 import SiteConfig from './pages/SiteConfig';
 import CreateNetworkWizard from './pages/SiteConfig/CreateNetwork';
+=======
+import Configuration from './pages/Configuration';
+>>>>>>> parent of 30b1732 (Delete frontend directory)
 import AdminLogs from './pages/Admin/Logs';
 import ZoneManagement from './pages/Admin/ZoneManagement';
 import MasterAccount from './pages/Admin/MasterAccount';
@@ -228,6 +232,7 @@ function App() {
             <Routes>
             {/* Global routes — use GlobalLayout */}
             <Route element={<GlobalLayout onLogout={handleLogout} userRole={userRole} isZoneAdmin={isZoneAdmin} rolePermissions={rolePermissions} />}>
+<<<<<<< HEAD
               <Route path="/" element={<Navigate to="/zones" replace />} />
               <Route path="/config" element={
                 <ViewerRoute userRole={userRole} isZoneAdmin={isZoneAdmin}>
@@ -240,6 +245,20 @@ function App() {
               <Route path="/zones/:zoneId/templates" element={<ZoneTemplates />} />
               <Route path="/zones/:zoneId/sites" element={<ZoneSites />} />
               <Route path="/zones/:zoneId/logs" element={<ZoneLogs />} />
+=======
+              <Route path="/" element={userRole === 'super_admin' ? <Navigate to="/super/tenants" replace /> : <Navigate to="/zones" replace />} />
+              <Route path="/config" element={
+                <ViewerRoute userRole={userRole} isZoneAdmin={isZoneAdmin}>
+                  <Configuration rolePermissions={rolePermissions} userRole={userRole} />
+                </ViewerRoute>
+              } />
+
+              {/* Zone routes — tenant_admin, manager, viewer (NOT super_admin) */}
+              <Route path="/zones" element={userRole === 'super_admin' ? <Navigate to="/super/tenants" replace /> : <ZoneDashboard />} />
+              <Route path="/zones/:zoneId/templates" element={userRole === 'super_admin' ? <Navigate to="/super/tenants" replace /> : <ZoneTemplates />} />
+              <Route path="/zones/:zoneId/sites" element={userRole === 'super_admin' ? <Navigate to="/super/tenants" replace /> : <ZoneSites />} />
+              <Route path="/zones/:zoneId/logs" element={userRole === 'super_admin' ? <Navigate to="/super/tenants" replace /> : <ZoneLogs />} />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
 
               {/* Admin-only routes */}
               <Route path="/admin/logs" element={
@@ -290,7 +309,11 @@ function App() {
                 </SuperRoute>
               } />
 
+<<<<<<< HEAD
               <Route path="*" element={<Navigate to="/zones" replace />} />
+=======
+              <Route path="*" element={userRole === 'super_admin' ? <Navigate to="/super/tenants" replace /> : <Navigate to="/zones" replace />} />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
             </Route>
 
             {/* Site-specific routes — use SiteLayout */}
@@ -302,12 +325,16 @@ function App() {
               <Route path="networks" element={<SiteNetworks />} />
               <Route path="devices" element={<SiteDevices />} />
               <Route path="applications" element={<SiteApplications />} />
+<<<<<<< HEAD
               <Route path="configuration" element={<Navigate to="overview" replace />} />
               <Route path="configuration/create-network" element={<CreateNetworkWizard />} />
               <Route path="configuration/:section" element={<SiteConfig />} />
               <Route path="configuration/individual" element={<Navigate to="../configuration/overview" replace />} />
               <Route path="configuration/batch" element={<Navigate to="../configuration/overview" replace />} />
               <Route path="cloner" element={<Navigate to="../configuration/overview" replace />} />
+=======
+              <Route path="cloner" element={<Configuration />} />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
             </Route>
             </Routes>
           </SiteProvider>

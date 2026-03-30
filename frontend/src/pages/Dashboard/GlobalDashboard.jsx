@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSite } from '../../context/SiteContext';
+<<<<<<< HEAD
 import { MapPin, WifiHigh, CaretRight } from '@phosphor-icons/react';
+=======
+import { MapPin, Wifi, ChevronRight } from 'lucide-react';
+>>>>>>> parent of 30b1732 (Delete frontend directory)
 import { useLanguage } from '../../context/LanguageContext';
 import { useSettings } from '../../context/SettingsContext';
 import useIntervalFetch from '../../hooks/useIntervalFetch';
@@ -64,14 +68,24 @@ const GlobalDashboard = () => {
                         >
                             <div className="flex items-start justify-between mb-3">
                                 <div className="p-2 th-bg-elevated rounded-md border th-border">
+<<<<<<< HEAD
                                     <MapPin size={16} weight="duotone" className="text-blue-400" />
                                 </div>
                                 <CaretRight size={16} weight="bold" className="text-slate-600 group-hover:text-slate-400 transition-colors" />
+=======
+                                    <MapPin size={16} className="text-blue-400" />
+                                </div>
+                                <ChevronRight size={16} className="text-slate-600 group-hover:text-slate-400 transition-colors" />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                             </div>
                             <h3 className="text-sm font-bold th-text-primary mb-1 truncate">{name}</h3>
                             <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2">
+<<<<<<< HEAD
                                     <WifiHigh size={12} weight="duotone" className="text-slate-500" />
+=======
+                                    <Wifi size={12} className="text-slate-500" />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                                     <span className="text-xs text-slate-500 uppercase tracking-wider">{role || 'Site'}</span>
                                 </div>
                                 {site.status && STATUS_BADGE[site.status] && (

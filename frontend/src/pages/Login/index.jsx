@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import apiClient from '../../api/apiClient';
+<<<<<<< HEAD
 import { Sun, Moon, ArrowLeft, Loader2 } from 'lucide-react';
 import { ShieldCheck, Key, Envelope, Lock } from '@phosphor-icons/react';
+=======
+import { ShieldCheck, KeyRound, Sun, Moon, ArrowLeft, Mail, Lock, Loader2 } from 'lucide-react';
+>>>>>>> parent of 30b1732 (Delete frontend directory)
 import { useLanguage } from '../../context/LanguageContext';
 import { useTheme } from '../../context/ThemeContext';
 import SplashScreen from '../../components/SplashScreen';
@@ -37,7 +41,10 @@ const prefetchAllData = async () => {
 // Login steps
 const STEP_EMAIL = 'email';
 const STEP_PASSWORD = 'password';
+<<<<<<< HEAD
 const STEP_OTP = 'otp';
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
 const STEP_SET_PASSWORD = 'set_password';
 
 const Login = ({ onLoginSuccess }) => {
@@ -46,8 +53,11 @@ const Login = ({ onLoginSuccess }) => {
     const [step, setStep] = useState(STEP_EMAIL);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+<<<<<<< HEAD
     const [otp, setOtp] = useState('');
     const [otpChallengeToken, setOtpChallengeToken] = useState('');
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [checkingAuth, setCheckingAuth] = useState(true);
@@ -67,7 +77,10 @@ const Login = ({ onLoginSuccess }) => {
     const [isAnimating, setIsAnimating] = useState(false);
 
     const passwordRef = useRef(null);
+<<<<<<< HEAD
     const otpRef = useRef(null);
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
     const emailRef = useRef(null);
 
     // Auto-check: nếu token đã có trong sessionStorage thì bỏ qua màn hình login
@@ -85,9 +98,12 @@ const Login = ({ onLoginSuccess }) => {
         if (step === STEP_PASSWORD && passwordRef.current) {
             setTimeout(() => passwordRef.current?.focus(), 350);
         }
+<<<<<<< HEAD
         if (step === STEP_OTP && otpRef.current) {
             setTimeout(() => otpRef.current?.focus(), 350);
         }
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
         if (step === STEP_EMAIL && emailRef.current) {
             setTimeout(() => emailRef.current?.focus(), 350);
         }
@@ -104,14 +120,26 @@ const Login = ({ onLoginSuccess }) => {
         }, 200);
     };
 
+<<<<<<< HEAD
     // Helper: enter splash phase after auth
     const enterSplashPhase = (userEmail) => {
+=======
+    // Helper: enter splash phase after auth (skip for super_admin — no zone/site data needed)
+    const enterSplashPhase = (userEmail) => {
+        const role = sessionStorage.getItem('userRole');
+        if (role === 'super_admin') {
+            // super_admin has separate UI — skip prefetch & splash entirely
+            onLoginSuccess(null);
+            return;
+        }
+>>>>>>> parent of 30b1732 (Delete frontend directory)
         const prefetchPromise = prefetchAllData();
         setSplashEmail(userEmail);
         setSplashPrefetchPromise(prefetchPromise);
         setSplashPhase(true);
     };
 
+<<<<<<< HEAD
     const completeLogin = (data, fallbackEmail = email) => {
         sessionStorage.setItem('token', data.access_token);
         sessionStorage.setItem('userRole', data.role || 'viewer');
@@ -123,6 +151,8 @@ const Login = ({ onLoginSuccess }) => {
         enterSplashPhase(data.email || fallbackEmail);
     };
 
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
     // ── Step 1: Check email ───────────────────────────────────────────
     const handleCheckEmail = async (e) => {
         e.preventDefault();
@@ -168,6 +198,7 @@ const Login = ({ onLoginSuccess }) => {
                 return;
             }
 
+<<<<<<< HEAD
             if (data.status === 'otp_required') {
                 setOtp('');
                 setOtpChallengeToken(data.otp_challenge_token || '');
@@ -194,6 +225,17 @@ const Login = ({ onLoginSuccess }) => {
                 otp,
             });
             completeLogin(res.data);
+=======
+            sessionStorage.setItem('token', data.access_token);
+            sessionStorage.setItem('userRole', data.role || 'viewer');
+            sessionStorage.setItem('insight_user_email', data.email || email);
+            sessionStorage.setItem('isZoneAdmin', String(data.is_zone_admin === true));
+            if (data.permissions) {
+                sessionStorage.setItem('rolePermissions', JSON.stringify(data.permissions));
+            }
+
+            enterSplashPhase(data.email || email);
+>>>>>>> parent of 30b1732 (Delete frontend directory)
         } catch (err) {
             setLoading(false);
             setError(err.response?.data?.detail || t('login.error_failed'));
@@ -219,6 +261,7 @@ const Login = ({ onLoginSuccess }) => {
                 new_password: newPassword,
             });
             const data = res.data;
+<<<<<<< HEAD
             if (data.status === 'otp_required') {
                 setOtp('');
                 setOtpChallengeToken(data.otp_challenge_token || '');
@@ -227,6 +270,16 @@ const Login = ({ onLoginSuccess }) => {
                 return;
             }
             completeLogin(data);
+=======
+            sessionStorage.setItem('token', data.access_token);
+            sessionStorage.setItem('userRole', data.role || 'viewer');
+            sessionStorage.setItem('insight_user_email', data.email || email);
+            sessionStorage.setItem('isZoneAdmin', String(data.is_zone_admin === true));
+            if (data.permissions) {
+                sessionStorage.setItem('rolePermissions', JSON.stringify(data.permissions));
+            }
+            enterSplashPhase(data.email || email);
+>>>>>>> parent of 30b1732 (Delete frontend directory)
         } catch (err) {
             setLoading(false);
             setError(err.response?.data?.detail || 'Đặt mật khẩu thất bại.');
@@ -236,8 +289,11 @@ const Login = ({ onLoginSuccess }) => {
     // ── Use another account ───────────────────────────────────────────
     const handleUseAnotherAccount = () => {
         setPassword('');
+<<<<<<< HEAD
         setOtp('');
         setOtpChallengeToken('');
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
         setError('');
         setNewPassword('');
         setConfirmPassword('');
@@ -338,7 +394,11 @@ const Login = ({ onLoginSuccess }) => {
                     {/* Logo — single instance */}
                     <div className="flex items-center justify-center gap-3 mb-2 login-fade-in">
                         <div className="w-11 h-11 bg-blue-50 dark:bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">
+<<<<<<< HEAD
                             <ShieldCheck size={22} weight="duotone" />
+=======
+                            <ShieldCheck size={22} />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                         </div>
                         <span className="text-2xl font-black tracking-wide text-slate-800 dark:text-white">INSIGHT</span>
                     </div>
@@ -358,7 +418,11 @@ const Login = ({ onLoginSuccess }) => {
                                         {t('login.email')}
                                     </label>
                                     <div className="relative">
+<<<<<<< HEAD
                                         <Envelope size={16} weight="duotone" className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+=======
+                                        <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                                         <input
                                             ref={emailRef}
                                             id="login-email"
@@ -420,7 +484,11 @@ const Login = ({ onLoginSuccess }) => {
                             <div className="mb-6">
                                 <div className="flex items-center gap-3 p-3 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg">
                                     <div className="w-9 h-9 bg-blue-50 dark:bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500 dark:text-blue-400 shrink-0">
+<<<<<<< HEAD
                                         <Envelope size={16} weight="duotone" />
+=======
+                                        <Mail size={16} />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-medium text-slate-800 dark:text-white truncate">{email}</p>
@@ -441,7 +509,11 @@ const Login = ({ onLoginSuccess }) => {
                                         {t('login.password')}
                                     </label>
                                     <div className="relative">
+<<<<<<< HEAD
                                         <Lock size={16} weight="duotone" className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+=======
+                                        <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                                         <input
                                             ref={passwordRef}
                                             id="login-password"
@@ -486,6 +558,7 @@ const Login = ({ onLoginSuccess }) => {
                         </div>
                     )}
 
+<<<<<<< HEAD
                     {/* ── STEP 3: OTP ─────────────────────────────────────── */}
                     {step === STEP_OTP && (
                         <div className={animationClass}>
@@ -566,12 +639,18 @@ const Login = ({ onLoginSuccess }) => {
                         </div>
                     )}
 
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                     {/* ── STEP: Set Password (first login) ─────────────────── */}
                     {step === STEP_SET_PASSWORD && (
                         <div className={animationClass}>
                             <div className="text-center mb-8">
                                 <div className="w-14 h-14 bg-amber-50 dark:bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20 mx-auto mb-4">
+<<<<<<< HEAD
                                     <Key size={24} weight="duotone" />
+=======
+                                    <KeyRound size={24} />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                                 </div>
                                 <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
                                     Đặt Mật Khẩu
@@ -585,7 +664,11 @@ const Login = ({ onLoginSuccess }) => {
                             <div className="mb-4">
                                 <div className="flex items-center gap-3 p-3 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg">
                                     <div className="w-9 h-9 bg-blue-50 dark:bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500 dark:text-blue-400 shrink-0">
+<<<<<<< HEAD
                                         <Envelope size={16} weight="duotone" />
+=======
+                                        <Mail size={16} />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                                     </div>
                                     <p className="flex-1 text-sm font-medium text-slate-800 dark:text-white truncate">{email}</p>
                                 </div>
@@ -599,7 +682,11 @@ const Login = ({ onLoginSuccess }) => {
                                 <div className="space-y-2">
                                     <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Mật khẩu mới</label>
                                     <div className="relative">
+<<<<<<< HEAD
                                         <Lock size={16} weight="duotone" className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+=======
+                                        <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                                         <input
                                             type="password"
                                             autoFocus
@@ -613,7 +700,11 @@ const Login = ({ onLoginSuccess }) => {
                                 <div className="space-y-2">
                                     <label className="text-xs font-semibold text-slate-600 dark:text-slate-400">Xác nhận mật khẩu</label>
                                     <div className="relative">
+<<<<<<< HEAD
                                         <Lock size={16} weight="duotone" className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+=======
+                                        <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 pointer-events-none" />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                                         <input
                                             type="password"
                                             className="login-input-focus w-full h-12 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-lg pl-11 pr-4 text-slate-800 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none transition-all text-sm font-mono"

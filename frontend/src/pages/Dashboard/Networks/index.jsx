@@ -1,6 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
+<<<<<<< HEAD
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Plus, Search, Network, Wifi, Users } from 'lucide-react';
+=======
+import { AlertCircle, Search, Network, Wifi, Users } from 'lucide-react';
+>>>>>>> parent of 30b1732 (Delete frontend directory)
 import apiClient from '../../../api/apiClient';
 import { useSite } from '../../../context/SiteContext';
 // processNetworks removed — BE now returns pre-mapped data
@@ -10,6 +14,7 @@ import useIntervalFetch from '../../../hooks/useIntervalFetch';
 import { useSettings } from '../../../context/SettingsContext';
 import { useLanguage } from '../../../context/LanguageContext';
 
+<<<<<<< HEAD
 const buildInitialConfigurationNetwork = (network, networkKind) => {
     if (!network || !networkKind) {
         return null;
@@ -66,6 +71,10 @@ const buildInitialConfigurationNetwork = (network, networkKind) => {
 const Networks = () => {
     const { t } = useLanguage();
     const navigate = useNavigate();
+=======
+const Networks = () => {
+    const { t } = useLanguage();
+>>>>>>> parent of 30b1732 (Delete frontend directory)
     const [beResponse, setBeResponse] = useState({ wired: [], wireless: [], stats: {} });
     const [loading, setLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -78,6 +87,7 @@ const Networks = () => {
     const { selectedSiteId, sites, fetchSites } = useSite();
     const { isAutoRefreshEnabled } = useSettings();
 
+<<<<<<< HEAD
     const handleNetworkSelect = (networkId, networkKind) => {
         if (!selectedSiteId || !networkId) return;
 
@@ -94,6 +104,8 @@ const Networks = () => {
         });
     };
 
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
     useEffect(() => {
         if (sites.length === 0) fetchSites();
     }, []);
@@ -244,6 +256,7 @@ const Networks = () => {
                         </button>
                     ))}
                 </div>
+<<<<<<< HEAD
 
                 {/* Create Network button */}
                 <button
@@ -254,6 +267,8 @@ const Networks = () => {
                     <Plus size={16} strokeWidth={3} />
                     Create
                 </button>
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
             </div>
 
             {error && (
@@ -273,11 +288,15 @@ const Networks = () => {
                             <span className="text-slate-700 normal-case font-bold tracking-normal">— {wirelessRows.length} SSIDs</span>
                         </h2>
                     )}
+<<<<<<< HEAD
                     <WirelessTable
                         data={wirelessRows}
                         loading={loading}
                         onNetworkSelect={(networkId) => handleNetworkSelect(networkId, 'wireless')}
                     />
+=======
+                    <WirelessTable data={wirelessRows} loading={loading} />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                 </div>
             )}
 
@@ -299,7 +318,10 @@ const Networks = () => {
                             direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
                         }))}
                         loading={loading}
+<<<<<<< HEAD
                         onNetworkSelect={(networkId) => handleNetworkSelect(networkId, 'wired')}
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                     />
                 </div>
             )}

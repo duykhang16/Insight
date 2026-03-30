@@ -1,5 +1,9 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+<<<<<<< HEAD
 import { LogOut, RefreshCw, ChevronsUpDown, Moon, Sun, Languages, KeyRound, Eye, EyeOff, CheckCircle, AlertTriangle, X, Shield } from 'lucide-react';
+=======
+import { LogOut, RefreshCw, ChevronsUpDown, Moon, Sun, Languages, KeyRound, Eye, EyeOff, CheckCircle, AlertTriangle, X } from 'lucide-react';
+>>>>>>> parent of 30b1732 (Delete frontend directory)
 import { useSite } from '../../context/SiteContext';
 import { useSettings } from '../../context/SettingsContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -24,6 +28,7 @@ const AVATAR_GRADIENTS = [
 
 // SVG shape patterns for avatar overlay
 const AVATAR_SHAPES = [
+<<<<<<< HEAD
     // Triangle
     (s) => `<polygon points="${s/2},${s*0.15} ${s*0.85},${s*0.85} ${s*0.15},${s*0.85}" fill="white" opacity="0.12"/>`,
     // Circle
@@ -35,6 +40,13 @@ const AVATAR_SHAPES = [
     // Slash lines
     (s) => `<line x1="${s*0.7}" y1="0" x2="${s}" y2="${s*0.3}" stroke="white" stroke-width="1.5" opacity="0.1"/><line x1="${s*0.8}" y1="0" x2="${s}" y2="${s*0.2}" stroke="white" stroke-width="1" opacity="0.08"/>`,
     // Half circle
+=======
+    (s) => `<polygon points="${s/2},${s*0.15} ${s*0.85},${s*0.85} ${s*0.15},${s*0.85}" fill="white" opacity="0.12"/>`,
+    (s) => `<circle cx="${s*0.65}" cy="${s*0.35}" r="${s*0.22}" fill="white" opacity="0.1"/>`,
+    (s) => `<polygon points="${s/2},${s*0.1} ${s*0.85},${s/2} ${s/2},${s*0.9} ${s*0.15},${s/2}" fill="white" opacity="0.08"/>`,
+    (s) => `<circle cx="${s*0.25}" cy="${s*0.75}" r="${s*0.08}" fill="white" opacity="0.15"/><circle cx="${s*0.75}" cy="${s*0.25}" r="${s*0.06}" fill="white" opacity="0.12"/>`,
+    (s) => `<line x1="${s*0.7}" y1="0" x2="${s}" y2="${s*0.3}" stroke="white" stroke-width="1.5" opacity="0.1"/><line x1="${s*0.8}" y1="0" x2="${s}" y2="${s*0.2}" stroke="white" stroke-width="1" opacity="0.08"/>`,
+>>>>>>> parent of 30b1732 (Delete frontend directory)
     (s) => `<circle cx="${s}" cy="${s}" r="${s*0.4}" fill="white" opacity="0.08"/>`,
 ];
 
@@ -55,6 +67,7 @@ function getAvatarProps(email) {
     return { gradient, shape };
 }
 
+<<<<<<< HEAD
 // Avatar component with initial letter + random gradient + shape overlay
 const UserAvatar = ({ email, name, size = 'md' }) => {
     const { gradient, shape } = useMemo(() => getAvatarProps(email), [email]);
@@ -62,11 +75,19 @@ const UserAvatar = ({ email, name, size = 'md' }) => {
     const sizeClasses = size === 'sm'
         ? 'w-8 h-8 text-xs'
         : 'w-9 h-9 text-sm';
+=======
+// Avatar component with initial letter + gradient + shape overlay
+const UserAvatar = ({ email, name, size = 'md' }) => {
+    const { gradient, shape } = useMemo(() => getAvatarProps(email), [email]);
+    const initial = (name || email || '?')[0].toUpperCase();
+    const sizeClasses = size === 'sm' ? 'w-8 h-8 text-xs' : 'w-9 h-9 text-sm';
+>>>>>>> parent of 30b1732 (Delete frontend directory)
     const px = size === 'sm' ? 32 : 36;
     const svgShape = shape(px);
 
     return (
         <div className={`${sizeClasses} rounded-lg bg-gradient-to-br ${gradient} flex items-center justify-center text-white font-bold shrink-0 shadow-sm relative overflow-hidden group-hover:shadow-md transition-shadow select-none`}>
+<<<<<<< HEAD
             {/* Shape overlay */}
             <svg
                 className="absolute inset-0 w-full h-full pointer-events-none"
@@ -75,6 +96,9 @@ const UserAvatar = ({ email, name, size = 'md' }) => {
                 dangerouslySetInnerHTML={{ __html: svgShape }}
             />
             {/* Letter */}
+=======
+            <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox={`0 0 ${px} ${px}`} xmlns="http://www.w3.org/2000/svg" dangerouslySetInnerHTML={{ __html: svgShape }} />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
             <span className="relative z-10 drop-shadow-sm">{initial}</span>
         </div>
     );
@@ -83,7 +107,10 @@ const UserAvatar = ({ email, name, size = 'md' }) => {
 // Sync status indicator
 const SyncIndicator = ({ isSyncing, lastUpdated }) => {
     const { t } = useLanguage();
+<<<<<<< HEAD
 
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
     const formattedTime = lastUpdated instanceof Date
         ? lastUpdated.toLocaleTimeString()
         : (lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : '--:--:--');
@@ -110,10 +137,17 @@ const SyncIndicator = ({ isSyncing, lastUpdated }) => {
     );
 };
 
+<<<<<<< HEAD
 // Change Password Modal
 const ChangePasswordModal = ({ onClose }) => {
     const { t } = useLanguage();
     const [form, setForm] = useState({ old_password: '', new_password: '', confirm_password: '' });
+=======
+// Change Password Modal — centered popup
+const ChangePasswordModal = ({ onClose }) => {
+    const { t } = useLanguage();
+    const [form, setForm] = useState({ current_password: '', new_password: '', confirm_password: '' });
+>>>>>>> parent of 30b1732 (Delete frontend directory)
     const [showOld, setShowOld] = useState(false);
     const [showNew, setShowNew] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -126,17 +160,26 @@ const ChangePasswordModal = ({ onClose }) => {
         setSuccess('');
 
         if (form.new_password.length < 8) {
+<<<<<<< HEAD
             setError(t('account.password_min_length') || 'Mật khẩu mới phải ít nhất 8 ký tự.');
             return;
         }
         if (form.new_password !== form.confirm_password) {
             setError(t('account.password_mismatch') || 'Mật khẩu xác nhận không khớp.');
+=======
+            setError('New password must be at least 8 characters.');
+            return;
+        }
+        if (form.new_password !== form.confirm_password) {
+            setError('Passwords do not match.');
+>>>>>>> parent of 30b1732 (Delete frontend directory)
             return;
         }
 
         setLoading(true);
         try {
             const res = await apiClient.post('/auth/change-password', {
+<<<<<<< HEAD
                 old_password: form.old_password,
                 new_password: form.new_password,
             });
@@ -145,6 +188,16 @@ const ChangePasswordModal = ({ onClose }) => {
             setTimeout(() => onClose(), 1500);
         } catch (err) {
             setError(err.response?.data?.detail || t('account.password_change_failed') || 'Đổi mật khẩu thất bại.');
+=======
+                current_password: form.current_password,
+                new_password: form.new_password,
+            });
+            setSuccess(res.data.message || 'Password changed successfully.');
+            setForm({ current_password: '', new_password: '', confirm_password: '' });
+            setTimeout(() => onClose(), 1500);
+        } catch (err) {
+            setError(err.response?.data?.detail || 'Failed to change password.');
+>>>>>>> parent of 30b1732 (Delete frontend directory)
         } finally {
             setLoading(false);
         }
@@ -165,9 +218,13 @@ const ChangePasswordModal = ({ onClose }) => {
                 <div className="flex items-center justify-between px-6 py-4 border-b th-border">
                     <div className="flex items-center gap-2">
                         <KeyRound className="w-4 h-4 text-blue-400" />
+<<<<<<< HEAD
                         <h2 className="text-sm font-semibold th-text-primary">
                             {t('account.change_password') || 'Đổi mật khẩu'}
                         </h2>
+=======
+                        <h2 className="text-sm font-semibold th-text-primary">Change Password</h2>
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                     </div>
                     <button onClick={onClose} className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
                         <X className="w-4 h-4 th-text-secondary" />
@@ -189,15 +246,22 @@ const ChangePasswordModal = ({ onClose }) => {
                         </div>
                     )}
 
+<<<<<<< HEAD
                     {/* Old password */}
                     <div>
                         <label className="block text-xs th-text-secondary mb-1.5">
                             {t('account.old_password') || 'Mật khẩu hiện tại'}
                         </label>
+=======
+                    {/* Current password */}
+                    <div>
+                        <label className="block text-xs th-text-secondary mb-1.5">Current Password</label>
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                         <div className="relative">
                             <input
                                 type={showOld ? 'text' : 'password'}
                                 required
+<<<<<<< HEAD
                                 value={form.old_password}
                                 onChange={(e) => setForm({ ...form, old_password: e.target.value })}
                                 className="w-full th-bg-elevated border th-border th-text-primary rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500 pr-10"
@@ -208,6 +272,15 @@ const ChangePasswordModal = ({ onClose }) => {
                                 onClick={() => setShowOld(!showOld)}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 th-text-muted hover:th-text-primary transition-colors"
                             >
+=======
+                                autoFocus
+                                value={form.current_password}
+                                onChange={(e) => setForm({ ...form, current_password: e.target.value })}
+                                className="w-full th-bg-elevated border th-border th-text-primary rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500 pr-10"
+                                placeholder="••••••••"
+                            />
+                            <button type="button" onClick={() => setShowOld(!showOld)} className="absolute right-3 top-1/2 -translate-y-1/2 th-text-muted hover:th-text-primary transition-colors">
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                                 {showOld ? <EyeOff size={14} /> : <Eye size={14} />}
                             </button>
                         </div>
@@ -215,9 +288,13 @@ const ChangePasswordModal = ({ onClose }) => {
 
                     {/* New password */}
                     <div>
+<<<<<<< HEAD
                         <label className="block text-xs th-text-secondary mb-1.5">
                             {t('account.new_password') || 'Mật khẩu mới'}
                         </label>
+=======
+                        <label className="block text-xs th-text-secondary mb-1.5">New Password</label>
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                         <div className="relative">
                             <input
                                 type={showNew ? 'text' : 'password'}
@@ -225,6 +302,7 @@ const ChangePasswordModal = ({ onClose }) => {
                                 value={form.new_password}
                                 onChange={(e) => setForm({ ...form, new_password: e.target.value })}
                                 className="w-full th-bg-elevated border th-border th-text-primary rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500 pr-10"
+<<<<<<< HEAD
                                 placeholder="Ít nhất 8 ký tự"
                             />
                             <button
@@ -232,6 +310,11 @@ const ChangePasswordModal = ({ onClose }) => {
                                 onClick={() => setShowNew(!showNew)}
                                 className="absolute right-3 top-1/2 -translate-y-1/2 th-text-muted hover:th-text-primary transition-colors"
                             >
+=======
+                                placeholder="At least 8 characters"
+                            />
+                            <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 th-text-muted hover:th-text-primary transition-colors">
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                                 {showNew ? <EyeOff size={14} /> : <Eye size={14} />}
                             </button>
                         </div>
@@ -239,16 +322,24 @@ const ChangePasswordModal = ({ onClose }) => {
 
                     {/* Confirm password */}
                     <div>
+<<<<<<< HEAD
                         <label className="block text-xs th-text-secondary mb-1.5">
                             {t('account.confirm_password') || 'Xác nhận mật khẩu mới'}
                         </label>
+=======
+                        <label className="block text-xs th-text-secondary mb-1.5">Confirm New Password</label>
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                         <input
                             type="password"
                             required
                             value={form.confirm_password}
                             onChange={(e) => setForm({ ...form, confirm_password: e.target.value })}
                             className="w-full th-bg-elevated border th-border th-text-primary rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500"
+<<<<<<< HEAD
                             placeholder="Nhập lại mật khẩu mới"
+=======
+                            placeholder="Re-enter new password"
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                         />
                     </div>
 
@@ -260,7 +351,11 @@ const ChangePasswordModal = ({ onClose }) => {
                             disabled={loading}
                             className="flex-1 px-4 py-2.5 text-sm th-text-secondary border th-border hover:border-slate-500 rounded-lg transition-colors disabled:opacity-50"
                         >
+<<<<<<< HEAD
                             {t('common.cancel') || 'Hủy'}
+=======
+                            Cancel
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                         </button>
                         <button
                             type="submit"
@@ -268,7 +363,11 @@ const ChangePasswordModal = ({ onClose }) => {
                             className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
                         >
                             {loading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+<<<<<<< HEAD
                             {loading ? (t('common.saving') || 'Đang lưu...') : (t('account.save_password') || 'Lưu mật khẩu')}
+=======
+                            {loading ? 'Saving...' : 'Save Password'}
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                         </button>
                     </div>
                 </form>
@@ -277,6 +376,7 @@ const ChangePasswordModal = ({ onClose }) => {
     );
 };
 
+<<<<<<< HEAD
 const TwoFactorModal = ({ onClose }) => {
     const { t } = useLanguage();
     const userEmail = sessionStorage.getItem('insight_user_email') || 'user@insight.local';
@@ -649,6 +749,11 @@ const UserWidget = ({ onLogout }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [showChangePassword, setShowChangePassword] = useState(false);
     const [showTwoFactorModal, setShowTwoFactorModal] = useState(false);
+=======
+const UserWidget = ({ onLogout }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [showChangePassword, setShowChangePassword] = useState(false);
+>>>>>>> parent of 30b1732 (Delete frontend directory)
     const { selectedSiteId, sites, lastUpdated, loadingSites } = useSite();
     const { isAutoRefreshEnabled } = useSettings();
     const { t, language, toggleLanguage } = useLanguage();
@@ -657,7 +762,10 @@ const UserWidget = ({ onLogout }) => {
 
     const userEmail = sessionStorage.getItem('insight_user_email') || 'user@insight.local';
     const userName = userEmail.split('@')[0];
+<<<<<<< HEAD
     const userInitial = userName[0]?.toUpperCase() || '?';
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -674,9 +782,12 @@ const UserWidget = ({ onLogout }) => {
             {showChangePassword && (
                 <ChangePasswordModal onClose={() => setShowChangePassword(false)} />
             )}
+<<<<<<< HEAD
             {showTwoFactorModal && (
                 <TwoFactorModal onClose={() => setShowTwoFactorModal(false)} />
             )}
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
 
             <div className="relative mx-2 mb-2" ref={dropdownRef}>
                 {/* Dropdown Menu */}
@@ -703,6 +814,7 @@ const UserWidget = ({ onLogout }) => {
                                 </div>
                             </div>
 
+<<<<<<< HEAD
                             {/* Settings: Theme & Language & Password */}
                             <div className="p-1 border-b border-slate-100 dark:border-white/5">
                                 {/* Theme toggle */}
@@ -710,11 +822,17 @@ const UserWidget = ({ onLogout }) => {
                                     onClick={toggleTheme}
                                     className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors group"
                                 >
+=======
+                            {/* Settings */}
+                            <div className="p-1 border-b border-slate-100 dark:border-white/5">
+                                <button onClick={toggleTheme} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors group">
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                                     {theme === 'dark' ? (
                                         <Sun size={14} className="opacity-60 group-hover:opacity-100 group-hover:text-amber-500 transition-all" />
                                     ) : (
                                         <Moon size={14} className="opacity-60 group-hover:opacity-100 group-hover:text-blue-500 transition-all" />
                                     )}
+<<<<<<< HEAD
                                     <span className="flex-1 text-left">
                                         {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
                                     </span>
@@ -759,16 +877,37 @@ const UserWidget = ({ onLogout }) => {
                                     <span className="flex-1 text-left">
                                         {t('account.two_factor') || 'Two-Factor Authentication'}
                                     </span>
+=======
+                                    <span className="flex-1 text-left">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+                                </button>
+
+                                <button onClick={toggleLanguage} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors group">
+                                    <Languages size={14} className="opacity-60 group-hover:opacity-100 transition-opacity" />
+                                    <span className="flex-1 text-left">{language === 'vi' ? 'English' : 'Tiếng Việt'}</span>
+                                    <span className="text-[10px] font-bold uppercase text-slate-400 dark:text-slate-500">{language}</span>
+                                </button>
+
+                                <button
+                                    onClick={() => { setIsOpen(false); setShowChangePassword(true); }}
+                                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors group"
+                                >
+                                    <KeyRound size={14} className="opacity-60 group-hover:opacity-100 group-hover:text-blue-500 transition-all" />
+                                    <span className="flex-1 text-left">Change Password</span>
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                                 </button>
                             </div>
 
                             {/* Logout */}
                             <div className="p-1">
                                 <button
+<<<<<<< HEAD
                                     onClick={() => {
                                         setIsOpen(false);
                                         onLogout();
                                     }}
+=======
+                                    onClick={() => { setIsOpen(false); onLogout(); }}
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                                     className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-400 transition-colors group"
                                 >
                                     <LogOut size={14} className="opacity-60 group-hover:opacity-100 transition-opacity" />
@@ -783,9 +922,13 @@ const UserWidget = ({ onLogout }) => {
                 <button
                     onClick={() => setIsOpen(!isOpen)}
                     className={`w-full p-2.5 flex items-center gap-3 rounded-xl transition-all duration-150 focus:outline-none group ${
+<<<<<<< HEAD
                         isOpen
                             ? 'bg-slate-100 dark:bg-white/5'
                             : 'hover:bg-slate-100 dark:hover:bg-white/5'
+=======
+                        isOpen ? 'bg-slate-100 dark:bg-white/5' : 'hover:bg-slate-100 dark:hover:bg-white/5'
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                     }`}
                 >
                     <UserAvatar email={userEmail} name={userName} size="md" />
@@ -795,10 +938,14 @@ const UserWidget = ({ onLogout }) => {
                         </div>
                         <SyncIndicator isSyncing={loadingSites} lastUpdated={lastUpdated} />
                     </div>
+<<<<<<< HEAD
                     <ChevronsUpDown
                         size={16}
                         className="th-text-muted opacity-40 group-hover:opacity-70 transition-opacity shrink-0"
                     />
+=======
+                    <ChevronsUpDown size={16} className="th-text-muted opacity-40 group-hover:opacity-70 transition-opacity shrink-0" />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                 </button>
             </div>
         </>

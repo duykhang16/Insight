@@ -1,11 +1,14 @@
 import { useLocation } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 
+<<<<<<< HEAD
 const getConfigurationShellPath = (pathname) => {
     const match = pathname.match(/^\/site\/([^/]+)\/configuration\/[^/]+$/);
     return match ? `/site/${match[1]}/configuration` : null;
 };
 
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
 /**
  * PageTransition — wraps content with a fade+slide-up animation
  * whenever the route changes.
@@ -18,6 +21,7 @@ const PageTransition = ({ children }) => {
 
     useEffect(() => {
         if (location.pathname !== prevPathRef.current) {
+<<<<<<< HEAD
             const previousConfigurationShell = getConfigurationShellPath(prevPathRef.current);
             const nextConfigurationShell = getConfigurationShellPath(location.pathname);
 
@@ -28,6 +32,8 @@ const PageTransition = ({ children }) => {
                 return undefined;
             }
 
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
             // Route changed — start exit animation
             setTransitionState('exit');
 

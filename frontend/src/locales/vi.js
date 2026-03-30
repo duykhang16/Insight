@@ -28,11 +28,14 @@ export const vi = {
         use_another_account: "Dùng tài khoản khác",
         step_password_title: "Chào mừng trở lại",
         step_password_subtitle: "Nhập mật khẩu để đăng nhập",
+<<<<<<< HEAD
         step_otp_title: "Xác thực hai lớp",
         step_otp_subtitle: "Nhập mã 6 số từ ứng dụng xác thực",
         otp: "Mã OTP",
         otp_placeholder: "123456",
         verify_otp: "Xác nhận OTP",
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
         error_invalid: "Sai User Name hoặc Password. Vui lòng thử lại!",
         error_failed: "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.",
         verifying: "Đang xác thực...",
@@ -631,6 +634,7 @@ export const vi = {
         }
     },
     zones: {
+<<<<<<< HEAD
         // Site-level permission
         all_sites_access: "Tất cả site",
         sites_label: "site",
@@ -639,6 +643,8 @@ export const vi = {
         specific_sites: "Chỉ site cụ thể",
         site_permission_saved: "Đã cập nhật quyền site",
 
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
         dashboard: {
             title: "Zone của tôi",
             zone_count_label: "zone",
@@ -897,6 +903,7 @@ export const vi = {
         tab_database: "Cơ sở dữ liệu",
         tab_traffic: "Lưu lượng"
     },
+<<<<<<< HEAD
     account: {
         change_password: "Đổi mật khẩu",
         old_password: "Mật khẩu hiện tại",
@@ -920,4 +927,6 @@ export const vi = {
         two_factor_setup_success: "Đã bật xác thực hai lớp thành công.",
         two_factor_disable_success: "Đã tắt xác thực hai lớp thành công.",
     },
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
 };

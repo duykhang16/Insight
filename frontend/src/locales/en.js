@@ -28,11 +28,14 @@ export const en = {
         use_another_account: "Use a different account",
         step_password_title: "Welcome back",
         step_password_subtitle: "Enter your password to sign in",
+<<<<<<< HEAD
         step_otp_title: "Two-Factor Authentication",
         step_otp_subtitle: "Enter the 6-digit code from your authenticator app",
         otp: "One-Time Password",
         otp_placeholder: "123456",
         verify_otp: "Verify OTP",
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
         error_invalid: "Incorrect Username or Password. Please try again.",
         error_failed: "Login failed. Please check your credentials.",
         verifying: "Verifying...",
@@ -631,6 +634,7 @@ export const en = {
         }
     },
     zones: {
+<<<<<<< HEAD
         // Site-level permission
         all_sites_access: "All sites",
         sites_label: "sites",
@@ -639,6 +643,8 @@ export const en = {
         specific_sites: "Specific sites only",
         site_permission_saved: "Site permissions updated",
 
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
         dashboard: {
             title: "My Zones",
             zone_count_label: "zones",
@@ -897,6 +903,7 @@ export const en = {
         tab_database: "Database",
         tab_traffic: "Traffic"
     },
+<<<<<<< HEAD
     account: {
         change_password: "Change Password",
         old_password: "Current Password",
@@ -920,4 +927,6 @@ export const en = {
         two_factor_setup_success: "Two-factor authentication enabled successfully.",
         two_factor_disable_success: "Two-factor authentication disabled successfully.",
     },
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
 };

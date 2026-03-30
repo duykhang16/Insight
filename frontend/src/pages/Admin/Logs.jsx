@@ -105,6 +105,7 @@ const AdminPage = () => {
             label: t('admin.logs.table_status'),
             sortable: true,
             render: (log) => {
+<<<<<<< HEAD
                 // Use the actual status field from audit log (SUCCESS/PARTIAL/SKIPPED/FAILED)
                 const status = (log.status || '').toUpperCase();
                 const statusStyles = {
@@ -134,10 +135,24 @@ const AdminPage = () => {
                 return (
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${style}`}>
                         {icon} {label}
+=======
+                const isSuccess = log.statusCode >= 200 && log.statusCode < 300;
+                return (
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                        isSuccess
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                    }`}>
+                        {isSuccess
+                            ? <><CheckCircle2 size={10} /> {t('admin.logs.status_success')}</>
+                            : <><XCircle size={10} /> {t('admin.logs.status_failed')}</>
+                        }
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                     </span>
                 );
             },
         },
+<<<<<<< HEAD
         {
             key: 'result_detail',
             label: 'Result',
@@ -153,6 +168,8 @@ const AdminPage = () => {
                 );
             },
         },
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
     ];
 
     return (

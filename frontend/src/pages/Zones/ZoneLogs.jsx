@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+<<<<<<< HEAD
 import { ArrowLeft, RefreshCw, FileText, CheckCircle2, XCircle, AlertCircle, Clock } from 'lucide-react';
+=======
+import { ArrowLeft, RefreshCw, FileText } from 'lucide-react';
+>>>>>>> parent of 30b1732 (Delete frontend directory)
 import apiClient from '../../api/apiClient';
 import { formatAction } from '../../utils/logFormatter';
 import { useLanguage } from '../../context/LanguageContext';
@@ -82,7 +86,10 @@ const ZoneLogs = () => {
                 <th className="px-4 py-3 text-slate-400 font-medium">Method</th>
                 <th className="px-4 py-3 text-slate-400 font-medium">Endpoint</th>
                 <th className="px-4 py-3 text-slate-400 font-medium text-center">Status</th>
+<<<<<<< HEAD
                 <th className="px-4 py-3 text-slate-400 font-medium">Result</th>
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
               </tr>
             </thead>
             <tbody>
@@ -99,6 +106,7 @@ const ZoneLogs = () => {
                   </td>
                   <td className="px-4 py-3 text-slate-400 font-mono max-w-[200px] truncate">{log.endpoint}</td>
                   <td className="px-4 py-3 text-center">
+<<<<<<< HEAD
                     {(() => {
                       const status = (log.status || '').toUpperCase();
                       const cfg = {
@@ -124,6 +132,11 @@ const ZoneLogs = () => {
                         {log.result_detail.failed > 0 && <span className="text-rose-400">{log.result_detail.failed} ✕</span>}
                       </div>
                     ) : <span className="text-slate-600">—</span>}
+=======
+                    <span className={`font-mono font-semibold ${getStatusColor(log.statusCode)}`}>
+                      {log.statusCode}
+                    </span>
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                   </td>
                 </tr>
               ))}

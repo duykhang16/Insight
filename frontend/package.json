@@ -15,7 +15,10 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@fontsource-variable/geist": "^5.2.8",
+<<<<<<< HEAD
     "@phosphor-icons/react": "^2.1.10",
+=======
+>>>>>>> parent of 30b1732 (Delete frontend directory)
     "@tailwindcss/postcss": "^4.1.18",
     "ag-grid-community": "^35.1.0",
     "ag-grid-react": "^35.1.0",

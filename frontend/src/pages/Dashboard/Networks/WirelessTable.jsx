@@ -23,11 +23,17 @@ const getUsage = (u) =>
     USAGE_CONFIG[u?.toLowerCase()] || { label: u || 'Employee', color: 'bg-slate-700 text-slate-400 border-white/5' };
 
 // --- Component ---
+<<<<<<< HEAD
 const WirelessTable = ({ data, loading, onNetworkSelect }) => {
     const [sortConfig, setSortConfig] = useState({ key: 'clients', direction: 'desc' });
 
     const handleNetworkActivate = (networkId) => onNetworkSelect?.(networkId);
 
+=======
+const WirelessTable = ({ data, loading }) => {
+    const [sortConfig, setSortConfig] = useState({ key: 'clients', direction: 'desc' });
+
+>>>>>>> parent of 30b1732 (Delete frontend directory)
     const handleSort = (key) => {
         setSortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc' }));
     };
@@ -67,6 +73,7 @@ const WirelessTable = ({ data, loading, onNetworkSelect }) => {
                         <div className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 shrink-0">
                             <Wifi size={12} />
                         </div>
+<<<<<<< HEAD
                         {onNetworkSelect ? (
                             <button
                                 type="button"
@@ -79,6 +86,9 @@ const WirelessTable = ({ data, loading, onNetworkSelect }) => {
                         ) : (
                             <p className="th-text-primary font-bold text-sm truncate">{ssid.name}</p>
                         )}
+=======
+                        <p className="th-text-primary font-bold text-sm truncate">{ssid.name}</p>
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                     </div>
                     {ssid.isEnabled ? (
                         <span className="flex items-center gap-1 text-[10px] font-bold uppercase text-emerald-400 shrink-0">
@@ -212,6 +222,7 @@ const WirelessTable = ({ data, loading, onNetworkSelect }) => {
                                                         <div className="p-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 shrink-0">
                                                             <Wifi size={12} />
                                                         </div>
+<<<<<<< HEAD
                                                         {onNetworkSelect ? (
                                                             <button
                                                                 type="button"
@@ -226,6 +237,11 @@ const WirelessTable = ({ data, loading, onNetworkSelect }) => {
                                                                 {ssid.name}
                                                             </p>
                                                         )}
+=======
+                                                        <p className="th-text-primary font-bold text-xs truncate max-w-[160px]" title={ssid.name}>
+                                                            {ssid.name}
+                                                        </p>
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                                                     </div>
                                                 </TableCell>
                                                 <TableCell className="px-4 py-3">

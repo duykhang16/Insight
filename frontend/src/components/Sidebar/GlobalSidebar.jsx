@@ -1,11 +1,19 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+<<<<<<< HEAD
 import { ChevronDown } from 'lucide-react';
 import {
     House, Sliders, ShieldCheck, Stack, LinkSimple, Users,
     Buildings, Scroll, CopySimple, Trash, ArrowsClockwise, GearSix, Layout,
     Monitor
 } from '@phosphor-icons/react';
+=======
+import {
+    Home, Sliders, Shield, Layers, Link2, Users,
+    Building2, ScrollText, ChevronDown, Copy, Trash2, RefreshCw, Settings, Layout,
+    Monitor
+} from 'lucide-react';
+>>>>>>> parent of 30b1732 (Delete frontend directory)
 import UserWidget from './UserWidget';
 import HelpTooltip from '../HelpTooltip';
 import { useLanguage } from '../../context/LanguageContext';
@@ -44,23 +52,39 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
 
     // Sub-items for Configuration accordion
     const configSubItems = [
+<<<<<<< HEAD
         { key: 'templates', label: t('config.tabs.templates') || 'Templates', icon: <Layout size={14} weight="duotone" />, help: '' },
         canSeeClone && {
             key: 'clone',
             label: t('config.tabs.clone') || 'Clone',
             icon: <CopySimple size={14} weight="duotone" />,
+=======
+        { key: 'templates', label: t('config.tabs.templates') || 'Templates', icon: <Layout size={14} />, help: '' },
+        canSeeClone && {
+            key: 'clone',
+            label: t('config.tabs.clone') || 'Clone',
+            icon: <Copy size={14} />,
+>>>>>>> parent of 30b1732 (Delete frontend directory)
             help: t('config.help.clone'),
         },
         canSeeUpdate && {
             key: 'update',
             label: t('config.tabs.update') || 'Update',
+<<<<<<< HEAD
             icon: <ArrowsClockwise size={14} weight="duotone" />,
+=======
+            icon: <RefreshCw size={14} />,
+>>>>>>> parent of 30b1732 (Delete frontend directory)
             help: t('config.help.update'),
         },
         canSeeBatchOps && {
             key: 'batch_ops',
             label: t('config.tabs.batch_ops') || 'Batch Operations',
+<<<<<<< HEAD
             icon: <GearSix size={14} weight="duotone" />,
+=======
+            icon: <Settings size={14} />,
+>>>>>>> parent of 30b1732 (Delete frontend directory)
             help: t('config.help.batch_ops'),
         },
     ].filter(Boolean);
@@ -74,7 +98,11 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
             {/* Brand header */}
             <div className="flex items-center px-4 h-14 border-b th-border">
                 <button
+<<<<<<< HEAD
                     onClick={() => navigate('/zones')}
+=======
+                    onClick={() => navigate(userRole === 'super_admin' ? '/super/tenants' : '/zones')}
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                     className="flex items-center gap-3 hover:opacity-80 transition-opacity"
                 >
                     <span className="text-lg font-black italic th-text-primary tracking-widest uppercase">INSIGHT</span>
@@ -87,18 +115,33 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
 
             {/* Navigation */}
             <nav className="flex-1 overflow-y-auto pt-3 space-y-0.5">
+<<<<<<< HEAD
+=======
+                {userRole !== 'super_admin' && (
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                 <NavLink to="/zones" end className={getNavLinkClass}>
                     {({ isActive }) => (
                         <>
                             {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
+<<<<<<< HEAD
                             <House size={18} weight="duotone" className="mr-3 shrink-0" />
+=======
+                            <Home className="w-[18px] h-[18px] mr-3 shrink-0" />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                             {t('sidebar.dashboard')}
                         </>
                     )}
                 </NavLink>
+<<<<<<< HEAD
 
                 {/* Configuration accordion */}
                 {canSeeConfig && (
+=======
+                )}
+
+                {/* Configuration accordion */}
+                {canSeeConfig && userRole !== 'super_admin' && (
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                     <div>
                         {/* Accordion trigger */}
                         <button
@@ -111,7 +154,11 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                             style={{ width: 'calc(100% - 1rem)' }}
                         >
                             <span className="flex items-center gap-3">
+<<<<<<< HEAD
                                 <Sliders size={18} weight="duotone" className="shrink-0" />
+=======
+                                <Sliders className="w-[18px] h-[18px] shrink-0" />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                                 {t('sidebar.configuration')}
                             </span>
                             <ChevronDown
@@ -173,7 +220,11 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                             {({ isActive }) => (
                                 <>
                                     {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
+<<<<<<< HEAD
                                     <ShieldCheck size={18} weight="duotone" className="mr-3 shrink-0" />
+=======
+                                    <Shield className="w-[18px] h-[18px] mr-3 shrink-0" />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                                     {t('admin.logs.title')}
                                 </>
                             )}
@@ -182,7 +233,11 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                             {({ isActive }) => (
                                 <>
                                     {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
+<<<<<<< HEAD
                                     <Stack size={18} weight="duotone" className="mr-3 shrink-0" />
+=======
+                                    <Layers className="w-[18px] h-[18px] mr-3 shrink-0" />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                                     {t('admin.zones.title')}
                                 </>
                             )}
@@ -191,7 +246,11 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                             {({ isActive }) => (
                                 <>
                                     {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
+<<<<<<< HEAD
                                     <Users size={18} weight="duotone" className="mr-3 shrink-0" />
+=======
+                                    <Users className="w-[18px] h-[18px] mr-3 shrink-0" />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                                     {t('admin.users.title')}
                                 </>
                             )}
@@ -200,7 +259,11 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                             {({ isActive }) => (
                                 <>
                                     {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
+<<<<<<< HEAD
                                     <LinkSimple size={18} weight="duotone" className="mr-3 shrink-0" />
+=======
+                                    <Link2 className="w-[18px] h-[18px] mr-3 shrink-0" />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                                     {t('admin.master.title')}
                                 </>
                             )}
@@ -218,7 +281,11 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                             {({ isActive }) => (
                                 <>
                                     {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
+<<<<<<< HEAD
                                     <Buildings size={18} weight="duotone" className="mr-3 shrink-0" />
+=======
+                                    <Building2 className="w-[18px] h-[18px] mr-3 shrink-0" />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                                     {t('super.tenants.title')}
                                 </>
                             )}
@@ -227,7 +294,11 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                             {({ isActive }) => (
                                 <>
                                     {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
+<<<<<<< HEAD
                                     <Users size={18} weight="duotone" className="mr-3 shrink-0" />
+=======
+                                    <Users className="w-[18px] h-[18px] mr-3 shrink-0" />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                                     {t('super.users.title')}
                                 </>
                             )}
@@ -236,7 +307,11 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                             {({ isActive }) => (
                                 <>
                                     {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
+<<<<<<< HEAD
                                     <ShieldCheck size={18} weight="duotone" className="mr-3 shrink-0" />
+=======
+                                    <Shield className="w-[18px] h-[18px] mr-3 shrink-0" />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                                     {t('super.permissions.title')}
                                 </>
                             )}
@@ -245,7 +320,11 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                             {({ isActive }) => (
                                 <>
                                     {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
+<<<<<<< HEAD
                                     <Scroll size={18} weight="duotone" className="mr-3 shrink-0" />
+=======
+                                    <ScrollText className="w-[18px] h-[18px] mr-3 shrink-0" />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                                     {t('super.logs.title')}
                                 </>
                             )}
@@ -254,7 +333,11 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                             {({ isActive }) => (
                                 <>
                                     {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
+<<<<<<< HEAD
                                     <Monitor size={18} weight="duotone" className="mr-3 shrink-0" />
+=======
+                                    <Monitor className="w-[18px] h-[18px] mr-3 shrink-0" />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                                     {t('monitoring.title')}
                                 </>
                             )}

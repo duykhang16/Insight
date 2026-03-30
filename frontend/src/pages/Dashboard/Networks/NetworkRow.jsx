@@ -1,5 +1,9 @@
 import React from 'react';
+<<<<<<< HEAD
 import { Wifi, Plug, Users } from 'lucide-react';
+=======
+import { Wifi, Plug, Users, Lock, Radio } from 'lucide-react';
+>>>>>>> parent of 30b1732 (Delete frontend directory)
 
 // --- Helpers ---
 const TYPE_CONFIG = {
@@ -35,6 +39,7 @@ const SsidChip = ({ ssid }) => (
                 {ssid.clients}
             </span>
         )}
+<<<<<<< HEAD
     </button>
 );
 
@@ -54,6 +59,17 @@ const NetworkRow = ({ net, onSelect }) => {
             }}
             tabIndex={0}
         >
+=======
+    </div>
+);
+
+// --- Main Wired Network Row ---
+const NetworkRow = ({ net }) => {
+    const typeConfig = getTypeConfig(net.type);
+
+    return (
+        <tr className="hover:bg-white/[0.02] transition-colors group">
+>>>>>>> parent of 30b1732 (Delete frontend directory)
 
             {/* Network Name */}
             <td className="px-8 py-5">
@@ -91,12 +107,21 @@ const NetworkRow = ({ net, onSelect }) => {
                 {net.ssids.length === 0 ? (
                     <span className="text-slate-700 text-xs font-bold">No SSIDs</span>
                 ) : (
+<<<<<<< HEAD
                         <div className="flex flex-wrap gap-1.5">
                             {net.ssids.map(ssid => (
                                 <SsidChip key={ssid.id} ssid={ssid} onSelect={onSelect} />
                             ))}
                         </div>
                     )}
+=======
+                    <div className="flex flex-wrap gap-1.5">
+                        {net.ssids.map(ssid => (
+                            <SsidChip key={ssid.id} ssid={ssid} />
+                        ))}
+                    </div>
+                )}
+>>>>>>> parent of 30b1732 (Delete frontend directory)
             </td>
 
             {/* Clients */}

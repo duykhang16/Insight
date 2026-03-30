@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+<<<<<<< HEAD
 import { Bell, BellDot, X } from 'lucide-react';
 import { Heartbeat, Users, WifiHigh, Monitor, WarningCircle } from '@phosphor-icons/react';
+=======
+import { Activity, Bell, BellDot, Users, Wifi, Monitor, AlertCircle, X } from 'lucide-react';
+>>>>>>> parent of 30b1732 (Delete frontend directory)
 import apiClient from '../../api/apiClient';
 import { useSite } from '../../context/SiteContext';
 import useIntervalFetch from '../../hooks/useIntervalFetch';
@@ -149,7 +153,11 @@ const SiteDetail = () => {
         {
             key: 'health',
             label: t('site.dashboard.card_health_label'),
+<<<<<<< HEAD
             icon: <Heartbeat className="text-emerald-500" size={24} weight="duotone" />,
+=======
+            icon: <Activity className="text-emerald-500" size={24} />,
+>>>>>>> parent of 30b1732 (Delete frontend directory)
             value: healthScore,
             sub: data ? `Conditions: ${healthConditions}` : '',
             route: `/site/${siteId}/health`,
@@ -166,7 +174,11 @@ const SiteDetail = () => {
         {
             key: 'clients',
             label: t('site.dashboard.card_clients_label'),
+<<<<<<< HEAD
             icon: <Users className="text-blue-500" size={24} weight="duotone" />,
+=======
+            icon: <Users className="text-blue-500" size={24} />,
+>>>>>>> parent of 30b1732 (Delete frontend directory)
             value: connectedClients,
             sub: data ? `Good: ${goodClients} / Fair: ${fairClients} / Poor: ${poorClients}` : '',
             route: `/site/${siteId}/clients`,
@@ -174,7 +186,11 @@ const SiteDetail = () => {
         {
             key: 'networks',
             label: t('site.dashboard.card_networks_label'),
+<<<<<<< HEAD
             icon: <WifiHigh className="text-indigo-500" size={24} weight="duotone" />,
+=======
+            icon: <Wifi className="text-indigo-500" size={24} />,
+>>>>>>> parent of 30b1732 (Delete frontend directory)
             value: activeNetworks,
             sub: data ? `Active: ${activeNetworkCount} / Inactive: ${inactiveNetworks}` : '',
             route: `/site/${siteId}/networks`,
@@ -182,7 +198,11 @@ const SiteDetail = () => {
         {
             key: 'devices',
             label: t('site.dashboard.card_devices_label'),
+<<<<<<< HEAD
             icon: <Monitor className="text-purple-500" size={24} weight="duotone" />,
+=======
+            icon: <Monitor className="text-purple-500" size={24} />,
+>>>>>>> parent of 30b1732 (Delete frontend directory)
             value: onlineDevices,
             sub: data ? `Online: ${onlineDevices} / Offline: ${offlineDevices}` : '',
             route: `/site/${siteId}/devices`,
@@ -300,7 +320,11 @@ const SiteDetail = () => {
 
             {error && (
                 <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-xl flex items-center gap-3 text-rose-600 dark:text-rose-400">
+<<<<<<< HEAD
                     <WarningCircle size={20} weight="duotone" />
+=======
+                    <AlertCircle size={20} />
+>>>>>>> parent of 30b1732 (Delete frontend directory)
                     <span className="text-sm font-bold">{error}</span>
                 </div>
             )}
