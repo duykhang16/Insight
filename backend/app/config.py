@@ -6,7 +6,7 @@ from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv(usecwd=False))
 
 MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
-DATABASE_NAME = os.getenv("DATABASE_NAME", "insights")
+DATABASE_NAME = os.getenv("DATABASE_NAME", "insight_new_rbac")
 
 # Security — Fernet key source (MUST be set via env var in production)
 _DEFAULT_KEY = "secret-internal-key-change-me"
@@ -21,7 +21,7 @@ if INTERNAL_APP_AUTH == _DEFAULT_KEY:
 
 # Super Admins (comma-separated list of emails)
 SUPER_ADMIN_EMAILS = [
-    email.strip()
+    email.strip().lower()
     for email in os.getenv("SUPER_ADMIN_EMAILS", "").split(",")
     if email.strip()
 ]

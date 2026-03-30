@@ -9,21 +9,33 @@ import {
 import UserWidget from './UserWidget';
 import HelpTooltip from '../HelpTooltip';
 import { useLanguage } from '../../context/LanguageContext';
+import { useZone } from '../../context/ZoneContext';
+import { useSite } from '../../context/SiteContext';
 
 const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, rolePermissions = {} }) => {
     const { t } = useLanguage();
     const navigate = useNavigate();
     const location = useLocation();
+    const { zones, loadingZones } = useZone();
+    const { sites, loadingSites } = useSite();
 
     // Accordion: auto-expand if currently on /config
     const isOnConfig = location.pathname === '/config';
     const [configOpen, setConfigOpen] = useState(isOnConfig);
+    const hasNoScope =
+        ['admin', 'viewer', 'delegator'].includes(userRole) &&
+        !loadingZones &&
+        !loadingSites &&
+        zones.length === 0 &&
+        sites.length === 0;
 
     const getNavLinkClass = ({ isActive }) =>
         `group relative flex items-center px-3 py-2.5 mx-2 text-sm font-medium rounded-lg transition-all duration-150 ${isActive
             ? 'bg-blue-600/10 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400'
             : 'th-text-secondary hover:bg-slate-100 dark:hover:bg-white/5 hover:th-text-primary'
         }`;
+
+    const disabledNavLinkClass = 'group relative flex items-center px-3 py-2.5 mx-2 text-sm font-medium rounded-lg transition-all duration-150 th-text-muted opacity-50 cursor-not-allowed';
 
     // Navigate to /config and set tab via search param
     const goToConfigTab = (tab) => {
@@ -39,7 +51,7 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
     const canSeeBatchAccess = rolePermissions.batch_access === true;
     const canSeeBatchDelete = rolePermissions.batch_delete === true;
     const canSeeBatchOps = canSeeBatchAccess || canSeeBatchDelete;
-    const canSeeConfig = (userRole !== 'viewer' || isZoneAdmin) &&
+    const canSeeConfig = (!['viewer', 'delegator'].includes(userRole) || isZoneAdmin) &&
         (canSeeClone || canSeeUpdate || canSeeBatchOps);
 
     // Sub-items for Configuration accordion
@@ -87,15 +99,27 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
 
             {/* Navigation */}
             <nav className="flex-1 overflow-y-auto pt-3 space-y-0.5">
-                <NavLink to="/zones" end className={getNavLinkClass}>
-                    {({ isActive }) => (
-                        <>
-                            {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
-                            <House size={18} weight="duotone" className="mr-3 shrink-0" />
-                            {t('sidebar.dashboard')}
-                        </>
-                    )}
-                </NavLink>
+                {hasNoScope ? (
+                    <button
+                        type="button"
+                        disabled
+                        className={disabledNavLinkClass}
+                        title={t('no_assignments.title')}
+                    >
+                        <House size={18} weight="duotone" className="mr-3 shrink-0" />
+                        {t('sidebar.dashboard')}
+                    </button>
+                ) : (
+                    <NavLink to="/zones" end className={getNavLinkClass}>
+                        {({ isActive }) => (
+                            <>
+                                {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
+                                <House size={18} weight="duotone" className="mr-3 shrink-0" />
+                                {t('sidebar.dashboard')}
+                            </>
+                        )}
+                    </NavLink>
+                )}
 
                 {/* Configuration accordion */}
                 {canSeeConfig && (
@@ -163,8 +187,8 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                     </div>
                 )}
 
-                {/* Tenant Admin section */}
-                {userRole === 'tenant_admin' && (
+                {/* Brand Admin / Admin section */}
+                {['brand_admin', 'admin'].includes(userRole) && (
                     <>
                         <div className="px-4 pt-5 pb-1.5">
                             <span className="text-[10px] font-semibold th-text-muted uppercase tracking-widest">Admin</span>
@@ -178,15 +202,17 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                                 </>
                             )}
                         </NavLink>
-                        <NavLink to="/admin/zones" className={getNavLinkClass}>
-                            {({ isActive }) => (
-                                <>
-                                    {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
-                                    <Stack size={18} weight="duotone" className="mr-3 shrink-0" />
-                                    {t('admin.zones.title')}
-                                </>
-                            )}
-                        </NavLink>
+                        {userRole === 'brand_admin' && (
+                            <NavLink to="/admin/zones" className={getNavLinkClass}>
+                                {({ isActive }) => (
+                                    <>
+                                        {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
+                                        <Stack size={18} weight="duotone" className="mr-3 shrink-0" />
+                                        {t('admin.zones.title')}
+                                    </>
+                                )}
+                            </NavLink>
+                        )}
                         <NavLink to="/admin/users" className={getNavLinkClass}>
                             {({ isActive }) => (
                                 <>
@@ -196,15 +222,17 @@ const GlobalSidebar = ({ onLogout, userRole = 'guest', isZoneAdmin = false, role
                                 </>
                             )}
                         </NavLink>
-                        <NavLink to="/admin/master" className={getNavLinkClass}>
-                            {({ isActive }) => (
-                                <>
-                                    {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
-                                    <LinkSimple size={18} weight="duotone" className="mr-3 shrink-0" />
-                                    {t('admin.master.title')}
-                                </>
-                            )}
-                        </NavLink>
+                        {userRole === 'brand_admin' && (
+                            <NavLink to="/admin/master" className={getNavLinkClass}>
+                                {({ isActive }) => (
+                                    <>
+                                        {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-blue-600 dark:bg-blue-400 rounded-r-full" />}
+                                        <LinkSimple size={18} weight="duotone" className="mr-3 shrink-0" />
+                                        {t('admin.master.title')}
+                                    </>
+                                )}
+                            </NavLink>
+                        )}
                     </>
                 )}
 

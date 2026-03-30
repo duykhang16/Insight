@@ -43,7 +43,7 @@ def _is_admin_role(role: str) -> bool:
 
 
 async def get_status(admin_email: str) -> MasterStatusResponse:
-    """Get master config status for a specific tenant admin."""
+    """Get master config status for a specific brand admin."""
     config = await get_master_config(admin_email)
     if not config or not config.get("is_active"):
         return MasterStatusResponse(is_linked=False)
@@ -120,7 +120,7 @@ async def link_account(
     restricted_site_count: int = 0,
 ) -> MasterLinkResponse:
     """
-    Step 2 of the link flow: store credentials and token for THIS tenant admin.
+    Step 2 of the link flow: store credentials and token for THIS brand admin.
     """
     if not access_token:
         login_result = await replay_login(username, password)

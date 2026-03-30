@@ -117,6 +117,8 @@ const Login = ({ onLoginSuccess }) => {
         sessionStorage.setItem('userRole', data.role || 'viewer');
         sessionStorage.setItem('insight_user_email', data.email || fallbackEmail);
         sessionStorage.setItem('isZoneAdmin', String(data.is_zone_admin === true));
+        sessionStorage.setItem('parentAdminId', data.parent_admin_id || '');
+        sessionStorage.setItem('brandAdminEmail', data.brand_admin_email || '');
         if (data.permissions) {
             sessionStorage.setItem('rolePermissions', JSON.stringify(data.permissions));
         }

@@ -4,7 +4,7 @@ Collections:
   - users        — identity + internal app role
   - audit_logs   — 90-day TTL audit trail
   - zones        — zone/group definitions with site assignments and members
-  - tenants      — customer/company records with assigned tenant_admin
+  - tenants      — customer/company records with assigned brand_admin
   - master_config — singleton Aruba master account config + token cache
 """
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -26,16 +26,23 @@ async def connect_to_mongo():
 
     # === Core collections ===
     await db.users.create_index("email", unique=True)
+    await db.users.create_index("parent_admin_id")
+    await db.users.create_index("brand_admin_email")
     await db.audit_logs.create_index("timestamp", expireAfterSeconds=7776000)
 
     # === Zone management collections ===
-    await db.zones.create_index("name", unique=True)
-    await db.zones.create_index("members.email")
+    existing_zone_indexes = await db.zones.index_information()
+    if "name_1" in existing_zone_indexes:
+        await db.zones.drop_index("name_1")
+    await db.zones.create_index([("brand_admin_email", 1), ("zone_type", 1), ("name", 1)])
+    await db.zones.create_index([("created_by", 1), ("zone_type", 1)])
+    await db.zones.create_index("brand_admin_email")
     await db.zones.create_index("site_ids")
 
     # === Tenants (customers/companies) ===
     await db.tenants.create_index("name", unique=True)
     await db.tenants.create_index("admin_email", sparse=True)
+    await db.tenants.create_index("subscription_status")
 
     # === Master account config (per-tenant) ===
     await db.master_config.create_index([("linked_by", 1), ("is_active", 1)])

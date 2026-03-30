@@ -3,7 +3,7 @@ import apiClient from '../../api/apiClient';
 import { ShieldCheck, Save, RefreshCw, KeyRound, Check, X } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
-const ROLES = ['tenant_admin', 'manager', 'viewer'];
+const ROLES = ['brand_admin', 'admin', 'viewer', 'delegator'];
 
 const SuperPermissions = () => {
     const { t } = useLanguage();
@@ -114,7 +114,7 @@ const SuperPermissions = () => {
                     <div key={role} className="bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
                         <div className="flex items-center justify-between mb-6 border-b border-slate-100 dark:border-slate-800 pb-4">
                             <div className="flex items-center gap-3">
-                                <ShieldCheck size={20} className={role === 'super_admin' ? 'text-rose-500' : role === 'tenant_admin' ? 'text-violet-500' : role === 'manager' ? 'text-amber-500' : 'text-blue-500'} />
+                                <ShieldCheck size={20} className={role === 'super_admin' ? 'text-rose-500' : role === 'brand_admin' ? 'text-violet-500' : role === 'admin' ? 'text-amber-500' : role === 'delegator' ? 'text-sky-500' : 'text-blue-500'} />
                                 <h3 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-wider">{t(`super.permissions.role_header_label`)}: {role.replace('_', ' ')}</h3>
                                 {role === 'super_admin' && (
                                     <span className="text-[10px] font-bold uppercase tracking-widest text-rose-500 bg-rose-500/10 px-2 py-1 rounded ml-2">{t('super.permissions.role_read_only_badge')}</span>

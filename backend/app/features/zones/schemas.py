@@ -4,7 +4,12 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 
 
-VALID_ZONE_ROLES = {"manager", "viewer"}
+VALID_ZONE_ROLES = {"admin", "viewer", "delegator"}
+
+
+class ZoneSiteRoleOverride(BaseModel):
+    site_id: str
+    zone_role: str = Field(..., description="admin | viewer | delegator")
 
 
 # ── Request models ──────────────────────────────────────────────────────────
@@ -27,9 +32,10 @@ class ZoneSitesUpdateRequest(BaseModel):
 
 class ZoneMemberAddRequest(BaseModel):
     email: str
-    zone_role: Optional[str] = Field("viewer", description="manager | viewer")
+    zone_role: Optional[str] = Field("viewer", description="admin | viewer | delegator")
     all_sites: bool = Field(True, description="True = access all sites in zone")
     allowed_site_ids: List[str] = Field(default_factory=list, description="Only when all_sites=False")
+    site_role_overrides: List[ZoneSiteRoleOverride] = Field(default_factory=list)
 
     def validate_role(self):
         if self.zone_role and self.zone_role not in VALID_ZONE_ROLES:
@@ -37,15 +43,18 @@ class ZoneMemberAddRequest(BaseModel):
 
 
 class ZoneMemberUpdateRequest(BaseModel):
-    zone_role: Optional[str] = Field(None, description="manager | viewer")
+    zone_role: Optional[str] = Field(None, description="admin | viewer | delegator")
     all_sites: Optional[bool] = None
     allowed_site_ids: Optional[List[str]] = None
+    site_role_overrides: Optional[List[ZoneSiteRoleOverride]] = None
 
 
 class ZoneMemberSitesUpdateRequest(BaseModel):
     """Update only the site-level permission for a member."""
     all_sites: bool
     allowed_site_ids: List[str] = Field(default_factory=list)
+    site_role_overrides: List[ZoneSiteRoleOverride] = Field(default_factory=list)
+    replacement_admin_email: Optional[str] = None
 
 
 # ── Response models ─────────────────────────────────────────────────────────
@@ -55,6 +64,7 @@ class ZoneMemberResponse(BaseModel):
     zone_role: str
     all_sites: bool = True
     allowed_site_ids: List[str] = Field(default_factory=list)
+    site_role_overrides: List[ZoneSiteRoleOverride] = Field(default_factory=list)
     assigned_by: str
     assigned_at: str  # ISO string
     updated_at: Optional[str] = None
@@ -66,6 +76,8 @@ class ZoneResponse(BaseModel):
     description: Optional[str]
     color: str
     created_by: str
+    brand_admin_email: Optional[str] = None
+    zone_type: str = "canonical"
     created_at: str
     updated_at: str
     site_ids: List[str]
@@ -81,6 +93,8 @@ class ZoneListItem(BaseModel):
     description: Optional[str]
     color: str
     created_by: str
+    brand_admin_email: Optional[str] = None
+    zone_type: str = "canonical"
     created_at: str
     member_count: int
     site_count: int

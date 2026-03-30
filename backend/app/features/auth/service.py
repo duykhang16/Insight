@@ -17,6 +17,7 @@ from app.database.auth_crud import (
     verify_password,
 )
 from app.database.connection import get_database
+from app.database.tenants_crud import get_tenant_by_admin_email
 from app.shared.jwt_utils import (
     create_insight_token,
     verify_insight_token,
@@ -27,6 +28,15 @@ from app.shared import (
     build_qr_svg,
     generate_two_factor_secret,
     verify_two_factor_code,
+)
+from app.shared.rbac import (
+    ROLE_ADMIN,
+    ROLE_BRAND_ADMIN,
+    ROLE_DELEGATOR,
+    ROLE_SUB_ADMIN,
+    ROLE_SUPER_ADMIN,
+    ROLE_VIEWER,
+    normalize_legacy_role,
 )
 
 
@@ -46,16 +56,8 @@ class AuthService:
         if not user.get("isApproved", False):
             raise HTTPException(status_code=403, detail="Tài khoản chưa được kích hoạt. Vui lòng liên hệ Admin.")
 
-        role = user.get("role", "viewer")
-        admin_roles = {"super_admin", "tenant_admin"}
-        if role not in admin_roles:
-            from app.database.member_permissions_crud import get_zone_ids_for_member
-            zone_ids = await get_zone_ids_for_member(email)
-            if not zone_ids:
-                raise HTTPException(
-                    status_code=403,
-                    detail="Bạn chưa được phân quyền quản lý Zone nào. Vui lòng liên hệ Admin.",
-                )
+        role = normalize_legacy_role(user.get("role", ROLE_VIEWER))
+        await self._ensure_brand_is_active(user)
 
         password_hash = user.get("password_hash")
         if not password_hash and user.get("must_set_password"):
@@ -86,13 +88,13 @@ class AuthService:
             error_messages = {
                 "bad_credentials": (401, "Tên đăng nhập hoặc mật khẩu không chính xác."),
                 "not_approved": (403, "Tài khoản của bạn chưa được kích hoạt. Vui lòng liên hệ Admin Master."),
-                "no_zones": (403, "Bạn chưa được phân quyền quản lý Zone nào. Vui lòng liên hệ Admin để được cấp quyền."),
             }
             status_code, detail = error_messages.get(result.error, (401, "Xác thực thất bại."))
             raise HTTPException(status_code=status_code, detail=detail)
 
         user = result.user
-        role = user.get("role", "viewer")
+        role = normalize_legacy_role(user.get("role", ROLE_VIEWER))
+        await self._ensure_brand_is_active(user)
 
         if result.must_set_password:
             setup_token = create_insight_token(
@@ -135,9 +137,10 @@ class AuthService:
         user = await get_user_by_email(payload["sub"])
         if not user or not user.get("isApproved", False):
             raise HTTPException(status_code=403, detail="Tài khoản chưa được phê duyệt.")
+        await self._ensure_brand_is_active(user)
 
         email = payload["sub"]
-        role = user.get("role", payload.get("role", "viewer"))
+        role = normalize_legacy_role(user.get("role", payload.get("role", ROLE_VIEWER)))
         is_zone_admin = await self._check_zone_admin(email, role)
         permissions = await self._get_permissions(role)
 
@@ -147,6 +150,8 @@ class AuthService:
             "role": role,
             "is_zone_admin": is_zone_admin,
             "permissions": permissions,
+            "parent_admin_id": user.get("parent_admin_id"),
+            "brand_admin_email": user.get("brand_admin_email"),
         }
 
     async def refresh_token(self, old_token: str) -> dict:
@@ -157,8 +162,9 @@ class AuthService:
         user = await get_user_by_email(email)
         if not user or not user.get("isApproved", False):
             raise HTTPException(status_code=403, detail="Tài khoản không hợp lệ.")
+        await self._ensure_brand_is_active(user)
 
-        role = user.get("role", "viewer")
+        role = normalize_legacy_role(user.get("role", ROLE_VIEWER))
         new_token = create_insight_token(email=email, role=role)
         return {
             "status": "success",
@@ -345,13 +351,12 @@ class AuthService:
 
     @staticmethod
     async def _check_zone_admin(email: str, role: str) -> bool:
-        """Check if user is a zone manager (only for manager/viewer roles)."""
-        if role in ("super_admin", "tenant_admin"):
+        """Check if user is a zone admin (only for admin/viewer/delegator roles)."""
+        if role in (ROLE_SUPER_ADMIN, ROLE_BRAND_ADMIN):
             return False
-        from app.database.member_permissions_crud import get_zones_for_member
+        from app.database.member_permissions_crud import has_admin_scope
 
-        permissions = await get_zones_for_member(email)
-        return any(p.get("zone_role") == "manager" for p in permissions)
+        return await has_admin_scope(email)
 
     @staticmethod
     async def _get_permissions(role: str) -> dict:
@@ -362,7 +367,7 @@ class AuthService:
 
     async def _build_login_response(self, user: Dict[str, Any]) -> dict:
         if user.get("two_factor_enabled"):
-            role = user.get("role", "viewer")
+            role = normalize_legacy_role(user.get("role", ROLE_VIEWER))
             otp_challenge_token = create_insight_token(
                 email=user["email"],
                 role=role,
@@ -380,7 +385,7 @@ class AuthService:
 
     async def _build_login_success_response(self, user: Dict[str, Any]) -> dict:
         email = user["email"]
-        role = user.get("role", "viewer")
+        role = normalize_legacy_role(user.get("role", ROLE_VIEWER))
         access_token = create_insight_token(email=email, role=role)
         is_zone_admin = await self._check_zone_admin(email, role)
         permissions = await self._get_permissions(role)
@@ -393,7 +398,34 @@ class AuthService:
             "role": role,
             "is_zone_admin": is_zone_admin,
             "permissions": permissions,
+            "parent_admin_id": user.get("parent_admin_id"),
+            "brand_admin_email": user.get("brand_admin_email"),
         }
+
+    @staticmethod
+    async def _ensure_brand_is_active(user: Dict[str, Any]) -> None:
+        role = normalize_legacy_role(user.get("role", ROLE_VIEWER))
+        if role == ROLE_SUPER_ADMIN:
+            return
+
+        brand_admin_email = user.get("brand_admin_email")
+        if role == ROLE_BRAND_ADMIN:
+            brand_admin_email = user.get("email")
+
+        if not brand_admin_email:
+            if role in {ROLE_VIEWER, ROLE_DELEGATOR, ROLE_ADMIN}:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Tài khoản của bạn chưa được gán vào brand nào. Vui lòng liên hệ AITC để hoàn tất phân quyền.",
+                )
+            return
+
+        tenant = await get_tenant_by_admin_email(brand_admin_email)
+        if tenant and tenant.get("subscription_status") == "suspended":
+            raise HTTPException(
+                status_code=403,
+                detail="Thương hiệu của bạn hiện đang bị tạm ngưng do trạng thái thuê bao. Vui lòng liên hệ AITC.",
+            )
 
 
 auth_service = AuthService()

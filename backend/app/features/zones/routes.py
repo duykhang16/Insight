@@ -20,8 +20,10 @@ async def list_zones(
     request: Request,
     user: Dict[str, Any] = Depends(require_internal_admin),
 ):
-    """Admin Master: list zones (scoped by tenant)."""
-    return await service.list_zones(user["email"], caller_role=user.get("role", "tenant_admin"))
+    """Brand/Admin: list zones in their own ownership scope."""
+    if user.get("role") != "brand_admin":
+        raise HTTPException(status_code=403, detail="Chỉ Brand Admin mới được xem danh sách zone quản lý.")
+    return await service.list_zones(user["email"], caller_role=user.get("role", "brand_admin"))
 
 
 @router.get("/my", response_model=List[ZoneListItem])
@@ -29,7 +31,9 @@ async def list_my_zones(request: Request):
     """Any approved user: list zones they belong to."""
     user = await get_current_insight_user(request)
     role = user.get("role", "viewer")
-    return await service.list_my_zones(user["email"], caller_role=role)
+    caller_email = user["email"]
+    caller_role = role
+    return await service.list_my_zones(caller_email, caller_role=caller_role)
 
 
 @router.post("", response_model=ZoneResponse, status_code=201)
@@ -38,12 +42,16 @@ async def create_zone(
     request: Request,
     user: Dict[str, Any] = Depends(require_internal_admin),
 ):
+    if user.get("role") != "brand_admin":
+        raise HTTPException(status_code=403, detail="Chỉ Brand Admin mới được tạo zone.")
     try:
         zone = await service.create_zone(
             name=payload.name,
             created_by=user["email"],
+            brand_admin_email=user["email"],
             description=payload.description,
             color=payload.color,
+            creator_role=user.get("role", "brand_admin"),
         )
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
@@ -51,14 +59,11 @@ async def create_zone(
 
 
 async def _verify_zone_ownership(zone_id: str, user: Dict[str, Any]):
-    """Tenant isolation: tenant_admin can only access zones they created.
-    super_admin is blocked entirely (system-level, no tenant data access)."""
-    if user.get("role") == "super_admin":
-        raise HTTPException(status_code=403, detail="Super Admin không quản lý Zone. Đăng nhập bằng Tenant Admin.")
+    """Brand isolation: brand_admin owns zone management within the brand."""
     zone = await service.get_zone_detail(zone_id)
     if not zone:
         raise HTTPException(status_code=404, detail="Zone không tồn tại.")
-    if zone.created_by != user["email"]:
+    if zone.brand_admin_email != user["email"]:
         raise HTTPException(status_code=403, detail="Bạn không có quyền truy cập Zone này.")
 
 
@@ -66,11 +71,12 @@ async def _verify_zone_ownership(zone_id: str, user: Dict[str, Any]):
 async def get_zone(zone_id: str, request: Request):
     user = await get_current_insight_user(request)
     role = user.get("role", "viewer")
-    # Super admin or tenant admin: verify zone ownership (super blocked, tenant scoped)
-    if role in ("super_admin", "tenant_admin"):
+    if role == "super_admin":
+        raise HTTPException(status_code=403, detail="Super Admin không truy cập trực tiếp zone của brand.")
+    if role == "brand_admin":
         await _verify_zone_ownership(zone_id, user)
     else:
-        # manager/viewer: must be a zone member
+        # admin/viewer/delegator: must be a zone member
         await require_zone_access(zone_id, request)
     zone = await service.get_zone_detail(zone_id)
     if not zone:
@@ -82,10 +88,9 @@ async def get_zone(zone_id: str, request: Request):
 async def update_zone(zone_id: str, payload: ZoneUpdateRequest, request: Request):
     user = await get_current_insight_user(request)
     role = user.get("role", "viewer")
-    if role in ("super_admin", "tenant_admin"):
-        await _verify_zone_ownership(zone_id, user)
-    else:
-        await require_zone_admin(zone_id, request)
+    if role != "brand_admin":
+        raise HTTPException(status_code=403, detail="Chỉ Brand Admin mới được chỉnh sửa thông tin zone.")
+    await _verify_zone_ownership(zone_id, user)
     updates = payload.model_dump(exclude_none=True)
     if not updates:
         raise HTTPException(status_code=400, detail="Không có trường nào để cập nhật.")
@@ -104,6 +109,8 @@ async def delete_zone(
     request: Request,
     user: Dict[str, Any] = Depends(require_internal_admin),
 ):
+    if user.get("role") != "brand_admin":
+        raise HTTPException(status_code=403, detail="Chỉ Brand Admin mới được xóa zone.")
     # Tenant isolation: only owner can delete
     await _verify_zone_ownership(zone_id, user)
     ok = await service.delete_zone(zone_id)
@@ -122,6 +129,8 @@ async def update_zone_sites(
     user: Dict[str, Any] = Depends(require_internal_admin),
 ):
     """Replace site list for a zone. Called by drag-drop frontend."""
+    if user.get("role") != "brand_admin":
+        raise HTTPException(status_code=403, detail="Chỉ Brand Admin mới được thay đổi site của zone.")
     # Tenant isolation: only owner can modify sites
     await _verify_zone_ownership(zone_id, user)
     zone = await service.update_zone_sites(zone_id, payload.site_ids)
@@ -137,8 +146,10 @@ async def add_member(zone_id: str, payload: ZoneMemberAddRequest, request: Reque
     caller = await get_current_insight_user(request)
     role = caller.get("role", "viewer")
     
-    # Tenant isolation + super admin block
-    if role in ("super_admin", "tenant_admin"):
+    # Brand isolation + super admin block
+    if role == "super_admin":
+        raise HTTPException(status_code=403, detail="Super Admin không quản lý trực tiếp thành viên zone của brand.")
+    if role == "brand_admin":
         await _verify_zone_ownership(zone_id, caller)
     else:
         await require_zone_admin(zone_id, request)
@@ -147,18 +158,16 @@ async def add_member(zone_id: str, payload: ZoneMemberAddRequest, request: Reque
     target_user = await get_user_by_email(payload.email)
     if not target_user:
         raise HTTPException(status_code=404, detail="User không tồn tại.")
-        
-    sys_role = target_user.get("role", "viewer")
-    mapped_role = "manager" if sys_role in ["super_admin", "tenant_admin", "manager"] else "viewer"
 
     try:
         zone = await service.add_member(
             zone_id=zone_id,
             email=payload.email,
-            zone_role=mapped_role,
+            zone_role=payload.zone_role or "viewer",
             assigned_by=caller["email"],
             all_sites=payload.all_sites,
             allowed_site_ids=payload.allowed_site_ids,
+            site_role_overrides=[item.model_dump() for item in payload.site_role_overrides],
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -173,7 +182,9 @@ async def update_member(zone_id: str, email: str, payload: ZoneMemberUpdateReque
     role = caller.get("role", "viewer")
     
     # Tenant isolation + super admin block
-    if role in ("super_admin", "tenant_admin"):
+    if role == "super_admin":
+        raise HTTPException(status_code=403, detail="Super Admin không quản lý trực tiếp thành viên zone của brand.")
+    if role == "brand_admin":
         await _verify_zone_ownership(zone_id, caller)
     else:
         await require_zone_admin(zone_id, request)
@@ -184,10 +195,8 @@ async def update_member(zone_id: str, email: str, payload: ZoneMemberUpdateReque
         target_user = await get_user_by_email(email)
         if not target_user:
             raise HTTPException(status_code=404, detail="User không tồn tại.")
-        sys_role = target_user.get("role", "viewer")
-        mapped_role = "manager" if sys_role in ["super_admin", "tenant_admin", "manager"] else "viewer"
         try:
-            zone = await service.update_member_role(zone_id, email, mapped_role)
+            zone = await service.update_member_role(zone_id, email, payload.zone_role)
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
         if not zone:
@@ -196,7 +205,11 @@ async def update_member(zone_id: str, email: str, payload: ZoneMemberUpdateReque
     # Update site permissions if provided
     if payload.all_sites is not None:
         zone = await service.update_member_sites(
-            zone_id, email, payload.all_sites, payload.allowed_site_ids
+            zone_id,
+            email,
+            payload.all_sites,
+            payload.allowed_site_ids,
+            None if payload.site_role_overrides is None else [item.model_dump() for item in payload.site_role_overrides],
         )
         if not zone:
             raise HTTPException(status_code=404, detail="Zone hoặc member không tồn tại.")
@@ -215,12 +228,20 @@ async def update_member_sites(
     """Dedicated endpoint to update a member's site-level permission."""
     caller = await get_current_insight_user(request)
     role = caller.get("role", "viewer")
-    if role in ("super_admin", "tenant_admin"):
+    if role == "super_admin":
+        raise HTTPException(status_code=403, detail="Super Admin không quản lý trực tiếp thành viên zone của brand.")
+    if role == "brand_admin":
         await _verify_zone_ownership(zone_id, caller)
     else:
         await require_zone_admin(zone_id, request)
     zone = await service.update_member_sites(
-        zone_id, email, payload.all_sites, payload.allowed_site_ids
+        zone_id,
+        email,
+        payload.all_sites,
+        payload.allowed_site_ids,
+        [item.model_dump() for item in payload.site_role_overrides],
+        caller["email"],
+        payload.replacement_admin_email,
     )
     if not zone:
         raise HTTPException(status_code=404, detail="Zone hoặc member không tồn tại.")
@@ -231,11 +252,16 @@ async def update_member_sites(
 async def remove_member(zone_id: str, email: str, request: Request):
     caller = await get_current_insight_user(request)
     role = caller.get("role", "viewer")
-    if role in ("super_admin", "tenant_admin"):
+    if role == "super_admin":
+        raise HTTPException(status_code=403, detail="Super Admin không quản lý trực tiếp thành viên zone của brand.")
+    if role == "brand_admin":
         await _verify_zone_ownership(zone_id, caller)
     else:
         await require_zone_admin(zone_id, request)
-    ok = await service.remove_member(zone_id, email)
+    try:
+        ok = await service.remove_member(zone_id, email)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     if not ok:
         raise HTTPException(status_code=404, detail="Zone không tồn tại.")
     return {"message": f"Đã xóa {email} khỏi zone."}
@@ -253,7 +279,9 @@ async def get_zone_logs(
     """Return audit logs filtered to members of this zone."""
     user = await get_current_insight_user(request)
     role = user.get("role", "viewer")
-    if role in ("super_admin", "tenant_admin"):
+    if role == "super_admin":
+        raise HTTPException(status_code=403, detail="Super Admin không xem trực tiếp zone logs của brand.")
+    if role == "brand_admin":
         await _verify_zone_ownership(zone_id, user)
     else:
         await require_zone_access(zone_id, request)

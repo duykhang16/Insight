@@ -133,7 +133,9 @@ const ZoneDashboard = () => {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <h3 className="font-semibold th-text-primary text-sm truncate group-hover:text-blue-400 transition-colors">{zone.name}</h3>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <h3 className="font-semibold th-text-primary text-sm truncate group-hover:text-blue-400 transition-colors">{zone.name}</h3>
+                      </div>
                       {zone.description && (
                         <p className="text-xs th-text-muted mt-0.5 truncate">{zone.description}</p>
                       )}
@@ -206,7 +208,9 @@ const ZoneDashboard = () => {
                           style={{ backgroundColor: zone.color || '#3B82F6' }}
                         />
                         <div>
-                          <div className="th-text-primary font-medium text-sm group-hover:text-blue-400 transition-colors">{zone.name}</div>
+                          <div className="flex items-center gap-2">
+                            <div className="th-text-primary font-medium text-sm group-hover:text-blue-400 transition-colors">{zone.name}</div>
+                          </div>
                           {zone.description && (
                             <div className="text-xs th-text-muted truncate max-w-xs">{zone.description}</div>
                           )}

@@ -1,6 +1,6 @@
 """MongoDB CRUD operations for the master_config collection (per-tenant pattern).
 
-Each tenant_admin has their own master_config document, identified by linked_by (admin email).
+Each brand_admin has their own master_config document, identified by linked_by (admin email).
 """
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Any
@@ -8,7 +8,7 @@ from .connection import get_database
 
 
 async def get_master_config(admin_email: str) -> Optional[Dict[str, Any]]:
-    """Return the active master config for a specific tenant admin, or None."""
+    """Return the active master config for a specific brand admin, or None."""
     db = get_database()
     doc = await db.master_config.find_one({"is_active": True, "linked_by": admin_email})
     if doc and "_id" in doc:
@@ -25,7 +25,7 @@ async def save_master_config(
     refresh_interval_minutes: int = 25,
     extra: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Insert or replace the master config for a specific tenant admin."""
+    """Insert or replace the master config for a specific brand admin."""
     db = get_database()
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(seconds=expires_in_seconds)

@@ -20,6 +20,7 @@ apiClient.interceptors.request.use((config) => {
     if (email) {
         config.headers['X-Insight-User'] = email;
     }
+
     return config;
 }, (error) => Promise.reject(error));
 
@@ -55,6 +56,23 @@ apiClient.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
         const status = error.response ? error.response.status : null;
+        const detail = error.response?.data?.detail;
+        const currentRole = sessionStorage.getItem('userRole') || 'viewer';
+        const isLowerRole = ['admin', 'viewer', 'delegator'].includes(currentRole);
+
+        if (
+            status === 403 &&
+            isLowerRole &&
+            (
+                detail === 'Bạn không còn quyền truy cập site này.' ||
+                detail === 'Bạn không có quyền truy cập vào Zone này.'
+            ) &&
+            window.location.pathname !== '/zones'
+        ) {
+            sessionStorage.removeItem('selectedSiteId');
+            window.location.href = '/zones';
+            return Promise.reject(error);
+        }
 
         // Không auto-refresh cho các auth endpoints để tránh vòng lặp vô tận
         const isAuthEndpoint = originalRequest.url?.includes('/login')

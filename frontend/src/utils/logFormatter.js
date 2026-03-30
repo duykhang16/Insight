@@ -29,7 +29,7 @@ export const formatAction = (method, endpoint, defaultAction, payloadStr) => {
     if (lowerEndpoint.includes('/super/permissions') && method === 'GET') return 'View Role Permissions';
 
     // Super Admin - Tenants
-    if (lowerEndpoint.includes('/super/tenants') && lowerEndpoint.includes('assign-admin')) return 'Assign Tenant Admin';
+    if (lowerEndpoint.includes('/super/tenants') && lowerEndpoint.includes('assign-admin')) return 'Assign Brand Admin';
     if (lowerEndpoint.includes('/super/tenants') && method === 'POST') return 'Create Tenant';
     if (lowerEndpoint.includes('/super/tenants') && method === 'PUT') return 'Update Tenant';
     if (lowerEndpoint.includes('/super/tenants') && method === 'DELETE') return 'Delete Tenant';

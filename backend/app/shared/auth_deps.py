@@ -4,16 +4,17 @@ All routes authenticate via Insight JWT (HS256, 8 h expiry).
 Aruba operations additionally require a linked Master Account (per-tenant).
 
 Tier hierarchy:
-  super_admin   → DEV-level, full control, creates tenant_admin accounts
-  tenant_admin  → Tenant master, links 1 Aruba account, manages all sites in tenant, creates manager/viewer
-  manager       → Sub-account, assigned sites by tenant_admin, Full Clone + Smart Sync only
-  viewer        → Sub-account, assigned sites by tenant_admin, read-only
+  super_admin   → AITC platform admin, creates brand admins, controls subscription state
+  brand_admin   → Brand owner, links 1 Aruba account, manages brand users/zones/sites
+  admin         → Zone-scoped operator under a brand_admin
+  viewer        → Low-authority user under an admin
+  delegator     → Low-authority user under an admin
 
 get_current_insight_user   → any authenticated + approved user
 require_super_admin        → super_admin only
-require_internal_admin     → super_admin OR tenant_admin
-is_admin_role(user)        → helper: True if super_admin or tenant_admin
-resolve_admin_email(user)  → resolve the tenant admin email for Aruba operations
+require_internal_admin     → super_admin OR brand_admin OR admin
+is_admin_role(user)        → helper: True if super_admin or brand_admin
+resolve_admin_email(request, user) → resolve the brand admin email for Aruba operations
 require_master_token       → returns master Aruba token for caller's tenant, 503 if not linked
 
 Zone deps:
@@ -26,6 +27,15 @@ from app.shared.jwt_utils import verify_insight_session_token
 from app.database.auth_crud import get_user_by_email
 from app.database.zones_crud import get_zone_by_id
 from app.database.member_permissions_crud import get_zone_role_for_user
+from app.shared.rbac import (
+    ROLE_BRAND_ADMIN,
+    ROLE_DELEGATOR,
+    ROLE_SUB_ADMIN,
+    ROLE_SUPER_ADMIN,
+    ROLE_VIEWER,
+    is_brand_admin_role,
+    normalize_legacy_role,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -50,8 +60,9 @@ async def get_current_insight_user(request: Request) -> Dict[str, Any]:
     if not user.get("isApproved", False):
         raise HTTPException(status_code=403, detail="Tài khoản chưa được phê duyệt.")
 
+    user["role"] = normalize_legacy_role(user.get("role"))
     # Attach JWT role to user doc for downstream checks
-    user["_jwt_role"] = payload.get("role", user.get("role", "viewer"))
+    user["_jwt_role"] = normalize_legacy_role(payload.get("role", user.get("role", "viewer")))
     return user
 
 
@@ -60,35 +71,35 @@ async def get_current_insight_user(request: Request) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 def is_admin_role(user: Dict[str, Any]) -> bool:
-    """Return True if user is super_admin or tenant_admin (admin-tier)."""
-    return user.get("role") in ("super_admin", "tenant_admin")
+    """Return True if user is super_admin or brand_admin (admin-tier)."""
+    return user.get("role") in (ROLE_SUPER_ADMIN, ROLE_BRAND_ADMIN)
 
 
-def resolve_admin_email(user: Dict[str, Any]) -> str:
-    """Resolve the tenant admin email that owns the Aruba master config.
+async def resolve_admin_email(request: Request, user: Dict[str, Any], required_scope: str = "") -> str:
+    """Resolve the brand admin email that owns the Aruba master config.
     
-    - tenant_admin → own email
-    - manager/viewer → parent_admin_id (the tenant_admin who created them)
-    - super_admin → cannot access Aruba directly (403)
+    - brand_admin → own email
+    - admin/viewer/delegator → brand_admin_email
+    - super_admin → blocked from brand data access
     """
-    role = user.get("role", "viewer")
+    role = user.get("role", ROLE_VIEWER)
     
-    if role == "tenant_admin":
+    if role == ROLE_BRAND_ADMIN:
         return user["email"]
     
-    if role in ("manager", "viewer"):
-        admin_email = user.get("parent_admin_id")
+    if role in (ROLE_SUB_ADMIN, ROLE_VIEWER, ROLE_DELEGATOR):
+        admin_email = user.get("brand_admin_email")
         if not admin_email:
             raise HTTPException(
                 status_code=403,
-                detail="Tài khoản chưa được gán cho Tenant Admin nào. Liên hệ Admin."
+                detail="Tài khoản chưa được gán cho Brand Admin nào. Liên hệ Admin."
             )
         return admin_email
     
-    if role == "super_admin":
+    if role == ROLE_SUPER_ADMIN:
         raise HTTPException(
             status_code=403,
-            detail="Super Admin không trực tiếp quản lý site Aruba. Đăng nhập bằng Tenant Admin."
+            detail="Super Admin không truy cập trực tiếp dữ liệu brand ở thời điểm hiện tại.",
         )
     
     raise HTTPException(status_code=403, detail="Role không hợp lệ.")
@@ -101,15 +112,15 @@ def resolve_admin_email(user: Dict[str, Any]) -> str:
 async def require_super_admin(request: Request) -> Dict[str, Any]:
     """Super-admin-only gate. DEV-level access."""
     user = await get_current_insight_user(request)
-    if user.get("role") != "super_admin":
+    if user.get("role") != ROLE_SUPER_ADMIN:
         raise HTTPException(status_code=403, detail="Yêu cầu quyền Super Admin.")
     return user
 
 
 async def require_internal_admin(request: Request) -> Dict[str, Any]:
-    """Admin-tier gate (super_admin OR tenant_admin). Used by /admin/* routes."""
+    """User-management gate (super_admin OR brand_admin OR admin)."""
     user = await get_current_insight_user(request)
-    if not is_admin_role(user):
+    if user.get("role") not in (ROLE_SUPER_ADMIN, ROLE_BRAND_ADMIN, ROLE_SUB_ADMIN):
         raise HTTPException(status_code=403, detail="Yêu cầu quyền Admin.")
     return user
 
@@ -125,13 +136,13 @@ async def require_master_token(
     """Return the active master Aruba Bearer token for the caller's tenant.
 
     Resolves admin_email from user context:
-      - tenant_admin → own email
-      - manager/viewer → parent_admin_id
-      - super_admin → 403 (cannot access Aruba directly)
+      - brand_admin → own email
+      - admin/viewer/delegator → brand_admin_email
+      - super_admin → blocked
 
     Raises HTTP 503 if master account is not linked or refresh fails.
     """
-    admin_email = resolve_admin_email(user)
+    admin_email = await resolve_admin_email(request, user)
     from app.features.master.service import get_master_token_auto
     token = await get_master_token_auto(admin_email)
     if not token:
@@ -159,8 +170,8 @@ class RoleChecker:
         return user
 
 
-require_operator = RoleChecker(["super_admin", "tenant_admin"])
-require_admin    = RoleChecker(["super_admin", "tenant_admin"])
+require_operator = RoleChecker([ROLE_SUPER_ADMIN, ROLE_BRAND_ADMIN, ROLE_SUB_ADMIN])
+require_admin = RoleChecker([ROLE_SUPER_ADMIN, ROLE_BRAND_ADMIN])
 
 
 # ---------------------------------------------------------------------------
@@ -170,7 +181,9 @@ require_admin    = RoleChecker(["super_admin", "tenant_admin"])
 async def require_zone_access(zone_id: str, request: Request) -> Dict[str, Any]:
     """Require caller to be a member of the zone (or admin-tier user)."""
     user = await get_current_insight_user(request)
-    if is_admin_role(user):
+    if user.get("role") == ROLE_SUPER_ADMIN:
+        raise HTTPException(status_code=403, detail="Super Admin không truy cập trực tiếp zone của brand.")
+    if is_brand_admin_role(user.get("role")):
         return user
     zone_role = await get_zone_role_for_user(zone_id, user["email"])
     if not zone_role:
@@ -182,14 +195,16 @@ async def require_zone_access(zone_id: str, request: Request) -> Dict[str, Any]:
 async def require_zone_admin(zone_id: str, request: Request) -> Dict[str, Any]:
     """Require caller to be a zone-level admin (or admin-tier user)."""
     user = await get_current_insight_user(request)
-    if is_admin_role(user):
+    if user.get("role") == ROLE_SUPER_ADMIN:
+        raise HTTPException(status_code=403, detail="Super Admin không quản lý trực tiếp zone của brand.")
+    if is_brand_admin_role(user.get("role")):
         return user
     zone = await get_zone_by_id(zone_id)
     if not zone:
         raise HTTPException(status_code=404, detail="Zone không tồn tại.")
     zone_role = await get_zone_role_for_user(zone_id, user["email"])
-    if zone_role != "manager":
-        raise HTTPException(status_code=403, detail="Yêu cầu quyền Zone Manager.")
+    if zone_role != ROLE_SUB_ADMIN:
+        raise HTTPException(status_code=403, detail="Yêu cầu quyền Zone Admin.")
     user["_zone_role"] = zone_role
     return user
 

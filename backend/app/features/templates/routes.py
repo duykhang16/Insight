@@ -32,8 +32,8 @@ router = APIRouter(prefix="/templates", tags=["templates"])
 
 
 def _require_admin(user: Dict[str, Any]):
-    if user.get("role") not in ["super_admin", "tenant_admin"]:
-        raise HTTPException(status_code=403, detail="Chỉ admin mới có thể quản lý template.")
+    if user.get("role") != "brand_admin":
+        raise HTTPException(status_code=403, detail="Chỉ Brand Admin mới có thể quản lý template.")
 
 
 # ── List / Get ──────────────────────────────────────────────────────────────
